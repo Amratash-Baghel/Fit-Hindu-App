@@ -15,7 +15,11 @@ first failure and report it — never commit red.
    user must do — e.g. pending migrations).
 5. If a decision worth remembering was made, add a dated line to
    `docs/decisions.md`.
-6. Commit with a clear message and push.
+6. **Learning entry (SOP §5):** add one entry to `docs/learning-log.md` —
+   pick ONE concept from this feature (a pattern, a mechanism, a term) and
+   explain it plainly, pointing at the real file in this repo where it lives.
+   Then ask the user one quick check-question about it in the final message.
+7. Commit with a clear message and push.
 7. Final message to the user: what shipped, evidence it works (screenshot /
    green checks), and any USER MUST RUN steps — repeated even if already
    mentioned mid-session.
