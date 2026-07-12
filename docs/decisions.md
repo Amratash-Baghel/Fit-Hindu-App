@@ -11,6 +11,14 @@ One dated line per decision, with the why. Newest on top.
   larger Hindu audience than a buyer-gated companion, while Herbal Deck products
   cross-sell inside. Programs-platform architecture unchanged (now product- and
   deity-agnostic). idea.md rewritten to v1. Name/trademark availability pending.
+- **2026-07-12 (data model)** — v1 schema designed & written (migrations
+  0001–0007 + seed): deities/programs are TABLES not enums (admin-extensible,
+  platform rule); `media` table is the swappable Bunny layer; `activity_log`
+  is append-only with streaks as computed SQL functions (IST); plan engine =
+  jsonb `assignment_rules` (priority, first-match); one-active-plan partial
+  unique index; workout modes are filters over one GIN-indexed exercise
+  library. Templates-only confirmed by owner (AI custom plans later →
+  `user_plan_day_overrides` slot-in). All SQL parse-validated via libpg-query.
 - **2026-07-12 (product lock)** — Feature set confirmed and spec'd
   (docs/specs/): (a) **language is onboarding question #1** with three display
   modes — Hindi-only / English-only / Mixed (Hindi lead + English caption;
