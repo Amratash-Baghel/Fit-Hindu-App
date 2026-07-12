@@ -11,6 +11,22 @@ One dated line per decision, with the why. Newest on top.
   larger Hindu audience than a buyer-gated companion, while Herbal Deck products
   cross-sell inside. Programs-platform architecture unchanged (now product- and
   deity-agnostic). idea.md rewritten to v1. Name/trademark availability pending.
+- **2026-07-12 (product lock)** — Feature set confirmed and spec'd
+  (docs/specs/): (a) **language is onboarding question #1** with three display
+  modes — Hindi-only / English-only / Mixed (Hindi lead + English caption;
+  mixed was too cluttered as the only option); (b) **three workout modes** —
+  home (desi bodyweight), gym, custom-by-body-area — all filters over one
+  admin-authored **exercise object** library (create + name + upload video in
+  admin; plans reference objects, never copy); (c) **sounds are admin-uploaded
+  objects** feeding meditation/sleep/jap; (d) **meditation = 3-click flow**
+  Start (ॐ autoplays) → sound selector → Next → instructions + 15-min default
+  timer → Start → chant visual + ticking timer + completion bell; (e)
+  **everything recorded**: per-activity ✓ ticks on home, daily streak,
+  per-habit streaks, growing profile/history. **Points (fitness/bhakti),
+  milestone rewards (e.g. Bajrangvati discount), friends/leaderboard →
+  roadmap, schema-ready via activity_log but not built in v1** (rewards touch
+  deferred monetization; social needs privacy/moderation). Design direction
+  (black/saffron/gold mockups) approved as app structure.
 - **2026-07-12 (owner meeting)** — v1 ships **Google Play only**; iOS/App Store
   deferred. Why: owner call; also removes the Apple D-U-N-S/enrollment delay
   from the critical path. D-U-N-S + Play listing owned by another team member.

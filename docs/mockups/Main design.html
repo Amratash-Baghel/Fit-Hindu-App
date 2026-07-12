@@ -1,0 +1,444 @@
+<title>Fit Hindu — v1 Mockups (6 core screens)</title>
+<style>
+  :root{
+    --ink-black:#0F0B07; --surface:#1C1510; --surface-2:#28201A;
+    --saffron:#F0761E; --saffron-deep:#B84A16;
+    --gold:#D9A441; --gold-hi:#F2C879;
+    --cream:#F6EDDD; --muted:#A8917A; --line:#3A2E24;
+    --night:#0B0E1A; --night-surface:#151A2E;
+    --ok:#7CB07F;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    background:var(--ink-black); color:var(--cream);
+    font-family:"Nirmala UI","Noto Sans Devanagari","Mangal",system-ui,sans-serif;
+    padding:28px 20px 48px;
+  }
+  .studio-head{max-width:1200px;margin:0 auto 6px}
+  .studio-head h1{font-size:22px;font-weight:700;letter-spacing:.2px}
+  .studio-head h1 em{font-style:normal;color:var(--saffron)}
+  .studio-head p{color:var(--muted);font-size:13px;margin-top:4px;max-width:70ch}
+  .rail{
+    display:flex;gap:34px;overflow-x:auto;padding:26px 4px 18px;
+    scroll-snap-type:x proximity;
+  }
+  .shot{scroll-snap-align:start;flex:0 0 auto}
+  .shot > figcaption{
+    text-align:center;color:var(--muted);font-size:12px;letter-spacing:1.4px;
+    text-transform:uppercase;margin-bottom:12px;font-family:Consolas,monospace;
+  }
+  .phone{
+    width:390px;height:844px;background:var(--ink-black);
+    border:1px solid var(--line);border-radius:44px;overflow:hidden;
+    position:relative;display:flex;flex-direction:column;
+    box-shadow:0 30px 80px rgba(0,0,0,.55), 0 0 0 8px #060402;
+  }
+  .statusbar{
+    height:44px;display:flex;align-items:center;justify-content:space-between;
+    padding:0 26px;font-size:12px;color:var(--muted);flex:none;
+    font-variant-numeric:tabular-nums;
+  }
+  .notch{position:absolute;top:12px;left:50%;transform:translateX(-50%);
+    width:118px;height:22px;background:#000;border-radius:12px}
+  .body{flex:1;overflow:hidden;display:flex;flex-direction:column;padding:8px 20px 0}
+
+  /* ---------- shared components ---------- */
+  .btn-gold{
+    display:block;width:100%;text-align:center;padding:16px;
+    background:linear-gradient(160deg,var(--gold-hi),var(--gold) 55%,#B07E2B);
+    color:#241503;font-weight:700;font-size:17px;border-radius:14px;
+    box-shadow:0 6px 22px rgba(217,164,65,.28);border:none;cursor:pointer;
+  }
+  .btn-gold small{display:block;font-weight:500;font-size:11px;opacity:.75}
+  .btn-ghost{
+    display:block;width:100%;text-align:center;padding:14px;border-radius:14px;
+    border:1px solid var(--line);color:var(--muted);font-size:15px;background:none;
+  }
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:18px}
+  .chip{
+    display:inline-flex;align-items:center;gap:6px;padding:6px 14px;
+    border-radius:999px;border:1px solid var(--line);font-size:13px;color:var(--muted)
+  }
+  .chip.on{background:rgba(240,118,30,.14);border-color:var(--saffron);color:var(--saffron);font-weight:700}
+  .eyebrow{font-size:11px;letter-spacing:2px;color:var(--gold);text-transform:uppercase;font-weight:700}
+  .en{font-size:11px;color:var(--muted);letter-spacing:.4px}
+  .disclaimer{
+    font-size:10.5px;color:#7d6a58;line-height:1.5;border-top:1px solid var(--line);
+    padding:10px 2px 12px;margin-top:auto;
+  }
+  .tabbar{
+    flex:none;display:flex;justify-content:space-around;align-items:center;
+    border-top:1px solid var(--line);padding:10px 6px 22px;background:#120D08;
+  }
+  .tab{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10.5px;color:var(--muted)}
+  .tab svg{width:22px;height:22px;stroke:var(--muted);fill:none;stroke-width:1.7}
+  .tab.on{color:var(--saffron);font-weight:700}
+  .tab.on svg{stroke:var(--saffron)}
+  .diya{width:26px;height:26px}
+
+  /* ---------- 1 · onboarding ---------- */
+  .dots{display:flex;gap:8px;justify-content:center;margin:14px 0 26px}
+  .dots i{width:8px;height:8px;border-radius:99px;background:var(--line)}
+  .dots i.on{background:var(--saffron);width:22px}
+  .q-hero{font-size:27px;font-weight:800;line-height:1.35;text-wrap:balance}
+  .opt{
+    display:flex;align-items:center;gap:14px;padding:17px 18px;margin-top:12px;
+    border-radius:16px;border:1.5px solid var(--line);background:var(--surface);
+    font-size:17px;font-weight:600;
+  }
+  .opt .en{display:block;font-weight:400;margin-top:2px}
+  .opt.sel{border-color:var(--saffron);background:rgba(240,118,30,.10)}
+  .opt.sel .tick{background:var(--saffron);border-color:var(--saffron)}
+  .tick{width:22px;height:22px;border-radius:99px;border:1.5px solid var(--muted);
+    flex:none;display:grid;place-items:center;color:#1b0f05;font-size:13px;font-weight:900}
+
+  /* ---------- 2 · home ---------- */
+  .greet h2{font-size:21px;font-weight:800}
+  .greet .en{margin-top:2px}
+  .shloka{
+    padding:16px 18px;margin-top:14px;position:relative;overflow:hidden;
+    background:linear-gradient(150deg,#241407,#1C1510 70%);
+    border:1px solid #4a3416;border-radius:18px;
+  }
+  .shloka:before{content:"ॐ";position:absolute;right:-6px;top:-18px;font-size:92px;
+    color:rgba(217,164,65,.08);font-weight:700}
+  .shloka .sansk{font-size:15.5px;line-height:1.65;color:var(--gold-hi);font-weight:600}
+  .shloka .mean{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.5}
+  .streak{display:flex;align-items:center;gap:10px;margin-top:14px;padding:12px 16px}
+  .streak .n{font-size:26px;font-weight:800;color:var(--gold);font-variant-numeric:tabular-nums}
+  .streak .lbl{font-size:12px;color:var(--muted);line-height:1.35}
+  .diyarow{display:flex;gap:5px;margin-left:auto}
+  .today{display:flex;flex-direction:column;gap:10px;margin-top:14px}
+  .t-card{display:flex;align-items:center;gap:14px;padding:13px 14px}
+  .t-ico{width:46px;height:46px;border-radius:13px;flex:none;display:grid;place-items:center;
+    background:rgba(240,118,30,.13);color:var(--saffron)}
+  .t-ico.gold{background:rgba(217,164,65,.13);color:var(--gold)}
+  .t-card b{font-size:15.5px;display:block}
+  .t-card .en{margin-top:1px}
+  .t-go{margin-left:auto;color:var(--saffron);font-size:20px}
+  .t-done{margin-left:auto;color:var(--ok);font-size:13px;font-weight:700}
+
+  /* ---------- 3 · workout ---------- */
+  .video{
+    height:250px;border-radius:20px;position:relative;overflow:hidden;flex:none;
+    background:radial-gradient(120% 100% at 50% 0%,#2E1A08 0%,#160E06 70%);
+    border:1px solid #4a3416;display:grid;place-items:center;margin-top:8px;
+  }
+  .avatar-note{position:absolute;top:12px;left:12px;font-size:10px;letter-spacing:1.4px;
+    color:var(--gold);border:1px solid #4a3416;padding:4px 10px;border-radius:99px;
+    background:rgba(15,11,7,.6);text-transform:uppercase}
+  .play{width:66px;height:66px;border-radius:99px;display:grid;place-items:center;
+    background:linear-gradient(160deg,var(--gold-hi),var(--gold));
+    box-shadow:0 8px 30px rgba(217,164,65,.4)}
+  .play svg{margin-left:4px}
+  .ex-name{font-size:22px;font-weight:800;margin-top:16px}
+  .setrow{display:flex;gap:10px;margin-top:12px}
+  .setbox{flex:1;text-align:center;padding:11px 6px}
+  .setbox b{font-size:19px;color:var(--saffron);font-variant-numeric:tabular-nums;display:block}
+  .setbox span{font-size:11px;color:var(--muted)}
+  .uplist{margin-top:14px;display:flex;flex-direction:column;gap:8px;overflow:hidden}
+  .uprow{display:flex;align-items:center;gap:12px;padding:10px 12px;font-size:14px}
+  .uprow .n{width:26px;height:26px;border-radius:9px;background:var(--surface-2);
+    display:grid;place-items:center;font-size:12px;color:var(--muted);flex:none;
+    font-variant-numeric:tabular-nums}
+  .uprow .dur{margin-left:auto;color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
+
+  /* ---------- 4 · diet ---------- */
+  .daytabs{display:flex;gap:8px;overflow:hidden;margin-top:8px}
+  .meal{padding:15px 16px;margin-top:10px}
+  .meal-head{display:flex;align-items:baseline;gap:10px}
+  .meal-head b{font-size:16.5px}
+  .meal-head .kcal{margin-left:auto;font-size:12px;color:var(--gold);font-variant-numeric:tabular-nums}
+  .meal ul{list-style:none;margin-top:9px;display:flex;flex-direction:column;gap:7px}
+  .meal li{display:flex;align-items:center;gap:9px;font-size:14px;color:#D9CBB8}
+  .veg{width:13px;height:13px;border:1.5px solid var(--ok);border-radius:3px;flex:none;
+    display:grid;place-items:center}
+  .veg i{width:6px;height:6px;background:var(--ok);border-radius:99px}
+
+  /* ---------- 5 · jap ---------- */
+  .deities{display:flex;gap:8px;margin-top:12px;justify-content:center}
+  .mala-wrap{display:grid;place-items:center;margin-top:24px}
+  .mala{width:244px;height:244px;border-radius:50%;position:relative;display:grid;place-items:center;
+    background:
+      radial-gradient(closest-side,var(--ink-black) 78%,transparent 79%),
+      conic-gradient(var(--saffron) 0deg 121deg, var(--surface-2) 121deg 360deg);
+  }
+  .mala:after{content:"";position:absolute;inset:-14px;border-radius:50%;
+    border:1px dashed #4a3416}
+  .mala .count{font-size:56px;font-weight:800;color:var(--gold-hi);font-variant-numeric:tabular-nums;line-height:1}
+  .mala .of{font-size:13px;color:var(--muted);margin-top:6px}
+  .mala-center{text-align:center}
+  .jap-mantra{text-align:center;margin-top:18px;font-size:19px;font-weight:700;color:var(--saffron)}
+  .jap-sub{text-align:center;font-size:12px;color:var(--muted);margin-top:4px}
+  .soundrow{display:flex;gap:8px;justify-content:center;margin-top:16px}
+
+  /* ---------- 6 · sleep ---------- */
+  .phone.night{background:var(--night)}
+  .phone.night .body{background:
+    radial-gradient(90% 40% at 50% -5%,#1B2342 0%,transparent 70%)}
+  .phone.night .card{background:var(--night-surface);border-color:#252D4A}
+  .phone.night .tabbar{background:#080A14;border-color:#1C2340}
+  .moon{font-size:44px;text-align:center;margin-top:18px}
+  .sleep-h{text-align:center;font-size:22px;font-weight:800;margin-top:8px}
+  .sleep-sub{text-align:center;font-size:12.5px;color:#8E96B8;margin-top:4px}
+  .s-row{display:flex;align-items:center;gap:14px;padding:13px 15px;margin-top:9px}
+  .s-ico{width:42px;height:42px;border-radius:12px;background:rgba(217,164,65,.10);
+    display:grid;place-items:center;font-size:19px;flex:none}
+  .s-row b{font-size:15px;display:block}
+  .s-row .en{color:#8E96B8}
+  .s-play{margin-left:auto;width:34px;height:34px;border-radius:99px;border:1px solid #2A3252;
+    display:grid;place-items:center;color:var(--gold)}
+  .s-timer{display:flex;align-items:center;justify-content:space-between;
+    padding:13px 16px;margin-top:14px;font-size:14px}
+  .s-timer b{color:var(--gold);font-variant-numeric:tabular-nums}
+</style>
+
+<header class="studio-head">
+  <h1>Fit <em>Hindu</em> — v1 design, six core screens</h1>
+  <p>Premium black · saffron · gold. Diya-glow on warm black; gold spent only on the primary
+     action and the streak. Hindi is the voice, English whispers. Sleep shifts to night-indigo —
+     same system, different hour of the day. Scroll →</p>
+</header>
+
+<div class="rail">
+
+<!-- ════════ 1 · ONBOARDING ════════ -->
+<figure class="shot">
+  <figcaption>1 · Onboarding — प्रश्नावली</figcaption>
+  <div class="phone"><div class="notch"></div>
+    <div class="statusbar"><span>9:41</span><span>▮▮▮ ⌁ 78%</span></div>
+    <div class="body">
+      <div class="dots"><i></i><i></i><i class="on"></i><i></i><i></i></div>
+      <span class="eyebrow">प्रश्न ३ / ५</span>
+      <h2 class="q-hero" style="margin-top:8px">आपका मुख्य लक्ष्य<br>क्या है?</h2>
+      <span class="en" style="margin-top:6px">What is your main goal?</span>
+
+      <div style="margin-top:18px">
+        <div class="opt"><span class="tick"></span><span>वजन बढ़ाना <span class="en">Weight gain</span></span></div>
+        <div class="opt sel"><span class="tick">✓</span><span>शरीर मज़बूत बनाना <span class="en">Build strength</span></span></div>
+        <div class="opt"><span class="tick"></span><span>वजन घटाना <span class="en">Weight loss</span></span></div>
+        <div class="opt"><span class="tick"></span><span>स्वस्थ दिनचर्या <span class="en">Healthy routine</span></span></div>
+      </div>
+
+      <div style="margin-top:auto;padding-bottom:14px">
+        <button class="btn-gold">आगे बढ़ें<small>Continue</small></button>
+      </div>
+      <p class="disclaimer">यह ऐप केवल सामान्य स्वास्थ्य जानकारी देता है — यह चिकित्सा सलाह नहीं है।
+      कोई भी नया व्यायाम या आहार शुरू करने से पहले चिकित्सक से परामर्श करें।</p>
+    </div>
+  </div>
+</figure>
+
+<!-- ════════ 2 · HOME ════════ -->
+<figure class="shot">
+  <figcaption>2 · Daily Home — आज</figcaption>
+  <div class="phone"><div class="notch"></div>
+    <div class="statusbar"><span>6:05</span><span>▮▮▮ ⌁ 92%</span></div>
+    <div class="body">
+      <div class="greet" style="display:flex;align-items:center">
+        <div>
+          <h2>🙏 राम राम, अमरताश</h2>
+          <span class="en">शनिवार · श्रावण शुक्ल तृतीया</span>
+        </div>
+        <span class="chip on" style="margin-left:auto">हनुमान जी</span>
+      </div>
+
+      <div class="shloka">
+        <span class="eyebrow">आज का श्लोक</span>
+        <p class="sansk">बुद्धिर्बलं यशो धैर्यं निर्भयत्वमरोगता ।<br>अजाड्यं वाक्पटुत्वं च हनुमत्स्मरणाद् भवेत् ॥</p>
+        <p class="mean">हनुमान जी के स्मरण से बुद्धि, बल, यश, धैर्य, निर्भयता और आरोग्य प्राप्त होते हैं।</p>
+      </div>
+
+      <div class="card streak">
+        <svg class="diya" viewBox="0 0 24 24"><path d="M12 3c1.8 2 1.4 3.8 0 5-1.4-1.2-1.8-3 0-5z" fill="#F2C879"/><path d="M4 13h16c0 3.3-3.6 6-8 6s-8-2.7-8-6z" fill="#B84A16"/><path d="M12 8.5c.9 1 .7 1.9 0 2.5-.7-.6-.9-1.5 0-2.5z" fill="#F0761E"/></svg>
+        <div><span class="n">7 दिन</span><div class="lbl">संकल्प जारी है — २१ दिन का लक्ष्य</div></div>
+        <div class="diyarow">
+          <svg class="diya" viewBox="0 0 24 24" opacity=".9"><path d="M4 13h16c0 3.3-3.6 6-8 6s-8-2.7-8-6z" fill="#D9A441"/></svg>
+          <svg class="diya" viewBox="0 0 24 24" opacity=".55"><path d="M4 13h16c0 3.3-3.6 6-8 6s-8-2.7-8-6z" fill="#D9A441"/></svg>
+          <svg class="diya" viewBox="0 0 24 24" opacity=".25"><path d="M4 13h16c0 3.3-3.6 6-8 6s-8-2.7-8-6z" fill="#D9A441"/></svg>
+        </div>
+      </div>
+
+      <div class="today">
+        <div class="card t-card">
+          <div class="t-ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6.5 6.5v11M17.5 6.5v11M6.5 12h11M3 9v6M21 9v6"/></svg></div>
+          <div><b>आज का व्यायाम</b><span class="en">Full body · 18 min · Day 8/28</span></div>
+          <span class="t-go">›</span>
+        </div>
+        <div class="card t-card">
+          <div class="t-ico gold"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"/><path d="M12 4v-2M12 22v-2"/></svg></div>
+          <div><b>आज का आहार</b><span class="en">सात्विक · 3 भोजन</span></div>
+          <span class="t-done">✓ नाश्ता हुआ</span>
+        </div>
+        <div class="card t-card">
+          <div class="t-ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3c-4 4-6 7-6 10a6 6 0 0 0 12 0c0-3-2-6-6-10z"/></svg></div>
+          <div><b>ध्यान · १० मिनट</b><span class="en">श्वास पर ध्यान</span></div>
+          <span class="t-go">›</span>
+        </div>
+        <div class="card t-card">
+          <div class="t-ico gold"><span style="font-size:20px;font-weight:800">ॐ</span></div>
+          <div><b>हनुमान मंत्र जप</b><span class="en">१ माला · 108 जप</span></div>
+          <span class="t-go">›</span>
+        </div>
+      </div>
+    </div>
+    <div class="tabbar">
+      <span class="tab on"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9h-5v-6h-6v6H4z"/></svg>होम</span>
+      <span class="tab"><svg viewBox="0 0 24 24"><path d="M6.5 6.5v11M17.5 6.5v11M6.5 12h11"/></svg>व्यायाम</span>
+      <span class="tab"><svg viewBox="0 0 24 24"><path d="M12 3c-4 4-6 7-6 10a6 6 0 0 0 12 0c0-3-2-6-6-10z"/></svg>ध्यान</span>
+      <span class="tab"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>जप</span>
+      <span class="tab"><svg viewBox="0 0 24 24"><path d="M20 13A8 8 0 1 1 11 4a7 7 0 0 0 9 9z"/></svg>नींद</span>
+    </div>
+  </div>
+</figure>
+
+<!-- ════════ 3 · WORKOUT ════════ -->
+<figure class="shot">
+  <figcaption>3 · Workout Player — व्यायाम</figcaption>
+  <div class="phone"><div class="notch"></div>
+    <div class="statusbar"><span>6:12</span><span>▮▮▮ ⌁ 91%</span></div>
+    <div class="body">
+      <div class="video">
+        <span class="avatar-note">हमारा अवतार</span>
+        <!-- avatar silhouette placeholder -->
+        <svg width="120" height="150" viewBox="0 0 120 150" style="position:absolute;bottom:0;opacity:.5">
+          <circle cx="60" cy="34" r="18" fill="#B84A16"/>
+          <path d="M60 56c-20 0-30 14-30 34l12 4-4 56h44l-4-56 12-4c0-20-10-34-30-34z" fill="#B84A16"/>
+        </svg>
+        <div class="play"><svg width="22" height="22" viewBox="0 0 24 24" fill="#241503"><path d="M7 4l13 8-13 8z"/></svg></div>
+      </div>
+
+      <h2 class="ex-name">सूर्य नमस्कार</h2>
+      <span class="en">Surya Namaskar · Beginner</span>
+
+      <div class="setrow">
+        <div class="card setbox"><b>3</b><span>सेट</span></div>
+        <div class="card setbox"><b>5</b><span>चक्र</span></div>
+        <div class="card setbox"><b>0:45</b><span>विश्राम</span></div>
+      </div>
+
+      <div class="uplist">
+        <span class="eyebrow" style="margin-top:4px">आगे</span>
+        <div class="card uprow"><span class="n">2</span>दंड बैठक <span class="en">Squats</span><span class="dur">×12</span></div>
+        <div class="card uprow"><span class="n">3</span>भुजंगासन <span class="en">Cobra pose</span><span class="dur">0:40</span></div>
+        <div class="card uprow"><span class="n">4</span>प्लैंक <span class="en">Plank</span><span class="dur">0:30</span></div>
+      </div>
+
+      <div style="margin-top:auto;padding-bottom:10px">
+        <button class="btn-gold">व्यायाम शुरू करें<small>Start workout</small></button>
+      </div>
+      <p class="disclaimer">दर्द, चक्कर या असुविधा होने पर तुरंत रुकें। ये सामान्य मार्गदर्शन है,
+      चिकित्सीय सलाह नहीं।</p>
+    </div>
+  </div>
+</figure>
+
+<!-- ════════ 4 · DIET ════════ -->
+<figure class="shot">
+  <figcaption>4 · Diet Day — आहार</figcaption>
+  <div class="phone"><div class="notch"></div>
+    <div class="statusbar"><span>7:30</span><span>▮▮▮ ⌁ 88%</span></div>
+    <div class="body">
+      <h2 style="font-size:21px;font-weight:800">आज का आहार</h2>
+      <span class="en">दिन 8 / 28 · सात्विक योजना · ~2,400 kcal</span>
+
+      <div class="daytabs">
+        <span class="chip">कल</span><span class="chip on">आज</span><span class="chip">सोम</span><span class="chip">मंगल</span><span class="chip">बुध</span>
+      </div>
+
+      <div class="card meal">
+        <div class="meal-head"><b>🌅 नाश्ता</b><span class="en">8:00 बजे</span><span class="kcal">620 kcal</span></div>
+        <ul>
+          <li><span class="veg"><i></i></span>बेसन चीला — 2, हरी चटनी</li>
+          <li><span class="veg"><i></i></span>केला + 5 भीगे बादाम</li>
+          <li><span class="veg"><i></i></span>दूध (हल्दी) — 1 गिलास</li>
+        </ul>
+      </div>
+      <div class="card meal">
+        <div class="meal-head"><b>☀️ दोपहर</b><span class="en">1:00 बजे</span><span class="kcal">840 kcal</span></div>
+        <ul>
+          <li><span class="veg"><i></i></span>रोटी — 3, अरहर दाल, चावल</li>
+          <li><span class="veg"><i></i></span>पालक पनीर + दही</li>
+          <li><span class="veg"><i></i></span>सलाद — खीरा, गाजर, नींबू</li>
+        </ul>
+      </div>
+      <div class="card meal">
+        <div class="meal-head"><b>🌙 रात</b><span class="en">8:00 बजे</span><span class="kcal">560 kcal</span></div>
+        <ul>
+          <li><span class="veg"><i></i></span>खिचड़ी + घी, लौकी सब्ज़ी</li>
+          <li><span class="veg"><i></i></span>सोने से पहले गर्म दूध</li>
+        </ul>
+      </div>
+
+      <p class="disclaimer" style="margin-top:auto">आहार योजना सामान्य मार्गदर्शन है। किसी रोग या
+      एलर्जी की स्थिति में आहार विशेषज्ञ से परामर्श करें।</p>
+    </div>
+  </div>
+</figure>
+
+<!-- ════════ 5 · MANTRA JAP ════════ -->
+<figure class="shot">
+  <figcaption>5 · Mantra Jap — जप</figcaption>
+  <div class="phone"><div class="notch"></div>
+    <div class="statusbar"><span>6:40</span><span>▮▮▮ ⌁ 90%</span></div>
+    <div class="body">
+      <h2 style="font-size:21px;font-weight:800;text-align:center;margin-top:6px">मंत्र जप</h2>
+      <div class="deities">
+        <span class="chip on">हनुमान</span><span class="chip">राम</span><span class="chip">शिव</span><span class="chip">कृष्ण</span>
+      </div>
+
+      <div class="mala-wrap">
+        <div class="mala">
+          <div class="mala-center">
+            <div class="count">36</div>
+            <div class="of">/ 108 जप · माला 1</div>
+          </div>
+        </div>
+      </div>
+
+      <p class="jap-mantra">ॐ हं हनुमते नमः</p>
+      <p class="jap-sub">स्क्रीन पर कहीं भी टैप करें — एक जप गिना जाएगा</p>
+
+      <div class="soundrow">
+        <span class="chip on">🔔 घंटी</span><span class="chip">🎵 चैंट</span><span class="chip">🔇 मौन</span>
+      </div>
+
+      <div style="margin-top:auto;padding-bottom:14px;display:flex;gap:10px">
+        <button class="btn-ghost" style="flex:1">रोकें</button>
+        <button class="btn-gold" style="flex:2">जप पूर्ण करें<small>Complete mala</small></button>
+      </div>
+    </div>
+  </div>
+</figure>
+
+<!-- ════════ 6 · SLEEP ════════ -->
+<figure class="shot">
+  <figcaption>6 · Sleep Sounds — नींद</figcaption>
+  <div class="phone night"><div class="notch"></div>
+    <div class="statusbar"><span>10:32</span><span>▮▮ ⌁ 41%</span></div>
+    <div class="body">
+      <div class="moon">🌙</div>
+      <h2 class="sleep-h">शुभ रात्रि</h2>
+      <p class="sleep-sub">शांत ध्वनि चुनें — नींद का समय हो गया है</p>
+
+      <div class="card s-timer"><span>स्लीप टाइमर</span><b>45 मिनट ▾</b></div>
+
+      <div style="margin-top:6px">
+        <div class="card s-row"><span class="s-ico">🕉️</span><div><b>ॐ जाप — मंद स्वर</b><span class="en">Om chanting · low</span></div><span class="s-play">▶</span></div>
+        <div class="card s-row"><span class="s-ico">🌧️</span><div><b>वर्षा की ध्वनि</b><span class="en">Gentle rain</span></div><span class="s-play">▶</span></div>
+        <div class="card s-row"><span class="s-ico">🪈</span><div><b>बांसुरी — रात राग</b><span class="en">Flute · night raga</span></div><span class="s-play">▶</span></div>
+        <div class="card s-row"><span class="s-ico">🔔</span><div><b>मंदिर की घंटियाँ (दूर)</b><span class="en">Distant temple bells</span></div><span class="s-play">▶</span></div>
+        <div class="card s-row"><span class="s-ico">🌊</span><div><b>नदी का किनारा</b><span class="en">Riverside</span></div><span class="s-play">▶</span></div>
+      </div>
+    </div>
+    <div class="tabbar">
+      <span class="tab"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9h-5v-6h-6v6H4z"/></svg>होम</span>
+      <span class="tab"><svg viewBox="0 0 24 24"><path d="M6.5 6.5v11M17.5 6.5v11M6.5 12h11"/></svg>व्यायाम</span>
+      <span class="tab"><svg viewBox="0 0 24 24"><path d="M12 3c-4 4-6 7-6 10a6 6 0 0 0 12 0c0-3-2-6-6-10z"/></svg>ध्यान</span>
+      <span class="tab"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>जप</span>
+      <span class="tab on"><svg viewBox="0 0 24 24"><path d="M20 13A8 8 0 1 1 11 4a7 7 0 0 0 9 9z"/></svg>नींद</span>
+    </div>
+  </div>
+</figure>
+
+</div>

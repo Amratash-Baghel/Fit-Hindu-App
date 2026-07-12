@@ -72,15 +72,29 @@ with those moments commercially is a later decision).
 
 - **Onboarding questionnaire + rule-based plan engine** — templates authored by
   the team, no AI generation of health advice in v1 (predictable, safe).
+  **Question 1 is language:** three display modes — **हिंदी only / English
+  only / Mixed** (Hindi lead + small English caption, the default look). Every
+  screen renders in the chosen mode; switchable anytime in profile.
 - **Daily home screen** — the habit surface; most polished screen in the app.
   Blends fitness + devotion into one daily card set.
 - **Fitness / workout player** — in-house exercise videos demonstrated by our
   **custom avatar**, level-tagged (beginner/intermediate/advanced) inside
   goal-based multi-week programs. **The workout section is the v1 build
-  priority — stand it up first.**
+  priority — stand it up first.** Three workout modes:
+  - **Home** — no-equipment desi exercises (Surya Namaskar, dand baithak…)
+  - **Gym / regular** — equipment-based routines
+  - **Custom** — user picks a body area (chest, legs, back…) and browses the
+    exercise library filtered to it, building their own session.
+  Exercises are named, admin-uploaded **exercise objects** (name hi/en, avatar
+  video, body-area + mode + level tags) — plans are assembled from these same
+  objects, never duplicated content. (Spec: docs/specs/workout.md)
 - **Diet day view** — veg-first / sattvic-friendly Indian meals, regional.
-- **Meditation mode** — guided sessions with a **timer**, selectable
-  background **sounds**, and **voice instructions**. Duration presets.
+- **Meditation mode** — a fast, guided 3-click flow: **"Start Meditation" →
+  sound/chant selector (default ॐ starts playing immediately) → Next →
+  instruction screen (video demo + timer selector, default 15 min) → Start →
+  meditation screen** (chant visual + ticking timer + gentle bell when time
+  completes). Customisation is visible but skippable — Start → Next → Start
+  and you're meditating. (Spec: docs/specs/meditation.md)
 - **Mantra jap** — per-deity chanting: **Hanuman, Ram, Shiv, Krishna** (extend
   later). Jap counter (mala / 108), audio chant loop, optional target count,
   written mantra + meaning in Hindi.
@@ -88,9 +102,17 @@ with those moments commercially is a later decision).
 - **Devotional layer** — daily shloka/quote + deity-of-the-day on home,
   devotional audio in meditation, festival-aware greetings and content spikes
   (Navratri, Shravan, Ekadashi, Ram Navami, Janmashtami, Mahashivratri).
-- **Streaks, push notifications, Hindi/English toggle.**
-- **Admin panel (web)** — content team runs everything (plans, videos, audio,
-  mantras, devotional content) without engineering.
+- **Tracking, streaks & profile** — every activity is recorded: today's
+  exercise / meal / meditation / sleep each get a **✓ tick** on the home
+  screen; daily streak; a **profile** with activity history and per-habit
+  streaks (fitness streak, meditation streak…) so the app gets more personal
+  the longer you use it. Push notifications framed as ritual reminders.
+  (Spec: docs/specs/tracking-streaks.md)
+- **Admin panel (web)** — content team runs everything without engineering:
+  create/name **exercise objects** and upload their avatar videos; **upload and
+  add sounds** (meditation chants, sleep sounds, jap audio); author diet
+  templates, plans, mantras, devotional content. (Spec:
+  docs/specs/content-model.md)
 
 ### Roadmap-adjacent (design the schema for it now, build later)
 
@@ -99,6 +121,13 @@ with those moments commercially is a later decision).
   standalone daily habit surface even on fitness rest days. Kuku-Bhakti-style
   engagement engine. Content plumbing (series → episodes → media) should be
   program-shaped from day one so this is a content job later, not a rebuild.
+- **Points & rewards** — *fitness points / bhakti points* earned per completed
+  activity; milestone rewards (e.g. a Bajrangvati discount at a streak
+  milestone). Schema-ready in v1 (activity log makes points a computed layer),
+  switched on later — reward mechanics touch monetization, which is deferred.
+- **Friends & leaderboard** — see friends' activity, compare on a leaderboard.
+  Big retention lever but social features need moderation + privacy work;
+  design the activity log so a social layer reads from it later.
 
 ## How the money works (all deferred — none committed for v1)
 

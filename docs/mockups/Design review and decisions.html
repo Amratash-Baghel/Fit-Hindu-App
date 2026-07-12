@@ -1,0 +1,654 @@
+<title>Fit Hindu — Design Review for Owner</title>
+<style>
+  :root{
+    --ink-black:#0F0B07; --surface:#1C1510; --surface-2:#28201A;
+    --saffron:#F0761E; --saffron-deep:#B84A16;
+    --gold:#D9A441; --gold-hi:#F2C879;
+    --cream:#F6EDDD; --muted:#A8917A; --line:#3A2E24;
+    --night:#0B0E1A; --night-surface:#151A2E;
+    --ok:#7CB07F;
+    --page-max:920px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--ink-black); color:var(--cream);
+    font-family:"Nirmala UI","Noto Sans Devanagari","Mangal",system-ui,sans-serif;
+    line-height:1.5;
+  }
+
+  /* ===================== DOCUMENT SHELL ===================== */
+  .doc{max-width:var(--page-max);margin:0 auto;padding:0 24px 80px}
+
+  .cover{
+    padding:64px 0 40px;position:relative;overflow:hidden;
+  }
+  .cover:before{
+    content:"ॐ";position:absolute;right:-40px;top:-40px;font-size:280px;
+    color:rgba(217,164,65,.05);font-weight:700;pointer-events:none;
+  }
+  .cover .kicker{
+    font-size:12px;letter-spacing:3px;color:var(--gold);text-transform:uppercase;
+    font-weight:700;
+  }
+  .cover h1{
+    font-size:clamp(34px,6vw,52px);font-weight:800;margin-top:14px;line-height:1.08;
+    text-wrap:balance;
+  }
+  .cover h1 em{font-style:normal;color:var(--saffron)}
+  .cover p.lede{
+    max-width:60ch;color:#D9CBB8;font-size:16.5px;margin-top:18px;line-height:1.65;
+  }
+  .cover .meta{
+    display:flex;gap:22px;margin-top:28px;flex-wrap:wrap;font-size:13px;color:var(--muted);
+  }
+  .cover .meta b{color:var(--cream);font-weight:700}
+
+  section{padding:44px 0;border-top:1px solid var(--line)}
+  section > .eyebrow{
+    font-size:12px;letter-spacing:2.5px;color:var(--saffron);text-transform:uppercase;
+    font-weight:700;
+  }
+  section > h2{font-size:26px;font-weight:800;margin-top:10px;text-wrap:balance}
+  section > p.deck{color:#D9CBB8;max-width:62ch;margin-top:12px;font-size:15px;line-height:1.65}
+
+  /* rationale grid */
+  .principles{display:grid;grid-template-columns:repeat(2,1fr);gap:18px;margin-top:28px}
+  @media (max-width:640px){.principles{grid-template-columns:1fr}}
+  .principle{
+    background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px 22px;
+  }
+  .principle .n{
+    font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;letter-spacing:1px;
+  }
+  .principle h3{font-size:16.5px;font-weight:700;margin-top:8px}
+  .principle p{font-size:13.5px;color:var(--muted);margin-top:8px;line-height:1.55}
+
+  /* palette strip */
+  .swatches{display:flex;gap:14px;margin-top:26px;flex-wrap:wrap}
+  .swatch{width:118px}
+  .swatch .chip{
+    height:72px;border-radius:14px;border:1px solid var(--line);
+  }
+  .swatch .name{font-size:12.5px;font-weight:700;margin-top:8px}
+  .swatch .hex{font-size:11px;color:var(--muted);font-family:Consolas,monospace;margin-top:1px}
+  .swatch .use{font-size:11px;color:var(--muted);margin-top:2px}
+
+  /* screens grid */
+  .screens{
+    display:grid;grid-template-columns:repeat(2,1fr);gap:40px 28px;margin-top:32px;
+  }
+  @media (max-width:760px){.screens{grid-template-columns:1fr}}
+  .screen-block{display:flex;flex-direction:column;align-items:center}
+  .screen-block .tag{
+    font-size:12px;letter-spacing:1.4px;text-transform:uppercase;color:var(--muted);
+    font-family:Consolas,monospace;margin-bottom:14px;text-align:center;
+  }
+  .screen-block .tag b{color:var(--cream);font-family:inherit;letter-spacing:.3px}
+  .screen-block .note{
+    font-size:13px;color:#D9CBB8;margin-top:16px;max-width:340px;text-align:center;
+    line-height:1.55;
+  }
+
+  /* phone component (scaled down for document) */
+  .phone{
+    width:300px;height:649px;background:var(--ink-black);
+    border:1px solid var(--line);border-radius:34px;overflow:hidden;
+    position:relative;display:flex;flex-direction:column;flex:none;
+    box-shadow:0 24px 60px rgba(0,0,0,.55), 0 0 0 6px #060402;
+    font-size:14px;
+  }
+  .statusbar{
+    height:34px;display:flex;align-items:center;justify-content:space-between;
+    padding:0 20px;font-size:10.5px;color:var(--muted);flex:none;
+    font-variant-numeric:tabular-nums;
+  }
+  .notch{position:absolute;top:9px;left:50%;transform:translateX(-50%);
+    width:90px;height:17px;background:#000;border-radius:10px}
+  .body-scr{flex:1;overflow:hidden;display:flex;flex-direction:column;padding:6px 15px 0}
+
+  .btn-gold{
+    display:block;width:100%;text-align:center;padding:13px;
+    background:linear-gradient(160deg,var(--gold-hi),var(--gold) 55%,#B07E2B);
+    color:#241503;font-weight:700;font-size:13.5px;border-radius:12px;
+    box-shadow:0 5px 18px rgba(217,164,65,.28);border:none;
+  }
+  .btn-gold small{display:block;font-weight:500;font-size:9.5px;opacity:.75}
+  .btn-ghost{
+    display:block;width:100%;text-align:center;padding:11px;border-radius:12px;
+    border:1px solid var(--line);color:var(--muted);font-size:12.5px;background:none;
+  }
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:15px}
+  .chip{
+    display:inline-flex;align-items:center;gap:5px;padding:5px 11px;
+    border-radius:999px;border:1px solid var(--line);font-size:11px;color:var(--muted)
+  }
+  .chip.on{background:rgba(240,118,30,.14);border-color:var(--saffron);color:var(--saffron);font-weight:700}
+  .eyebrow-scr{font-size:9.5px;letter-spacing:1.6px;color:var(--gold);text-transform:uppercase;font-weight:700}
+  .en{font-size:9.5px;color:var(--muted);letter-spacing:.3px}
+  .disclaimer{
+    font-size:9px;color:#7d6a58;line-height:1.5;border-top:1px solid var(--line);
+    padding:8px 2px 10px;margin-top:auto;
+  }
+  .tabbar{
+    flex:none;display:flex;justify-content:space-around;align-items:center;
+    border-top:1px solid var(--line);padding:8px 5px 18px;background:#120D08;
+  }
+  .tab{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:9px;color:var(--muted)}
+  .tab svg{width:18px;height:18px;stroke:var(--muted);fill:none;stroke-width:1.7}
+  .tab.on{color:var(--saffron);font-weight:700}
+  .tab.on svg{stroke:var(--saffron)}
+  .diya{width:22px;height:22px}
+
+  .dots{display:flex;gap:6px;justify-content:center;margin:11px 0 20px}
+  .dots i{width:6px;height:6px;border-radius:99px;background:var(--line)}
+  .dots i.on{background:var(--saffron);width:17px}
+  .q-hero{font-size:20px;font-weight:800;line-height:1.3;text-wrap:balance}
+  .opt{
+    display:flex;align-items:center;gap:11px;padding:13px 14px;margin-top:9px;
+    border-radius:13px;border:1.3px solid var(--line);background:var(--surface);
+    font-size:13.5px;font-weight:600;
+  }
+  .opt .en{display:block;font-weight:400;margin-top:2px}
+  .opt.sel{border-color:var(--saffron);background:rgba(240,118,30,.10)}
+  .opt.sel .tick{background:var(--saffron);border-color:var(--saffron)}
+  .tick{width:18px;height:18px;border-radius:99px;border:1.3px solid var(--muted);
+    flex:none;display:grid;place-items:center;color:#1b0f05;font-size:11px;font-weight:900}
+
+  .greet h2{font-size:16.5px;font-weight:800}
+  .greet .en{margin-top:2px}
+  .shloka{
+    padding:13px 14px;margin-top:11px;position:relative;overflow:hidden;
+    background:linear-gradient(150deg,#241407,#1C1510 70%);
+    border:1px solid #4a3416;border-radius:15px;
+  }
+  .shloka:before{content:"ॐ";position:absolute;right:-4px;top:-14px;font-size:70px;
+    color:rgba(217,164,65,.08);font-weight:700}
+  .shloka .sansk{font-size:12.5px;line-height:1.6;color:var(--gold-hi);font-weight:600}
+  .shloka .mean{font-size:10px;color:var(--muted);margin-top:6px;line-height:1.5}
+  .streak{display:flex;align-items:center;gap:8px;margin-top:11px;padding:10px 13px}
+  .streak .n{font-size:20px;font-weight:800;color:var(--gold);font-variant-numeric:tabular-nums}
+  .streak .lbl{font-size:10px;color:var(--muted);line-height:1.35}
+  .diyarow{display:flex;gap:4px;margin-left:auto}
+  .today{display:flex;flex-direction:column;gap:8px;margin-top:11px}
+  .t-card{display:flex;align-items:center;gap:11px;padding:10px 11px}
+  .t-ico{width:36px;height:36px;border-radius:11px;flex:none;display:grid;place-items:center;
+    background:rgba(240,118,30,.13);color:var(--saffron)}
+  .t-ico.gold{background:rgba(217,164,65,.13);color:var(--gold)}
+  .t-card b{font-size:12.5px;display:block}
+  .t-card .en{margin-top:1px}
+  .t-go{margin-left:auto;color:var(--saffron);font-size:16px}
+  .t-done{margin-left:auto;color:var(--ok);font-size:10.5px;font-weight:700}
+
+  .video{
+    height:198px;border-radius:16px;position:relative;overflow:hidden;flex:none;
+    background:radial-gradient(120% 100% at 50% 0%,#2E1A08 0%,#160E06 70%);
+    border:1px solid #4a3416;display:grid;place-items:center;margin-top:6px;
+  }
+  .avatar-note{position:absolute;top:9px;left:9px;font-size:8.5px;letter-spacing:1.2px;
+    color:var(--gold);border:1px solid #4a3416;padding:3px 8px;border-radius:99px;
+    background:rgba(15,11,7,.6);text-transform:uppercase}
+  .play{width:52px;height:52px;border-radius:99px;display:grid;place-items:center;
+    background:linear-gradient(160deg,var(--gold-hi),var(--gold));
+    box-shadow:0 6px 22px rgba(217,164,65,.4)}
+  .play svg{margin-left:3px}
+  .ex-name{font-size:17px;font-weight:800;margin-top:13px}
+  .setrow{display:flex;gap:8px;margin-top:9px}
+  .setbox{flex:1;text-align:center;padding:8px 5px}
+  .setbox b{font-size:15px;color:var(--saffron);font-variant-numeric:tabular-nums;display:block}
+  .setbox span{font-size:9px;color:var(--muted)}
+  .uplist{margin-top:11px;display:flex;flex-direction:column;gap:6px;overflow:hidden}
+  .uprow{display:flex;align-items:center;gap:9px;padding:8px 9px;font-size:11px}
+  .uprow .n{width:20px;height:20px;border-radius:7px;background:var(--surface-2);
+    display:grid;place-items:center;font-size:9.5px;color:var(--muted);flex:none;
+    font-variant-numeric:tabular-nums}
+  .uprow .dur{margin-left:auto;color:var(--muted);font-size:9.5px;font-variant-numeric:tabular-nums}
+
+  .daytabs{display:flex;gap:6px;overflow:hidden;margin-top:6px}
+  .meal{padding:12px 13px;margin-top:8px}
+  .meal-head{display:flex;align-items:baseline;gap:8px}
+  .meal-head b{font-size:13px}
+  .meal-head .kcal{margin-left:auto;font-size:9.5px;color:var(--gold);font-variant-numeric:tabular-nums}
+  .meal ul{list-style:none;margin-top:7px;display:flex;flex-direction:column;gap:5px}
+  .meal li{display:flex;align-items:center;gap:7px;font-size:11px;color:#D9CBB8}
+  .veg{width:11px;height:11px;border:1.3px solid var(--ok);border-radius:3px;flex:none;
+    display:grid;place-items:center}
+  .veg i{width:5px;height:5px;background:var(--ok);border-radius:99px}
+
+  .deities{display:flex;gap:6px;margin-top:9px;justify-content:center}
+  .mala-wrap{display:grid;place-items:center;margin-top:18px}
+  .mala{width:186px;height:186px;border-radius:50%;position:relative;display:grid;place-items:center;
+    background:
+      radial-gradient(closest-side,var(--ink-black) 78%,transparent 79%),
+      conic-gradient(var(--saffron) 0deg 121deg, var(--surface-2) 121deg 360deg);
+  }
+  .mala:after{content:"";position:absolute;inset:-11px;border-radius:50%;
+    border:1px dashed #4a3416}
+  .mala .count{font-size:42px;font-weight:800;color:var(--gold-hi);font-variant-numeric:tabular-nums;line-height:1}
+  .mala .of{font-size:10px;color:var(--muted);margin-top:5px}
+  .mala-center{text-align:center}
+  .jap-mantra{text-align:center;margin-top:14px;font-size:15px;font-weight:700;color:var(--saffron)}
+  .jap-sub{text-align:center;font-size:9.5px;color:var(--muted);margin-top:3px}
+  .soundrow{display:flex;gap:6px;justify-content:center;margin-top:12px}
+
+  .phone.night{background:var(--night)}
+  .phone.night .body-scr{background:
+    radial-gradient(90% 40% at 50% -5%,#1B2342 0%,transparent 70%)}
+  .phone.night .card{background:var(--night-surface);border-color:#252D4A}
+  .phone.night .tabbar{background:#080A14;border-color:#1C2340}
+  .moon{font-size:34px;text-align:center;margin-top:14px}
+  .sleep-h{text-align:center;font-size:17px;font-weight:800;margin-top:6px}
+  .sleep-sub{text-align:center;font-size:10px;color:#8E96B8;margin-top:3px}
+  .s-row{display:flex;align-items:center;gap:11px;padding:10px 12px;margin-top:7px}
+  .s-ico{width:34px;height:34px;border-radius:10px;background:rgba(217,164,65,.10);
+    display:grid;place-items:center;font-size:15px;flex:none}
+  .s-row b{font-size:12px;display:block}
+  .s-row .en{color:#8E96B8}
+  .s-play{margin-left:auto;width:28px;height:28px;border-radius:99px;border:1px solid #2A3252;
+    display:grid;place-items:center;color:var(--gold);font-size:11px}
+  .s-timer{display:flex;align-items:center;justify-content:space-between;
+    padding:10px 13px;margin-top:11px;font-size:11.5px}
+  .s-timer b{color:var(--gold);font-variant-numeric:tabular-nums}
+
+  /* decision section */
+  .decision-list{margin-top:26px;display:flex;flex-direction:column;gap:14px}
+  .decision{
+    display:flex;gap:16px;align-items:flex-start;background:var(--surface);
+    border:1px solid var(--line);border-radius:14px;padding:16px 18px;
+  }
+  .decision .num{
+    width:28px;height:28px;border-radius:9px;background:rgba(240,118,30,.14);
+    color:var(--saffron);font-weight:800;font-size:13px;display:grid;place-items:center;
+    flex:none;font-variant-numeric:tabular-nums;
+  }
+  .decision b{font-size:14.5px;display:block}
+  .decision p{font-size:13px;color:var(--muted);margin-top:4px;line-height:1.5}
+
+  footer{
+    padding:40px 0 20px;color:var(--muted);font-size:12.5px;border-top:1px solid var(--line);
+    display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;
+  }
+
+  @media print{
+    @page{size:A4;margin:14mm}
+    *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    body{background:var(--ink-black)}
+    .doc{max-width:none;padding:0}
+    .cover{padding:16px 0 22px}
+    .cover:before{display:none}
+    section{padding:24px 0;break-inside:avoid}
+    .screens{grid-template-columns:repeat(2,1fr);gap:24px 18px}
+    .screen-block{break-inside:avoid}
+    .phone{box-shadow:0 0 0 4px #060402}
+    .principles,.decision,footer{break-inside:avoid}
+  }
+</style>
+
+<div class="doc">
+
+  <div class="cover">
+    <span class="kicker">Design review · for owner approval</span>
+    <h1>Fit <em>Hindu</em> — visual<br>direction, v1</h1>
+    <p class="lede">
+      A first look at how the app should feel before we build it: a premium
+      black‑saffron‑gold devotional identity, wrapped around a workout, diet,
+      meditation, mantra jap and sleep‑sound routine. Six core screens follow —
+      please read the direction, then look through the screens and tell us
+      what to keep, drop, or change.
+    </p>
+    <div class="meta">
+      <span><b>Prepared for</b> · Herbal Deck ownership</span>
+      <span><b>Stage</b> · Phase 2, design lock</span>
+      <span><b>Ask</b> · approve direction or mark changes</span>
+    </div>
+  </div>
+
+  <section>
+    <span class="eyebrow">The direction</span>
+    <h2>Black, saffron, and gold — a temple at dusk, not a gym at noon</h2>
+    <p class="deck">
+      Most fitness apps read cold and clinical; most devotional apps read busy
+      and ornamental. We wanted neither. The app should feel like an evening
+      ritual — warm dark ground, one confident accent colour, and gold spent
+      sparingly enough that it still feels valuable when it appears.
+    </p>
+    <div class="principles">
+      <div class="principle">
+        <span class="n">01</span>
+        <h3>One accent, used with discipline</h3>
+        <p>Saffron is the only colour that does "action" — buttons, selection,
+        active tabs. Gold is reserved for exactly two things: the primary
+        button and the streak. Nothing else gets to be gold — that's what
+        keeps it feeling premium instead of festive.</p>
+      </div>
+      <div class="principle">
+        <span class="n">02</span>
+        <h3>Hindi is the voice, English whispers</h3>
+        <p>Every screen leads in Hindi at full size; English sits underneath
+        in small, muted type — a translation for anyone who needs it, never
+        the loudest thing on screen.</p>
+      </div>
+      <div class="principle">
+        <span class="n">03</span>
+        <h3>Devotion is a feeling, not a filter</h3>
+        <p>No political or partisan imagery — the warmth comes from ritual
+        details: a shloka on the home screen, a diya‑counted streak, temple
+        bells in the sleep sounds. Culturally warm, never divisive.</p>
+      </div>
+      <div class="principle">
+        <span class="n">04</span>
+        <h3>One system, two moods, same rules</h3>
+        <p>Fitness and daytime screens stay warm‑black. Sleep sounds shifts to
+        a calm night‑indigo — same components, same spacing, a different hour
+        of the day. It's still unmistakably the same app.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow">Palette</span>
+    <h2>Where every colour is allowed to appear</h2>
+    <p class="deck">These are the only colours in the system. If a screen ever
+    needs a colour not on this list, that's a sign to come back and ask, not
+    to freelance one in.</p>
+    <div class="swatches">
+      <div class="swatch"><div class="chip" style="background:#0F0B07"></div>
+        <div class="name">Ink black</div><div class="hex">#0F0B07</div>
+        <div class="use">App ground</div></div>
+      <div class="swatch"><div class="chip" style="background:#F0761E"></div>
+        <div class="name">Saffron</div><div class="hex">#F0761E</div>
+        <div class="use">Action, selection</div></div>
+      <div class="swatch"><div class="chip" style="background:linear-gradient(160deg,#F2C879,#D9A441 55%,#B07E2B)"></div>
+        <div class="name">Gold</div><div class="hex">#D9A441</div>
+        <div class="use">Primary button, streak only</div></div>
+      <div class="swatch"><div class="chip" style="background:#B84A16"></div>
+        <div class="name">Sindoor</div><div class="hex">#B84A16</div>
+        <div class="use">Devotional accents</div></div>
+      <div class="swatch"><div class="chip" style="background:#1C1510"></div>
+        <div class="name">Card surface</div><div class="hex">#1C1510</div>
+        <div class="use">Cards, panels</div></div>
+      <div class="swatch"><div class="chip" style="background:#0B0E1A"></div>
+        <div class="name">Night indigo</div><div class="hex">#0B0E1A</div>
+        <div class="use">Sleep sounds only</div></div>
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow">The six core screens</span>
+    <h2>Onboarding through to bedtime — one day in the app</h2>
+    <p class="deck">Shown at real phone proportions. Read left to right, top to
+    bottom — this is the order a new user would actually move through: answer
+    a few questions, land on today's home screen, do the workout, eat the
+    diet plan, chant mantra jap, and wind down with sleep sounds.</p>
+
+    <div class="screens">
+
+      <div class="screen-block">
+        <div class="tag"><b>1 · Onboarding</b> — प्रश्नावली</div>
+        <div class="phone"><div class="notch"></div>
+          <div class="statusbar"><span>9:41</span><span>▮▮▮ ⌁ 78%</span></div>
+          <div class="body-scr">
+            <div class="dots"><i></i><i></i><i class="on"></i><i></i><i></i></div>
+            <span class="eyebrow-scr">प्रश्न ३ / ५</span>
+            <h2 class="q-hero" style="margin-top:7px">आपका मुख्य लक्ष्य<br>क्या है?</h2>
+            <span class="en" style="margin-top:5px">What is your main goal?</span>
+            <div style="margin-top:14px">
+              <div class="opt"><span class="tick"></span><span>वजन बढ़ाना <span class="en">Weight gain</span></span></div>
+              <div class="opt sel"><span class="tick">✓</span><span>शरीर मज़बूत बनाना <span class="en">Build strength</span></span></div>
+              <div class="opt"><span class="tick"></span><span>वजन घटाना <span class="en">Weight loss</span></span></div>
+              <div class="opt"><span class="tick"></span><span>स्वस्थ दिनचर्या <span class="en">Healthy routine</span></span></div>
+            </div>
+            <div style="margin-top:auto;padding-bottom:11px">
+              <button class="btn-gold">आगे बढ़ें<small>Continue</small></button>
+            </div>
+            <p class="disclaimer">यह ऐप केवल सामान्य स्वास्थ्य जानकारी देता है — चिकित्सा सलाह नहीं।
+            शुरू करने से पहले चिकित्सक से परामर्श करें।</p>
+          </div>
+        </div>
+        <p class="note">One question per screen, four big tap targets, and the
+        health disclaimer already present at onboarding — required for store
+        compliance.</p>
+      </div>
+
+      <div class="screen-block">
+        <div class="tag"><b>2 · Daily Home</b> — आज</div>
+        <div class="phone"><div class="notch"></div>
+          <div class="statusbar"><span>6:05</span><span>▮▮▮ ⌁ 92%</span></div>
+          <div class="body-scr">
+            <div class="greet" style="display:flex;align-items:center">
+              <div><h2>🙏 राम राम, अमरताश</h2><span class="en">शनिवार · श्रावण शुक्ल तृतीया</span></div>
+              <span class="chip on" style="margin-left:auto">हनुमान जी</span>
+            </div>
+            <div class="shloka">
+              <span class="eyebrow-scr">आज का श्लोक</span>
+              <p class="sansk">बुद्धिर्बलं यशो धैर्यं निर्भयत्वमरोगता ।<br>अजाड्यं वाक्पटुत्वं च हनुमत्स्मरणाद् भवेत् ॥</p>
+              <p class="mean">हनुमान जी के स्मरण से बुद्धि, बल, यश, धैर्य प्राप्त होते हैं।</p>
+            </div>
+            <div class="card streak">
+              <svg class="diya" viewBox="0 0 24 24"><path d="M12 3c1.8 2 1.4 3.8 0 5-1.4-1.2-1.8-3 0-5z" fill="#F2C879"/><path d="M4 13h16c0 3.3-3.6 6-8 6s-8-2.7-8-6z" fill="#B84A16"/><path d="M12 8.5c.9 1 .7 1.9 0 2.5-.7-.6-.9-1.5 0-2.5z" fill="#F0761E"/></svg>
+              <div><span class="n">7 दिन</span><div class="lbl">संकल्प जारी — २१ दिन का लक्ष्य</div></div>
+              <div class="diyarow">
+                <svg class="diya" viewBox="0 0 24 24" opacity=".9"><path d="M4 13h16c0 3.3-3.6 6-8 6s-8-2.7-8-6z" fill="#D9A441"/></svg>
+                <svg class="diya" viewBox="0 0 24 24" opacity=".55"><path d="M4 13h16c0 3.3-3.6 6-8 6s-8-2.7-8-6z" fill="#D9A441"/></svg>
+                <svg class="diya" viewBox="0 0 24 24" opacity=".25"><path d="M4 13h16c0 3.3-3.6 6-8 6s-8-2.7-8-6z" fill="#D9A441"/></svg>
+              </div>
+            </div>
+            <div class="today">
+              <div class="card t-card">
+                <div class="t-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6.5 6.5v11M17.5 6.5v11M6.5 12h11M3 9v6M21 9v6"/></svg></div>
+                <div><b>आज का व्यायाम</b><span class="en">Full body · 18 min</span></div><span class="t-go">›</span>
+              </div>
+              <div class="card t-card">
+                <div class="t-ico gold"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"/><path d="M12 4v-2M12 22v-2"/></svg></div>
+                <div><b>आज का आहार</b><span class="en">सात्विक · 3 भोजन</span></div><span class="t-done">✓ नाश्ता</span>
+              </div>
+              <div class="card t-card">
+                <div class="t-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3c-4 4-6 7-6 10a6 6 0 0 0 12 0c0-3-2-6-6-10z"/></svg></div>
+                <div><b>ध्यान · १० मिनट</b><span class="en">श्वास पर ध्यान</span></div><span class="t-go">›</span>
+              </div>
+              <div class="card t-card">
+                <div class="t-ico gold"><span style="font-size:16px;font-weight:800">ॐ</span></div>
+                <div><b>हनुमान मंत्र जप</b><span class="en">१ माला · 108 जप</span></div><span class="t-go">›</span>
+              </div>
+            </div>
+          </div>
+          <div class="tabbar">
+            <span class="tab on"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9h-5v-6h-6v6H4z"/></svg>होम</span>
+            <span class="tab"><svg viewBox="0 0 24 24"><path d="M6.5 6.5v11M17.5 6.5v11M6.5 12h11"/></svg>व्यायाम</span>
+            <span class="tab"><svg viewBox="0 0 24 24"><path d="M12 3c-4 4-6 7-6 10a6 6 0 0 0 12 0c0-3-2-6-6-10z"/></svg>ध्यान</span>
+            <span class="tab"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>जप</span>
+            <span class="tab"><svg viewBox="0 0 24 24"><path d="M20 13A8 8 0 1 1 11 4a7 7 0 0 0 9 9z"/></svg>नींद</span>
+          </div>
+        </div>
+        <p class="note">The most important screen in the app — opened every
+        morning. Deity‑of‑the‑day, today's shloka, streak counted in diyas,
+        then the day's four cards.</p>
+      </div>
+
+      <div class="screen-block">
+        <div class="tag"><b>3 · Workout Player</b> — व्यायाम</div>
+        <div class="phone"><div class="notch"></div>
+          <div class="statusbar"><span>6:12</span><span>▮▮▮ ⌁ 91%</span></div>
+          <div class="body-scr">
+            <div class="video">
+              <span class="avatar-note">हमारा अवतार</span>
+              <svg width="92" height="115" viewBox="0 0 120 150" style="position:absolute;bottom:0;opacity:.5">
+                <circle cx="60" cy="34" r="18" fill="#B84A16"/>
+                <path d="M60 56c-20 0-30 14-30 34l12 4-4 56h44l-4-56 12-4c0-20-10-34-30-34z" fill="#B84A16"/>
+              </svg>
+              <div class="play"><svg width="18" height="18" viewBox="0 0 24 24" fill="#241503"><path d="M7 4l13 8-13 8z"/></svg></div>
+            </div>
+            <h2 class="ex-name">सूर्य नमस्कार</h2>
+            <span class="en">Surya Namaskar · Beginner</span>
+            <div class="setrow">
+              <div class="card setbox"><b>3</b><span>सेट</span></div>
+              <div class="card setbox"><b>5</b><span>चक्र</span></div>
+              <div class="card setbox"><b>0:45</b><span>विश्राम</span></div>
+            </div>
+            <div class="uplist">
+              <span class="eyebrow-scr" style="margin-top:3px">आगे</span>
+              <div class="card uprow"><span class="n">2</span>दंड बैठक <span class="en">Squats</span><span class="dur">×12</span></div>
+              <div class="card uprow"><span class="n">3</span>भुजंगासन <span class="en">Cobra</span><span class="dur">0:40</span></div>
+              <div class="card uprow"><span class="n">4</span>प्लैंक <span class="en">Plank</span><span class="dur">0:30</span></div>
+            </div>
+            <div style="margin-top:auto;padding-bottom:8px">
+              <button class="btn-gold">व्यायाम शुरू करें<small>Start workout</small></button>
+            </div>
+            <p class="disclaimer">दर्द या असुविधा होने पर तुरंत रुकें। सामान्य मार्गदर्शन,
+            चिकित्सीय सलाह नहीं।</p>
+          </div>
+        </div>
+        <p class="note">Our custom avatar is the hero — placeholder shown here.
+        Once we have a real render of the avatar, this screen should be
+        reviewed again; the avatar's look will shape the whole workout section.</p>
+      </div>
+
+      <div class="screen-block">
+        <div class="tag"><b>4 · Diet Day</b> — आहार</div>
+        <div class="phone"><div class="notch"></div>
+          <div class="statusbar"><span>7:30</span><span>▮▮▮ ⌁ 88%</span></div>
+          <div class="body-scr">
+            <h2 style="font-size:16.5px;font-weight:800">आज का आहार</h2>
+            <span class="en">दिन 8/28 · सात्विक योजना · ~2,400 kcal</span>
+            <div class="daytabs">
+              <span class="chip">कल</span><span class="chip on">आज</span><span class="chip">सोम</span><span class="chip">मंगल</span><span class="chip">बुध</span>
+            </div>
+            <div class="card meal">
+              <div class="meal-head"><b>🌅 नाश्ता</b><span class="en">8:00</span><span class="kcal">620 kcal</span></div>
+              <ul>
+                <li><span class="veg"><i></i></span>बेसन चीला — 2, हरी चटनी</li>
+                <li><span class="veg"><i></i></span>केला + 5 भीगे बादाम</li>
+                <li><span class="veg"><i></i></span>दूध (हल्दी) — 1 गिलास</li>
+              </ul>
+            </div>
+            <div class="card meal">
+              <div class="meal-head"><b>☀️ दोपहर</b><span class="en">1:00</span><span class="kcal">840 kcal</span></div>
+              <ul>
+                <li><span class="veg"><i></i></span>रोटी — 3, अरहर दाल, चावल</li>
+                <li><span class="veg"><i></i></span>पालक पनीर + दही</li>
+                <li><span class="veg"><i></i></span>सलाद — खीरा, गाजर</li>
+              </ul>
+            </div>
+            <div class="card meal">
+              <div class="meal-head"><b>🌙 रात</b><span class="en">8:00</span><span class="kcal">560 kcal</span></div>
+              <ul>
+                <li><span class="veg"><i></i></span>खिचड़ी + घी, लौकी सब्ज़ी</li>
+                <li><span class="veg"><i></i></span>सोने से पहले गर्म दूध</li>
+              </ul>
+            </div>
+            <p class="disclaimer" style="margin-top:auto">सामान्य मार्गदर्शन। रोग/एलर्जी की
+            स्थिति में विशेषज्ञ से परामर्श करें।</p>
+          </div>
+        </div>
+        <p class="note">Veg‑first, sattvic‑friendly, day‑by‑day. Meant to feel
+        like a home‑cooked routine, not a calorie‑counting app.</p>
+      </div>
+
+      <div class="screen-block">
+        <div class="tag"><b>5 · Mantra Jap</b> — जप</div>
+        <div class="phone"><div class="notch"></div>
+          <div class="statusbar"><span>6:40</span><span>▮▮▮ ⌁ 90%</span></div>
+          <div class="body-scr">
+            <h2 style="font-size:16.5px;font-weight:800;text-align:center;margin-top:5px">मंत्र जप</h2>
+            <div class="deities">
+              <span class="chip on">हनुमान</span><span class="chip">राम</span><span class="chip">शिव</span><span class="chip">कृष्ण</span>
+            </div>
+            <div class="mala-wrap">
+              <div class="mala">
+                <div class="mala-center"><div class="count">36</div><div class="of">/ 108 जप · माला 1</div></div>
+              </div>
+            </div>
+            <p class="jap-mantra">ॐ हं हनुमते नमः</p>
+            <p class="jap-sub">स्क्रीन पर कहीं भी टैप करें — एक जप गिना जाएगा</p>
+            <div class="soundrow">
+              <span class="chip on">🔔 घंटी</span><span class="chip">🎵 चैंट</span><span class="chip">🔇 मौन</span>
+            </div>
+            <div style="margin-top:auto;padding-bottom:11px;display:flex;gap:8px">
+              <button class="btn-ghost" style="flex:1">रोकें</button>
+              <button class="btn-gold" style="flex:2">जप पूर्ण करें<small>Complete mala</small></button>
+            </div>
+          </div>
+        </div>
+        <p class="note">The saffron ring fills as jap count rises toward 108 —
+        same visual language as the streak diyas, just a different counter.</p>
+      </div>
+
+      <div class="screen-block">
+        <div class="tag"><b>6 · Sleep Sounds</b> — नींद</div>
+        <div class="phone night"><div class="notch"></div>
+          <div class="statusbar"><span>10:32</span><span>▮▮ ⌁ 41%</span></div>
+          <div class="body-scr">
+            <div class="moon">🌙</div>
+            <h2 class="sleep-h">शुभ रात्रि</h2>
+            <p class="sleep-sub">शांत ध्वनि चुनें — नींद का समय हो गया है</p>
+            <div class="card s-timer"><span>स्लीप टाइमर</span><b>45 मिनट ▾</b></div>
+            <div style="margin-top:5px">
+              <div class="card s-row"><span class="s-ico">🕉️</span><div><b>ॐ जाप — मंद स्वर</b><span class="en">Om chanting</span></div><span class="s-play">▶</span></div>
+              <div class="card s-row"><span class="s-ico">🌧️</span><div><b>वर्षा की ध्वनि</b><span class="en">Gentle rain</span></div><span class="s-play">▶</span></div>
+              <div class="card s-row"><span class="s-ico">🪈</span><div><b>बांसुरी — रात राग</b><span class="en">Night raga</span></div><span class="s-play">▶</span></div>
+              <div class="card s-row"><span class="s-ico">🔔</span><div><b>मंदिर की घंटियाँ</b><span class="en">Temple bells</span></div><span class="s-play">▶</span></div>
+              <div class="card s-row"><span class="s-ico">🌊</span><div><b>नदी का किनारा</b><span class="en">Riverside</span></div><span class="s-play">▶</span></div>
+            </div>
+          </div>
+          <div class="tabbar">
+            <span class="tab"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9h-5v-6h-6v6H4z"/></svg>होम</span>
+            <span class="tab"><svg viewBox="0 0 24 24"><path d="M6.5 6.5v11M17.5 6.5v11M6.5 12h11"/></svg>व्यायाम</span>
+            <span class="tab"><svg viewBox="0 0 24 24"><path d="M12 3c-4 4-6 7-6 10a6 6 0 0 0 12 0c0-3-2-6-6-10z"/></svg>ध्यान</span>
+            <span class="tab"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>जप</span>
+            <span class="tab on"><svg viewBox="0 0 24 24"><path d="M20 13A8 8 0 1 1 11 4a7 7 0 0 0 9 9z"/></svg>नींद</span>
+          </div>
+        </div>
+        <p class="note">The one deliberate shift in the system — warm black
+        gives way to night‑indigo, signalling "it's time to sleep" without
+        saying a word.</p>
+      </div>
+
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow">What we need from you</span>
+    <h2>Please confirm or correct these before we lock the design system</h2>
+    <div class="decision-list">
+      <div class="decision">
+        <span class="num">1</span>
+        <div><b>Overall direction — approve black / saffron / gold?</b>
+        <p>Once approved, these exact colours, type sizes and spacing become
+        the only ones used anywhere in the app.</p></div>
+      </div>
+      <div class="decision">
+        <span class="num">2</span>
+        <div><b>Gold used only for the primary button + streak — agreed?</b>
+        <p>We kept gold rare on purpose. If you want it to appear more
+        often (e.g. all headings), tell us — it changes the feel a lot.</p></div>
+      </div>
+      <div class="decision">
+        <span class="num">3</span>
+        <div><b>Devotional details — shloka, diya streak, deity chip, temple
+        bells — comfortable with this level of devotional detail?</b>
+        <p>This is deliberately warm and cultural, not political — see any
+        concerns here specifically.</p></div>
+      </div>
+      <div class="decision">
+        <span class="num">4</span>
+        <div><b>Sleep screen's colour shift to night‑indigo — keep it, or make
+        sleep sounds share the same warm‑black as the rest of the app?</b>
+        <p>Our recommendation is to keep the shift — it reinforces "this is
+        bedtime" — but it is the one place we deviate from one palette.</p></div>
+      </div>
+      <div class="decision">
+        <span class="num">5</span>
+        <div><b>Avatar placement — is a large video card at the top of the
+        workout screen the right showcase for our custom avatar?</b>
+        <p>We used a placeholder silhouette. Please share a still or clip of
+        the real avatar so we can re-check this screen against it.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span>Fit Hindu — design review · v1</span>
+    <span>Prepared by the build team · Herbal Deck</span>
+  </footer>
+
+</div>
