@@ -9,8 +9,9 @@ afternoon cycle.
 - [ ] Owner sit-down with docs/idea.md (v1 pivot) + research findings → scope +
       money model signed off; "Fit Hindu" name/trademark availability
       confirmed; standalone-vs-buyer-gated and devotional-scope questions locked
-- [ ] **Owner starts D-U-N-S request (Apple fast track) + Play org account —
-      the only bureaucracy-controlled clock; cannot slip**
+- [x] ~~Owner starts D-U-N-S + Play org account~~ → **owned by another team
+      member now (off my plate). v1 is Play-only; Apple/D-U-N-S deferred, so the
+      Apple enrollment clock is no longer on the critical path.**
 - [ ] Draft privacy policy (DPDP-compliant, hi+en) — needed for store forms
 - [ ] Freeze content formats: diet-template spreadsheet + workout shot-list →
       hand to team; **video team starts shooting NOW, not in week 3**
@@ -45,8 +46,8 @@ Build order (each = one SOP feature cycle):
 ## Jul 24–27 — Phase 4: content, testing, handoff
 
 - [ ] Team member imports real content via admin panel (them, not you)
-- [ ] Internal builds: Play internal testing + (if Apple enrollment done)
-      TestFlight to the 40-person office
+- [ ] Internal builds: Play internal testing to the 40-person office
+      (iOS/TestFlight deferred — Play-only for v1)
 - [ ] One structured feedback round (portal-trial style)
 - [ ] EAS build + OTA pipeline proven end-to-end
 - [ ] Handoff: train one team member on admin panel; docs current;

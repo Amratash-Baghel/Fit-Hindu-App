@@ -74,8 +74,10 @@ with those moments commercially is a later decision).
   the team, no AI generation of health advice in v1 (predictable, safe).
 - **Daily home screen** — the habit surface; most polished screen in the app.
   Blends fitness + devotion into one daily card set.
-- **Fitness / workout player** — in-house shot videos (1–5 min), level-tagged
-  (beginner/intermediate/advanced) inside goal-based multi-week programs.
+- **Fitness / workout player** — in-house exercise videos demonstrated by our
+  **custom avatar**, level-tagged (beginner/intermediate/advanced) inside
+  goal-based multi-week programs. **The workout section is the v1 build
+  priority — stand it up first.**
 - **Diet day view** — veg-first / sattvic-friendly Indian meals, regional.
 - **Meditation mode** — guided sessions with a **timer**, selectable
   background **sounds**, and **voice instructions**. Duration presets.
@@ -223,24 +225,37 @@ library. Nothing hardcodes one product, one deity, or one goal.
 
 AI plan/health-advice generation, chat/community, consultations, referral
 system, third-party ads, premium/paywall, devotional micro-transactions,
-iOS-first polish (Android is the market; iOS ships from the same codebase when
-accounts are ready). Devotional content *series/stories* are schema-ready in
-v1 but authored later.
+**iOS/App Store listing (Play-only for v1; iOS ships from the same codebase
+later)**. Devotional content *series/stories* are schema-ready in v1 but
+authored later.
 
-## Open questions for the owner
+## Owner decisions (meeting 2026-07-12)
 
-1. **Name lock:** is "Fit Hindu" the name, pending availability? Fallback names
-   if the trademark/domain/handle is taken? (Blocks store account + D-U-N-S +
-   privacy-policy entity name.)
-2. **Standalone vs buyer-gated:** confirm the app is open to everyone (not just
-   product buyers) — this is the core of the pivot.
-3. **Budget:** hosting (Bunny ~₹4k/mo at launch) + Play $25 once + Apple
-   $99/yr. Approved?
-4. **Content ops owner** after I move to WFH — who runs the admin panel
-   (fitness + diet + devotional content)?
-5. **Cross-sell aggressiveness** in v1 — gentle / moderate / aggressive?
-6. **Devotional scope for v1:** which deities ship first (Hanuman, Ram, Shiv,
-   Krishna confirmed?), and are we comfortable with the devotional-identity
-   positioning and its store-policy fence-lines above?
-7. **D-U-N-S / store accounts** started this week? (Only item with an external
-   clock — still the critical path.)
+1. **Store scope:** **Google Play only for v1.** iOS/App Store deferred. This
+   removes the Apple D-U-N-S/enrollment black-hole from the critical path.
+2. **D-U-N-S + Play listing:** owned by someone else on the team — off the
+   build owner's plate.
+3. **Budget:** approved (Bunny hosting + Play account).
+4. **Standalone:** confirmed — open to everyone, not buyer-gated.
+5. **Devotional identity:** owner's own direction — lean into the Hindu
+   identity as hard as possible in v1 to maximise the emotional hook. (Still
+   inside the fence-lines above: warm/cultural in public copy, political
+   framing stays in internal strategy + ad campaigns.)
+6. **Monetization:** none in v1. Audience + habit first; revenue surfaces later.
+7. **Data:** green light to make the most of all data the app collects, for the
+   app's and company's benefit. Engineering keeps this inside DPDP-disclosed
+   consent + the Play Data Safety declaration — not a blocker, just how we
+   collect and disclose (see "The data advantage" guardrail).
+8. **Build priority:** stand up the basic structure first, **workout section
+   first**.
+9. **Content:** exercises are demonstrated by an **in-house custom avatar**
+   (their own asset). Owner/team provides the exercise videos, audio (meditation
+   sounds, chants, sleep sounds), and other content. Build owner authors the
+   template/plan structure; the content team fills it via the admin panel.
+
+## Still open / deferred
+
+- **Name lock** — "Fit Hindu" availability still being confirmed by the team.
+- **Deity set for v1** — Hanuman/Ram/Shiv/Krishna assumed; confirm final list
+  when the mantra-jap section is built.
+- **Content ops owner** for after WFH — not needed yet.

@@ -11,6 +11,20 @@ One dated line per decision, with the why. Newest on top.
   larger Hindu audience than a buyer-gated companion, while Herbal Deck products
   cross-sell inside. Programs-platform architecture unchanged (now product- and
   deity-agnostic). idea.md rewritten to v1. Name/trademark availability pending.
+- **2026-07-12 (owner meeting)** — v1 ships **Google Play only**; iOS/App Store
+  deferred. Why: owner call; also removes the Apple D-U-N-S/enrollment delay
+  from the critical path. D-U-N-S + Play listing owned by another team member.
+- **2026-07-12 (owner meeting)** — Build priority is the **workout section
+  first**; exercises demonstrated by an **in-house custom avatar** (company
+  asset). Owner/team supplies exercise videos + audio (meditation sounds,
+  chants, sleep sounds) + content; build owner authors the exercise/template/
+  plan structure, content team fills it via the admin panel.
+- **2026-07-12 (owner meeting)** — Lean **hard into Hindu devotional identity**
+  in v1 (owner's own direction) as the emotional hook; still bounded by the
+  public-copy fence-line (cultural, not politically partisan). Data: owner
+  green-lights maximal use of all app-collected data for the company's benefit,
+  bounded by DPDP-disclosed consent + Play Data Safety. Monetization confirmed
+  out of v1 (audience first).
 - **2026-07-12** — Monetization deferred: v1 sells/gates nothing. Product
   cross-sell is a *candidate, not confirmed*. Revenue surfaces (esp. a
   Cult.fit-style sliding promo banner for own products and/or third-party
