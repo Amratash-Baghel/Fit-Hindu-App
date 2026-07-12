@@ -1,122 +1,246 @@
-# Bajrangvati App — Idea Document (v0, rough)
+# Fit Hindu — Idea Document (v1)
 
-> Status: DRAFT for owner discussion. Written 2026-07-10. Nothing here is final.
+> Status: DRAFT for owner discussion. Rewritten 2026-07-12 after the scope
+> pivot. Working name is **"Fit Hindu"** — name/trademark availability is being
+> checked; treat as provisional until confirmed. Company: Herbal Deck.
+> Supersedes the v0 "Bajrangvati companion app" framing (see docs/decisions.md
+> 2026-07-12).
+
+## The pivot in one paragraph
+
+We are no longer building a companion app locked to Bajrangvati buyers. We are
+building a **standalone devotional-fitness app for Hindu India** — a daily
+routine of workouts, diet, meditation, and mantra jap, wrapped in a devotional
+identity. It acquires users on its own (not only post-purchase) and builds a
+daily habit through the devotional hook. How it ultimately monetises is **not
+locked** — first-party data and a later premium tier are on the table, and
+Herbal Deck product cross-sell is a *possible* pillar but **not confirmed**
+(decision deferred). v1's job is the audience and the habit, not revenue.
 
 ## One-line pitch
 
-Every Bajrangvati buyer gets a free personal wellness companion — a daily diet,
-workout, and meditation routine built around their goals — so the product
-works better, they stay longer, and they buy again.
+A daily fitness and devotion companion for the Hindu household — your workout,
+your diet, your meditation, and your mantra jap, in one place, in your language.
 
-To the customer (what a caller can say on the phone):
-**"Humara free app milega — aapke liye personal diet aur exercise plan
-banayega, roz guide karega."**
+To the customer (caller / QR / ad line):
+**"Fit Hindu — roz ki exercise, diet, dhyan aur mantra jap, sab ek app mein.
+Bilkul free."**
 
 ## The user
 
-- Existing Bajrangvati buyer (post-purchase is the entry moment, not ads).
-- Hindi-first, mid-range Android phone, Jio/Airtel data. English secondary.
-- Health-conscious, spiritually inclined; trusts the brand enough to have
-  already paid money.
-- Wide age range — UI must be simple, large-type friendly, minimal steps.
+- **Primary:** Hindu, health-conscious, devotionally inclined Android users
+  across a wide age range. Hindi-first, mid-range phone, Jio/Airtel data.
+- **Seed audience (fastest to reach):** existing Herbal Deck / Bajrangvati
+  buyers — already trust the brand, reachable for free via our own channels.
+- **Growth audience:** the much larger set of Hindus who never bought a
+  product but want a fitness + devotional daily routine. Ads target the
+  devotional-fitness intent; the app converts and retains them.
+- UI must be simple, large-type friendly, minimal steps, devotionally warm.
 
-## Why an app (business goals, in priority order)
+## Why this app (business goals, priority order)
 
-1. **Retention → reorder.** A customer following a 60–90 day plan inside our
-   app finishes the course and reorders. Repeat purchase rate is the metric
-   this app lives or dies on.
-2. **Owned channel.** Push notifications reach buyers for free; today every
-   re-touch costs ad money or a caller's time.
-3. **First-party data.** The onboarding questionnaire (goals, diet, habits)
-   sharpens ad targeting and caller pitches.
-4. **Alternate revenue later** — premium tier, in-app shop, possibly ads.
-   Not v1.
+1. **Daily habit → owned audience.** Devotion is the strongest daily-habit
+   anchor in India (Sri Mandir ~55% six-month retention). Attach fitness and
+   diet to the devotional ritual and we own a daily touchpoint with a large,
+   trusting Hindu audience — for free, via push.
+2. **First-party data moat.** The questionnaire + behaviour (goals, diet,
+   deity affinity, festival engagement, adherence) sharpens ad targeting and
+   caller scripts. See "The data advantage" below.
+3. **Revenue — deferred.** How the app makes money is an open decision (see
+   "How the money works"). Product cross-sell, a premium tier, and devotional
+   transactions are all candidates; none is committed. v1 doesn't gate or sell.
 
 ## The core loop (v1)
 
-Onboarding questionnaire (goal, age band, diet type, routine, language)
+Onboarding questionnaire (goal, age band, diet type, routine, chosen deity,
+language)
 → rule-based plan assignment from team-authored templates
-→ **daily home screen**: today's meals, today's workout (video), today's
-meditation/sleep track, product-usage reminder
-→ streaks + push reminders → plan completion → reorder nudge.
+→ **daily home screen**: today's workout (video), today's meals, today's
+meditation/mantra, today's devotional (shloka + deity of the day)
+→ streaks + push reminders framed as ritual ("aarti / jap ka samay")
+→ plan completion + festival moments = natural re-engagement hooks (what we do
+with those moments commercially is a later decision).
 
-v1 modules:
-- Questionnaire + plan engine (rule-based, templates authored by the team —
-  no AI generation in v1; predictable and safe for health content)
-- Daily home screen (the habit surface — most polished screen in the app)
-- Workout player (in-house shot videos, 1–5 min)
-- Diet day view (veg-first, Indian meals, regional-friendly)
-- Meditation mode + sleep sounds (audio player, offline-capable)
-- Devotional touch: daily shloka/quote on the home screen, devotional audio
-  in the meditation section, festival-aware greetings. A flavour, not a module.
-- Streaks, push notifications, Hindi/English toggle
-- Admin panel (web) so the content team runs everything without engineering
+## v1 modules
 
-## How the money works
+> **Primary functionality = workout, diet, meditation, sleep sounds, and
+> chants (mantra jap).** That is the product core the app must nail. The
+> devotional layer (shloka, deity-of-the-day, festival awareness) is the
+> identity/hook wrapped around that core — a flavour that drives daily
+> retention, not a separate product. Content series/stories and any revenue
+> surfaces sit on top of this core, later.
 
-1. **Reorder engine (immediate, biggest).** In-app "reorder / shop" for
-   physical products — exempt from the 30% store commission (physical goods).
-   Plan completion and streak milestones are natural reorder moments.
-2. **Premium tier (later, v2+).** Advanced plans, live/recorded sessions,
-   dietician consults. Digital → store fees apply (15% small-business rate).
-   Build the audience first; don't gate v1.
-3. **Data dividend (invisible but real).** Questionnaire + behaviour data
-   feeds Meta/Google targeting and caller scripts.
-4. **Third-party ads — parked.** Only at large scale, and carefully; ads in a
-   brand app spend trust.
+- **Onboarding questionnaire + rule-based plan engine** — templates authored by
+  the team, no AI generation of health advice in v1 (predictable, safe).
+- **Daily home screen** — the habit surface; most polished screen in the app.
+  Blends fitness + devotion into one daily card set.
+- **Fitness / workout player** — in-house shot videos (1–5 min), level-tagged
+  (beginner/intermediate/advanced) inside goal-based multi-week programs.
+- **Diet day view** — veg-first / sattvic-friendly Indian meals, regional.
+- **Meditation mode** — guided sessions with a **timer**, selectable
+  background **sounds**, and **voice instructions**. Duration presets.
+- **Mantra jap** — per-deity chanting: **Hanuman, Ram, Shiv, Krishna** (extend
+  later). Jap counter (mala / 108), audio chant loop, optional target count,
+  written mantra + meaning in Hindi.
+- **Sleep sounds** — ambient + devotional audio for sleep (offline-capable).
+- **Devotional layer** — daily shloka/quote + deity-of-the-day on home,
+  devotional audio in meditation, festival-aware greetings and content spikes
+  (Navratri, Shravan, Ekadashi, Ram Navami, Janmashtami, Mahashivratri).
+- **Streaks, push notifications, Hindi/English toggle.**
+- **Admin panel (web)** — content team runs everything (plans, videos, audio,
+  mantras, devotional content) without engineering.
+
+### Roadmap-adjacent (design the schema for it now, build later)
+
+- **Devotional content series & stories** — generated/curated multi-part
+  devotional series (deity stories, aarti explainers, festival guides) as a
+  standalone daily habit surface even on fitness rest days. Kuku-Bhakti-style
+  engagement engine. Content plumbing (series → episodes → media) should be
+  program-shaped from day one so this is a content job later, not a rebuild.
+
+## How the money works (all deferred — none committed for v1)
+
+v1 does not sell or gate anything. Its job is audience + habit. These are the
+*candidate* revenue paths, to be decided once the habit loop is proven; the
+schema and design should leave room for them without building any yet.
+
+1. **First-party data dividend (invisible but real).** The one revenue lever
+   that's active from day one, indirectly — clean questionnaire + behaviour
+   data sharpens ad targeting and caller scripts. See "The data advantage".
+2. **Sliding promo banner (later — the most likely first surface).** A
+   Cult.fit-style rotating banner on the home screen. Candidate uses, in
+   order of trust-safety: (a) our own Herbal Deck products / offers, (b)
+   third-party **sponsors** (relevant, brand-safe — devotional/wellness/FMCG),
+   (c) festival campaigns. Build it as a **generic, admin-driven slot**
+   (image + link + schedule + targeting), product- and sponsor-agnostic, so
+   filling it is content work later, not a rebuild. Sponsor ads in a
+   devotional app spend trust — keep them relevant, sparse, and clearly not
+   medical claims.
+3. **Product cross-sell (candidate, not confirmed).** In-app "shop / reorder"
+   for Herbal Deck physical goods — exempt from store commission. Deity
+   affinity + goals could surface the right product per user. Deferred until
+   the owner confirms whether the app sells at all.
+4. **Premium tier (v2+).** Advanced plans, live/recorded sessions, dietician
+   consults, premium devotional catalogue. Digital → store fees apply
+   (15% small-business rate). Build the audience first.
+5. **Devotional micro-transactions (v2+, careful).** Sri-Mandir-style e-puja /
+   sankalp / chadhava offerings. High potential but must never feel
+   exploitative of faith — a trust fence-line, not just a compliance one.
+
+## The data advantage (internal strategy — not user-facing)
+
+> **Guardrail first.** Everything below is legitimate first-party-data business
+> strategy, but under the DPDP Act 2023 + Rules 2025 we may only *collect* and
+> *use* data for purposes we itemise in the consent notice, with affirmative
+> opt-in, minimisation, and a deletion path. The strategy here must stay inside
+> what docs/research/compliance.md permits: disclose these purposes in the
+> notice, keep health-condition questions optional, never repurpose data beyond
+> the stated purposes. Data as an asset only holds if it's collected cleanly —
+> a Play takedown or DPDP penalty destroys the asset. Design the consent notice
+> to *cover* these uses, don't hide them.
+
+Why owning this data is a genuine competitive moat for Herbal Deck:
+
+- **What we learn per user:** goal (weight, strength, stamina, general
+  wellness), diet type (veg/sattvic/non-veg), age band, routine, **chosen
+  deity / devotional affinity**, festival engagement, workout & diet
+  adherence, meditation/jap frequency, churn signals, reorder timing.
+- **Sharper paid acquisition.** Real goal + affinity data feeds Meta/Google
+  custom audiences and lookalikes — we stop guessing who converts and target
+  the devotional-fitness intent precisely; lower CAC over time.
+- **Retargeting & win-back.** Behavioural signals (lapsed streak, plan near
+  completion, festival window) trigger the right ad or push at the right time.
+- **Caller intelligence.** Herbal Deck's ~600 callers get per-user context —
+  goal, adherence, likely-needed product — turning cold pitches into informed
+  ones. The app becomes a CRM enrichment engine for the call centre.
+- **Segmentation & cross-sell.** Deity affinity + goal → the right product
+  bundle for each user ("your sleep answers suggest X"). Festival calendar →
+  timed campaigns. This is what makes the catalogue-wide v2 cross-sell work.
+- **Churn prediction & reorder timing.** Adherence + streak decay predict who's
+  about to lapse and who's about to run out of product — the two moments where
+  a nudge pays for itself.
+- **Product & content R&D.** Aggregate goals/affinities tell the company which
+  new products and devotional content to make next.
+
+The rule: **collect the minimum, disclose every purpose, use it aggressively
+inside those disclosed purposes.** Clean data used well beats dirty data
+used once.
 
 ## The unfair advantage — our traffic and leads
 
-We don't buy users; we already own them. Funnel every existing touchpoint:
+We don't only buy users; we already own a launch base. Every existing
+touchpoint funnels in (each with a tracked link so we know what works):
 
-- **QR code inside every product box** — "Scan karo, apna free personal plan
+- **QR code inside every product box** — "Scan karo, apna free Fit Hindu plan
   pao." Highest-intent moment we have. (Print lead time: start early.)
 - **Order confirmation SMS/WhatsApp** with the app link.
-- **600 callers** add one closing line after every sale.
+- **~600 callers** add one closing line after every sale.
 - **Website** post-purchase page + banner for past buyers.
-- **Influencers** demo the app, not just the product.
-- Each channel gets a tracked link so we know which funnel works.
+- **Influencers** — devotional-fitness creators demo the app.
+- **Paid ads** — the growth engine beyond our own base, targeting the
+  devotional-fitness intent.
 
-## Beyond Bajrangvati — the platform play
+## Architecture — a platform, not a single-program app
 
-The key architecture decision: **build a "programs" platform, not a
-Bajrangvati app.** Bajrangvati is program #1. Nothing in the data model or
-design hardcodes one product.
+The key decision holds and is now even more central: **build a "programs"
+platform.** A program = questionnaire mapping + plan templates + content
+library. Nothing hardcodes one product, one deity, or one goal.
 
-- **v1 ships as the Bajrangvati app** (focused brand promise, simple pitch) —
-  but under the hood a "program" = questionnaire mapping + plan templates +
-  content library. Adding the next product's program is content work in the
-  admin panel, not a rebuild.
-- **v2 — the Herbal Deck wellness ecosystem:** every product gets a program;
-  the app becomes the companion to the whole catalogue. In-app shop and
-  cross-sell ("your sleep answers suggest trying X"). Subscriptions — monthly
-  product refill plans managed in-app.
-- **v2/v3 — services layer:** paid dietician / AYUSH-doctor tele-consults
-  (the call-center muscle already exists; this is an upsell they can book),
-  community/challenges (group streaks, festival challenges), testimonial +
-  UGC collection that feeds the ad-creative team, referral rewards.
-- **Devotional vertical (optional v3):** daily devotional audio/aarti/bhajan
-  as a standalone habit surface — Indian devotional apps show this drives
-  extraordinary daily engagement; it would make the app a daily habit even on
-  rest days.
-- **Long-term option — white-label:** the same platform (programs + admin
-  panel + funnel playbook) can be deployed for other D2C brands. Not a
-  company commitment; an option the architecture keeps open.
+- **v1 ships as Fit Hindu** (focused promise, simple pitch) — but under the
+  hood everything is program/content-shaped. Adding a fitness program, a new
+  deity's mantra set, or a devotional series is content work in the admin
+  panel, not a rebuild.
+- **v2 — the Herbal Deck wellness ecosystem:** every product maps to a program;
+  in-app shop + cross-sell; subscription refill plans.
+- **v2/v3 — services & devotional layers:** paid dietician / AYUSH tele-consults
+  (call-centre muscle already exists), community/challenges (group streaks,
+  festival challenges), the full devotional content-series surface, UGC/
+  testimonials feeding the ad-creative team, referrals.
+- **Long-term option — white-label:** the same platform (programs + admin panel
+  + funnel playbook) could deploy for other D2C brands. An option the
+  architecture keeps open, not a commitment.
+
+## Compliance & trust fence-lines (read before writing any copy)
+
+- **Health claims:** the app is *Health & Fitness*, never *Medical*. Never
+  "treats/cures/prevents." Disclaimers on onboarding, first workout, and any
+  product screen. Full table in docs/research/compliance.md — unchanged and
+  now more important (standalone health app, not just a product companion).
+- **Religious/political framing:** the *emotional hook* is Hindu devotional
+  identity and pride — welcome and validated by the market. But **public store
+  listing and in-app copy must stay devotional/cultural, not politically
+  partisan.** Overtly political "Hindutva" wording in the listing risks
+  Apple/Google rejection (content promoting division) and Indian ad-law
+  scrutiny. Keep political-emotion targeting in the *ad campaigns and internal
+  strategy*; keep the app itself a warm devotional-fitness product. Get the
+  final public name + tagline reviewed against store policy before submission.
+- **Devotional respect:** never gate core worship (aarti/mantra) behind a
+  paywall in a way that feels like charging for faith; monetise the fitness/
+  premium/product layers, keep the devotional core generous.
+- **DPDP:** consent notice must itemise and cover the data uses above.
 
 ## Not in v1 (protective list)
 
-Payments/premium, AI plan generation, chat/community, consultations,
-referral system, third-party ads, iOS-first polish (Android is the market;
-iOS ships from the same codebase when accounts are ready).
+AI plan/health-advice generation, chat/community, consultations, referral
+system, third-party ads, premium/paywall, devotional micro-transactions,
+iOS-first polish (Android is the market; iOS ships from the same codebase when
+accounts are ready). Devotional content *series/stories* are schema-ready in
+v1 but authored later.
 
 ## Open questions for the owner
 
-1. Brand: does the app carry the Bajrangvati name or Herbal Deck name?
-   (Affects the beyond-scope path — recommend: Bajrangvati front, Herbal Deck
-   platform behind.)
-2. Budget line for hosting (video CDN ~low thousands ₹/month at launch) and
-   store accounts (Play $25 once, Apple $99/yr).
-3. Who on the team owns content ops after I move to WFH?
-4. How aggressive is the reorder nudge allowed to be in v1?
-5. Timeline expectation: office days end ~27 July; realistic public launch is
-   1–2 weeks after (closed testing + store review), driven remotely.
+1. **Name lock:** is "Fit Hindu" the name, pending availability? Fallback names
+   if the trademark/domain/handle is taken? (Blocks store account + D-U-N-S +
+   privacy-policy entity name.)
+2. **Standalone vs buyer-gated:** confirm the app is open to everyone (not just
+   product buyers) — this is the core of the pivot.
+3. **Budget:** hosting (Bunny ~₹4k/mo at launch) + Play $25 once + Apple
+   $99/yr. Approved?
+4. **Content ops owner** after I move to WFH — who runs the admin panel
+   (fitness + diet + devotional content)?
+5. **Cross-sell aggressiveness** in v1 — gentle / moderate / aggressive?
+6. **Devotional scope for v1:** which deities ship first (Hanuman, Ram, Shiv,
+   Krishna confirmed?), and are we comfortable with the devotional-identity
+   positioning and its store-policy fence-lines above?
+7. **D-U-N-S / store accounts** started this week? (Only item with an external
+   clock — still the critical path.)

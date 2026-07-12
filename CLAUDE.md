@@ -1,8 +1,11 @@
-# Bajrangvati App
+# Fit Hindu App
 
-Consumer wellness app for Herbal Deck's Bajrangvati product: personalized
-diet + workout plans (video), meditation mode, sleep sounds, devotional touch.
-Business goal: convert buyers into daily app users → repeat product purchases.
+Standalone devotional-fitness app for Hindu India (working name "Fit Hindu",
+availability pending). Company: Herbal Deck. Daily workouts + diet plans
+(video), meditation with timer/sounds, per-deity mantra jap, sleep sounds, and
+a devotional layer. Business goal: build a daily habit for a large Hindu
+audience → owned channel → Herbal Deck product cross-sell + first-party data.
+See docs/idea.md (v1, 2026-07-12 pivot) for the full vision.
 
 ## Stack
 
@@ -16,15 +19,23 @@ Business goal: convert buyers into daily app users → repeat product purchases.
 
 ## Standing rules (do not violate)
 
-- **Programs platform, not a Bajrangvati app.** Nothing in the schema, code,
-  or design may hardcode one product. A "program" = questionnaire mapping +
-  plan templates + content library. Bajrangvati is program #1.
+- **Programs platform, not a single-product app.** Nothing in the schema,
+  code, or design may hardcode one product, one deity, or one goal. A
+  "program" = questionnaire mapping + plan templates + content library.
+  Fitness programs, per-deity mantra sets, and devotional series are all
+  content, authored in the admin panel — never hardcoded.
 - **Plans are rule-based in v1.** Questionnaire answers map to team-authored
   plan templates. No AI generation of health advice.
 - **Health claims:** the app gives general wellness guidance, never medical
   advice or disease-cure claims. Diet/workout screens carry disclaimers.
   When writing user-facing copy about the product, stay descriptive
   ("supports your routine"), never curative.
+- **Devotional framing:** the emotional hook is Hindu devotional identity —
+  in the app, keep it warm, respectful, and cultural. Public store copy and
+  in-app UI stay devotional/cultural, never politically partisan ("Hindutva"
+  political wording is a store-rejection + ad-law risk — keep that to internal
+  strategy and ad campaigns). Never gate core worship (aarti/mantra) behind a
+  paywall. See docs/idea.md "Compliance & trust fence-lines".
 - **Hindi-first.** All user-facing strings go through the i18n layer from day
   one (hi + en). Never hardcode display text in components.
 - **Design system only.** Screens are assembled from the tokens + base

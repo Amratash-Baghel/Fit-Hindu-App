@@ -6,8 +6,9 @@ afternoon cycle.
 
 ## Jul 11–13 — Phase 1: lock the product (docs, but timeboxed)
 
-- [ ] Owner sit-down with docs/idea.md + research findings → scope + money
-      model signed off, brand question answered (Bajrangvati vs Herbal Deck)
+- [ ] Owner sit-down with docs/idea.md (v1 pivot) + research findings → scope +
+      money model signed off; "Fit Hindu" name/trademark availability
+      confirmed; standalone-vs-buyer-gated and devotional-scope questions locked
 - [ ] **Owner starts D-U-N-S request (Apple fast track) + Play org account —
       the only bureaucracy-controlled clock; cannot slip**
 - [ ] Draft privacy policy (DPDP-compliant, hi+en) — needed for store forms
