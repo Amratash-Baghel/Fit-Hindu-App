@@ -39,7 +39,9 @@ See docs/idea.md (v1, 2026-07-12 pivot) for the full vision.
 - **Hindi-first.** All user-facing strings go through the i18n layer from day
   one (hi + en). Never hardcode display text in components.
 - **Design system only.** Screens are assembled from the tokens + base
-  components in `app/ui/`. No one-off colors, fonts, or spacing values.
+  components in `src/ui/`. No one-off colors, fonts, or spacing values.
+  (Expo Router owns `app/` as the routes folder; all non-route source lives
+  in `src/`.)
 - **Migrations:** any change under `supabase/migrations/` must be flagged
   loudly at the end of the session: "USER MUST RUN migration NNNN in
   Supabase." Never assume a migration has been applied.

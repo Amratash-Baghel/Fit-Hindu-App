@@ -3,6 +3,15 @@
 Running build log — one entry per shipped item, newest on top. This is the
 standup doc for the owner and the resume-from-home lifeline.
 
+- **2026-07-13** — Expo scaffold shipped: Expo Router (SDK 57) + TypeScript,
+  5 tabs (home/workout/meditation/jap/sleep), design tokens + base components
+  (src/ui: Screen/Card/Chip/Button/T/B) from the approved black-saffron-gold
+  design, i18n layer with the 3 language modes (hindi/english/mixed) wired to
+  onboarding question #1, Supabase client + .env.example, night mood on the
+  sleep tab. Verified in web preview: all routes render, all 3 language modes
+  switch live app-wide, onboarding → tabs navigation works, zero console/
+  server errors, typecheck green. CLAUDE.md updated: design system lives in
+  src/ui (app/ is the routes folder).
 - **2026-07-12** — Data model v1: 7 migrations (enums/helpers → identity →
   media+content atoms → templates → programs+rules → user state+activity →
   devotional calendar), dev seed, TS types (app/types/db.ts), schema spec
