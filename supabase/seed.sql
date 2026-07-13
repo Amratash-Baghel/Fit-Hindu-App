@@ -108,10 +108,10 @@ insert into programs (id, slug, name_hi, name_en, description_hi, description_en
 
 insert into program_days (program_id, day_number, workout_template_id, diet_template_id, is_rest_day)
 select
-  '30000000-0000-4000-8000-000000000001',
+  '30000000-0000-4000-8000-000000000001'::uuid,
   d,
-  case when d % 7 = 0 then null else '10000000-0000-4000-8000-000000000001' end,
-  '20000000-0000-4000-8000-000000000001',
+  case when d % 7 = 0 then null else '10000000-0000-4000-8000-000000000001'::uuid end,
+  '20000000-0000-4000-8000-000000000001'::uuid,
   (d % 7 = 0)
 from generate_series(1, 28) as d;
 

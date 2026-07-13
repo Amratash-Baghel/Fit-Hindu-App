@@ -60,28 +60,29 @@ group by user_id, ist_date;
 
 -- Current daily streak in IST. A day counts if >=1 activity was logged.
 -- The streak is "alive" if today OR yesterday has activity (today isn't over).
+-- Note: row_number() is bigint, and there is no `date - bigint` operator, so
+-- the rank is cast to int before the date subtraction.
 create or replace function current_streak(uid uuid)
 returns int
 language sql stable
 as $$
   with days as (
-    select distinct ist_date from activity_log where user_id = uid
+    select distinct ist_date as d from activity_log where user_id = uid
   ),
   anchor as (
     select case
-      when exists (select 1 from days where ist_date = ist_today()) then ist_today()
-      when exists (select 1 from days where ist_date = ist_today() - 1) then ist_today() - 1
-      else null
-    end as d
+      when exists (select 1 from days where d = ist_today())     then ist_today()
+      when exists (select 1 from days where d = ist_today() - 1) then ist_today() - 1
+    end as a
   ),
   numbered as (
-    select ist_date, row_number() over (order by ist_date desc) as rn
+    select days.d, (row_number() over (order by days.d desc))::int as rn
     from days, anchor
-    where anchor.d is not null and ist_date <= anchor.d
+    where anchor.a is not null and days.d <= anchor.a
   )
   select coalesce(
     (select count(*)::int from numbered, anchor
-      where numbered.ist_date = anchor.d - (numbered.rn - 1)),
+      where numbered.d = anchor.a - (numbered.rn - 1)),
     0
   );
 $$;
@@ -93,24 +94,23 @@ returns int
 language sql stable
 as $$
   with days as (
-    select distinct ist_date from activity_log
+    select distinct ist_date as d from activity_log
     where user_id = uid and activity_type = a_type
   ),
   anchor as (
     select case
-      when exists (select 1 from days where ist_date = ist_today()) then ist_today()
-      when exists (select 1 from days where ist_date = ist_today() - 1) then ist_today() - 1
-      else null
-    end as d
+      when exists (select 1 from days where d = ist_today())     then ist_today()
+      when exists (select 1 from days where d = ist_today() - 1) then ist_today() - 1
+    end as a
   ),
   numbered as (
-    select ist_date, row_number() over (order by ist_date desc) as rn
+    select days.d, (row_number() over (order by days.d desc))::int as rn
     from days, anchor
-    where anchor.d is not null and ist_date <= anchor.d
+    where anchor.a is not null and days.d <= anchor.a
   )
   select coalesce(
     (select count(*)::int from numbered, anchor
-      where numbered.ist_date = anchor.d - (numbered.rn - 1)),
+      where numbered.d = anchor.a - (numbered.rn - 1)),
     0
   );
 $$;
