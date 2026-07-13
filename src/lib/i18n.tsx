@@ -29,6 +29,43 @@ export const strings = {
   coming_soon: { hi: "जल्द आ रहा है", en: "Coming soon" },
   continue: { hi: "आगे बढ़ें", en: "Continue" },
   start: { hi: "शुरू करें", en: "Start" },
+  retry: { hi: "फिर से कोशिश करें", en: "Retry" },
+  loading: { hi: "लोड हो रहा है…", en: "Loading…" },
+
+  // workout modes
+  mode_home: { hi: "घर पर", en: "Home" },
+  mode_gym: { hi: "जिम", en: "Gym" },
+  mode_custom: { hi: "अपनी पसंद", en: "Custom" },
+
+  // body areas (custom mode)
+  area_full_body: { hi: "पूरा शरीर", en: "Full body" },
+  area_chest: { hi: "छाती", en: "Chest" },
+  area_back: { hi: "पीठ", en: "Back" },
+  area_shoulders: { hi: "कंधे", en: "Shoulders" },
+  area_arms: { hi: "बाजू", en: "Arms" },
+  area_core: { hi: "कोर / पेट", en: "Core" },
+  area_legs: { hi: "टाँगें", en: "Legs" },
+
+  // levels
+  level_beginner: { hi: "शुरुआती", en: "Beginner" },
+  level_intermediate: { hi: "मध्यम", en: "Intermediate" },
+  level_advanced: { hi: "उन्नत", en: "Advanced" },
+
+  // workout screen states + detail
+  our_avatar: { hi: "हमारा अवतार", en: "Our Avatar" },
+  workout_empty: { hi: "अभी कोई व्यायाम उपलब्ध नहीं", en: "No exercises available yet" },
+  workout_error: { hi: "व्यायाम लोड नहीं हो सके", en: "Couldn't load exercises" },
+  pick_area: { hi: "अंग चुनें", en: "Pick a body area" },
+  sets: { hi: "सेट", en: "Sets" },
+  reps: { hi: "बार", en: "Reps" },
+  hold: { hi: "समय", en: "Hold" },
+  rest: { hi: "विश्राम", en: "Rest" },
+  instructions: { hi: "निर्देश", en: "Instructions" },
+  start_workout: { hi: "व्यायाम शुरू करें", en: "Start workout" },
+  workout_safety: {
+    hi: "दर्द, चक्कर या असुविधा होने पर तुरंत रुकें। ये सामान्य मार्गदर्शन है, चिकित्सीय सलाह नहीं।",
+    en: "Stop immediately if you feel pain, dizziness or discomfort. This is general guidance, not medical advice.",
+  },
 
   // home (stub)
   greeting: { hi: "राम राम", en: "Ram Ram" },
@@ -59,13 +96,18 @@ interface I18nCtx {
   t: (k: StringKey) => string;
   /** Secondary caption (mixed mode only; null otherwise). */
   tSub: (k: StringKey) => string | null;
+  /** Localise a dynamic DB value (e.g. exercise name_hi/name_en). */
+  loc: (hi: string, en: string) => string;
+  /** Secondary caption for a dynamic DB value (mixed mode only). */
+  locSub: (hi: string, en: string) => string | null;
 }
 
 const Ctx = createContext<I18nCtx | null>(null);
 
 export function I18nProvider({ children }: { children: React.ReactNode }) {
-  // Default 'mixed' until onboarding stores the user's choice (profiles.language_mode).
-  const [mode, setMode] = useState<LanguageMode>("mixed");
+  // Default 'english' until onboarding stores the user's choice
+  // (profiles.language_mode) — owner decision 2026-07-13.
+  const [mode, setMode] = useState<LanguageMode>("english");
 
   const value = useMemo<I18nCtx>(
     () => ({
@@ -73,6 +115,8 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
       setMode,
       t: (k) => (mode === "english" ? strings[k].en : strings[k].hi),
       tSub: (k) => (mode === "mixed" ? strings[k].en : null),
+      loc: (hi, en) => (mode === "english" ? en : hi),
+      locSub: (hi, en) => (mode === "mixed" ? en : null),
     }),
     [mode],
   );

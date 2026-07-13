@@ -11,6 +11,30 @@ One dated line per decision, with the why. Newest on top.
   larger Hindu audience than a buyer-gated companion, while Herbal Deck products
   cross-sell inside. Programs-platform architecture unchanged (now product- and
   deity-agnostic). idea.md rewritten to v1. Name/trademark availability pending.
+- **2026-07-13 (content model: library + composed sessions)** — Exercises and
+  audio tracks are standalone, reusable **library objects**; workouts and
+  sound sessions are ordered **compositions** referencing library objects via
+  join tables — never duplicated copies. Editing a library object (e.g. a
+  better avatar video) updates it everywhere it's referenced. Admin panel gets
+  two clearly separate areas: **"Library"** (add/edit atomic content — the
+  fitness lead's primary workspace) and **"Compose"** (assemble library items
+  into workouts/sessions with drag-reorder). The v1 user flow "select body
+  area → see exercises" pulls straight from the library filtered by
+  body_area; composed multi-exercise Workouts follow once the library fills.
+  *Mapping to shipped schema:* audio_tracks ≈ `sounds`, workouts ≈
+  `workout_templates`, workout_items ≈ `workout_template_exercises` (already
+  join-table shaped, already enforce the reuse rule). **Composed sound
+  sessions** (`sound_sessions` + items with optional pause_after_seconds) are
+  a small additive migration when that feature ships — nothing to rework.
+- **2026-07-13 (admin upload flow)** — Content upload is "upload into the
+  placeholder": admin navigates to the exact slot (e.g. Workouts → Chest →
+  "Incline Pushup"), drags the avatar demo video into the form, the panel
+  uploads to **Bunny via its API with a server-side key that never touches
+  the browser**, Bunny returns the URL/ID, the panel writes it to that row's
+  media reference — one action. Same for audio (Sleep Sounds → "Rain" → MP3).
+  **Inline preview player after every upload** so the team instantly verifies
+  the right file landed in the right slot. Default language mode is
+  **English** until the user picks in onboarding (was: mixed).
 - **2026-07-12 (data model)** — v1 schema designed & written (migrations
   0001–0007 + seed): deities/programs are TABLES not enums (admin-extensible,
   platform rule); `media` table is the swappable Bunny layer; `activity_log`

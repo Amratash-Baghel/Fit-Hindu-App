@@ -33,15 +33,41 @@ everywhere it's used.
 
 ## Admin panel (Next.js, `admin/`)
 
-The content team must run ALL of this without engineering:
+The content team must run ALL of this without engineering. Two clearly
+separate areas (decision 2026-07-13):
 
-- CRUD for every object type above; **upload video → Bunny** and **upload
-  sound → Bunny** from the panel (panel gets upload keys; app gets playback
-  URLs).
-- Template & plan builders (pick objects, order them, set overrides).
-- Questionnaire-mapping editor (answers → plan template).
-- Devotional calendar (assign deity days, festival content, daily shloka).
-- Draft → published states; published content is what the app reads.
+**1. Library** — atomic content CRUD; the fitness lead's primary workspace.
+Exercises, sounds/audio tracks, meals, mantras, devotional items. Each form
+is the object's fields + its media slot(s).
+
+**2. Compose** — assemble library items into ordered compositions:
+workout templates (drag-reorder exercises, per-slot set/rep overrides), diet
+day templates, programs, and later composed sound sessions
+(`sound_sessions` + items with optional pause_after_seconds — additive
+migration when built). Never copies — compositions reference library rows.
+
+**The upload-into-placeholder flow (the core interaction):**
+
+1. Admin navigates to the exact slot: Library → Exercises → Chest →
+   "Incline Pushup" (or creates the exercise right there).
+2. The form has an upload field — drag the avatar demo video in.
+3. The panel uploads to **Bunny via its API using a server-side key that
+   never touches the browser** (Next.js route handler / server action).
+4. Bunny returns the video URL/ID → the panel writes a `media` row and sets
+   the exercise's `video_media_id` — one action, no separate "media manager"
+   step required.
+5. **Inline preview player renders immediately after upload** so the team
+   verifies the right file landed in the right slot (this one detail
+   prevents most content mistakes).
+
+Same flow for audio: Library → Sounds → Sleep → "Rain" → upload MP3 → saved
+→ preview plays. Until an upload happens, the slot shows the placeholder
+state — the app renders a placeholder tile for content whose media is
+missing, so content can be authored before videos are shot.
+
+Also in the panel: questionnaire-mapping editor (answers → program),
+devotional calendar (deity days, festivals, daily shloka), draft → published
+states (published is all the app can read — enforced by RLS, not UI).
 
 ## Rules
 

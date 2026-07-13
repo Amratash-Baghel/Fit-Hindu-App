@@ -3,6 +3,17 @@
 Running build log — one entry per shipped item, newest on top. This is the
 standup doc for the owner and the resume-from-home lifeline.
 
+- **2026-07-13** — Workout section v1 shipped (owner build priority): browse
+  screen with 3 modes (Home / Gym / Custom-by-body-area, 7 area chips), tile
+  cards with avatar placeholder + "Our Avatar" badge, exercise detail screen
+  (avatar video hero, sets/reps/rest stat chips, instructions, gold Start,
+  safety disclaimer). Typed content query layer (src/lib/content.ts) with
+  media FK joins. Default language switched to English (owner call).
+  Verified live against real Supabase: 6 home exercises load, Legs filter
+  returns exactly Dand Baithak + Squats, detail renders seeded data, zero
+  console errors, typecheck green. Content-model decision recorded (library
+  + composed sessions; admin Library/Compose areas; upload-into-placeholder
+  flow with server-side Bunny key + inline preview player).
 - **2026-07-13** — Expo scaffold shipped: Expo Router (SDK 57) + TypeScript,
   5 tabs (home/workout/meditation/jap/sleep), design tokens + base components
   (src/ui: Screen/Card/Chip/Button/T/B) from the approved black-saffron-gold
