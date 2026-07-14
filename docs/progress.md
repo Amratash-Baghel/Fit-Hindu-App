@@ -3,6 +3,16 @@
 Running build log — one entry per shipped item, newest on top. This is the
 standup doc for the owner and the resume-from-home lifeline.
 
+- **2026-07-14** — Meditation section shipped (3-click flow per spec):
+  entry (Start) → sound selector (default ॐ chant auto-plays on open, live
+  switch, Silent option) → instructions + timer presets (15-min default) →
+  session screen (pulsing ॐ, ticking countdown, keep-awake, pause/resume,
+  end-early with ≥3-min generosity) → completion moment (🪔). Singleton
+  audio service (expo-audio) so sound survives across screens; unreachable
+  media fails silent by design. Activity logging call sites in place —
+  no-op until app auth ships. Verified in preview: exactly 3 clicks to a
+  running session, pause freezes timer, 1-min session reaches completion,
+  zero console errors, typecheck green.
 - **2026-07-14** — Admin panel v1 built (admin/ Next.js app): login +
   middleware auth gate + is_admin() check (no service-role key anywhere —
   RLS is the boundary); Library area (exercises + sounds: list, full editor,

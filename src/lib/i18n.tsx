@@ -80,6 +80,30 @@ export const strings = {
   lang_english: { hi: "English", en: "English" },
   lang_mixed: { hi: "मिक्स (हिंदी + English)", en: "Mixed (Hindi + English)" },
 
+  error_generic: { hi: "कुछ गड़बड़ हुई — दोबारा कोशिश करें", en: "Something went wrong — try again" },
+
+  // meditation flow (docs/specs/meditation.md — 3 clicks: Start → Next → Start)
+  start_meditation: { hi: "ध्यान शुरू करें", en: "Start Meditation" },
+  med_tagline: { hi: "कुछ मिनट अपने लिए — श्वास, शांति, ॐ", en: "A few minutes for yourself — breath, calm, Om" },
+  choose_sound: { hi: "ध्वनि चुनें", en: "Choose a sound" },
+  sound_playing_hint: { hi: "ध्वनि बदलने के लिए टैप करें — अभी बज रही है", en: "Tap to switch — playing now" },
+  silent_mode: { hi: "मौन", en: "Silent" },
+  next: { hi: "आगे", en: "Next" },
+  how_to_meditate: { hi: "कैसे करें", en: "How to meditate" },
+  med_instructions: {
+    hi: "सीधे बैठें, आँखें बंद करें। धीरे-धीरे गहरी सांस लें और छोड़ें। मन भटके तो बिना झुंझलाहट के ध्यान वापस श्वास पर लाएं।",
+    en: "Sit upright and close your eyes. Breathe in and out slowly. When the mind wanders, gently bring your attention back to the breath.",
+  },
+  timer_label: { hi: "समय चुनें", en: "Set the timer" },
+  minutes_short: { hi: "मिनट", en: "min" },
+  begin: { hi: "ध्यान आरंभ करें", en: "Begin" },
+  pause: { hi: "रोकें", en: "Pause" },
+  resume: { hi: "जारी रखें", en: "Resume" },
+  end_session: { hi: "समाप्त करें", en: "End" },
+  session_complete: { hi: "ध्यान पूर्ण हुआ 🙏", en: "Meditation complete 🙏" },
+  well_done: { hi: "बहुत सुंदर। कल फिर मिलते हैं।", en: "Beautifully done. See you again tomorrow." },
+  done: { hi: "ठीक है", en: "Done" },
+
   // disclaimers (compliance — docs/research/compliance.md)
   wellness_disclaimer: {
     hi: "यह ऐप केवल सामान्य स्वास्थ्य जानकारी देता है — यह चिकित्सा सलाह नहीं है। कोई भी नया व्यायाम या आहार शुरू करने से पहले चिकित्सक से परामर्श करें।",
