@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+/* Internal tool, one deliberate theme: warm dark to match the product's
+   world, but utilitarian — density and legibility over ceremony. */
+:root {
+  --ink: #14100c;
+  --surface: #1e1813;
+  --surface-2: #2a221b;
+  --line: #3a2e24;
+  --cream: #f2ead9;
+  --muted: #a8917a;
+  --saffron: #f0761e;
+  --gold: #d9a441;
+  --ok: #7cb07f;
+  --danger: #d4593f;
+}
+
+body {
+  background: var(--ink);
+  color: var(--cream);
+  font-family: ui-sans-serif, system-ui, "Segoe UI", "Nirmala UI", sans-serif;
+}
+
+/* form controls, once */
+.field {
+  width: 100%;
+  border-radius: 0.5rem;
+  border: 1px solid var(--line);
+  background: transparent;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--cream);
+  outline: none;
+}
+.field:focus {
+  border-color: var(--saffron);
+}
+label.lbl {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-gold {
+  background: linear-gradient(160deg, #f2c879, #d9a441 55%, #b07e2b);
+  color: #241503;
+}
+.btn-ghost {
+  border: 1px solid var(--line);
+  color: var(--muted);
+}
+.btn-ghost:hover {
+  color: var(--cream);
+}
+.card {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 1rem;
+}

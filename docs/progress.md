@@ -3,6 +3,17 @@
 Running build log — one entry per shipped item, newest on top. This is the
 standup doc for the owner and the resume-from-home lifeline.
 
+- **2026-07-14** — Admin panel v1 built (admin/ Next.js app): login +
+  middleware auth gate + is_admin() check (no service-role key anywhere —
+  RLS is the boundary); Library area (exercises + sounds: list, full editor,
+  draft/publish) with the upload-into-placeholder flow — file upload → Bunny
+  via server-only key OR paste-URL fallback (works before Bunny exists),
+  media row + FK set in one action, inline preview player (hls.js/audio);
+  Compose area (workout templates: add from library, reorder, per-slot
+  overrides, single-save rewrite). Both apps typecheck green; root tsconfig
+  excludes admin/. Login gate verified in browser. ⚠️ E2E content-flow
+  verification pending USER bootstrap: create admin auth user + admin_users
+  row (steps in session notes), then log in and click through.
 - **2026-07-13** — Workout section v1 shipped (owner build priority): browse
   screen with 3 modes (Home / Gym / Custom-by-body-area, 7 area chips), tile
   cards with avatar placeholder + "Our Avatar" badge, exercise detail screen
