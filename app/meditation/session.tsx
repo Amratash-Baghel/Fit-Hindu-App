@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Animated, Easing, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useKeepAwake } from "expo-keep-awake";
-import { Screen, Button, FooterAction, B, T, color, space } from "../../src/ui";
+import { Screen, Button, FooterAction, B, T, DiyaIcon, color, space } from "../../src/ui";
 import { pauseAudio, resumeAudio, stopAudio } from "../../src/lib/audio";
 import { logActivity } from "../../src/lib/activity";
 
@@ -89,7 +89,7 @@ export default function MeditationSession() {
     return (
       <Screen scroll={false}>
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: space.md }}>
-          <T style={{ fontSize: 64 }}>🪔</T>
+          <DiyaIcon size={72} />
           <B k="session_complete" variant="h1" center />
           <B k="well_done" variant="body" tone="muted" center />
         </View>

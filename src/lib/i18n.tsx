@@ -82,6 +82,17 @@ export const strings = {
 
   error_generic: { hi: "कुछ गड़बड़ हुई — दोबारा कोशिश करें", en: "Something went wrong — try again" },
 
+  // home (habit surface)
+  todays_shloka: { hi: "आज का श्लोक", en: "Today's shloka" },
+  sankalp_start: { hi: "संकल्प आज से शुरू करें", en: "Start your sankalp today" },
+  sankalp_hint: { hi: "पहली गतिविधि पूरी करें और पहला दीया जलाएँ", en: "Complete your first activity to light the first diya" },
+  soon_badge: { hi: "जल्द", en: "Soon" },
+
+  // workout structure
+  workouts_section: { hi: "वर्कआउट", en: "Workouts" },
+  all_exercises: { hi: "सभी व्यायाम", en: "All exercises" },
+  exercises_word: { hi: "व्यायाम", en: "exercises" },
+
   // meditation flow (docs/specs/meditation.md — 3 clicks: Start → Next → Start)
   start_meditation: { hi: "ध्यान शुरू करें", en: "Start Meditation" },
   med_tagline: { hi: "कुछ मिनट अपने लिए — श्वास, शांति, ॐ", en: "A few minutes for yourself — breath, calm, Om" },

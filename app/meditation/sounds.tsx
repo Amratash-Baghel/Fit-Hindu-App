@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, FlatList, View } from "react-native";
 import { useRouter } from "expo-router";
-import { Screen, Card, Button, FooterAction, B, T, color, space } from "../../src/ui";
+import { Screen, Card, Button, FooterAction, B, T, OmGlyph, BellIcon, MuteIcon, color, space } from "../../src/ui";
 import { useI18n } from "../../src/lib/i18n";
 import { listMeditationSounds, type SoundWithMedia } from "../../src/lib/content";
 import { playLoop, stopAudio } from "../../src/lib/audio";
@@ -80,7 +80,7 @@ export default function MeditationSounds() {
               }
             >
               <View style={{ flexDirection: "row", alignItems: "center", gap: space.md }}>
-                <T style={{ fontSize: 20 }}>🔇</T>
+                <MuteIcon color={selected === SILENT ? color.saffron : color.muted} />
                 <T variant="bodyBold">{t("silent_mode")}</T>
               </View>
             </Card>
@@ -94,7 +94,11 @@ export default function MeditationSounds() {
                 style={active ? { borderColor: color.saffron, backgroundColor: "rgba(240,118,30,0.10)" } : undefined}
               >
                 <View style={{ flexDirection: "row", alignItems: "center", gap: space.md }}>
-                  <T style={{ fontSize: 20 }}>{item.kind === "chant" ? "🕉️" : "🎵"}</T>
+                  {item.kind === "chant" ? (
+                    <OmGlyph size={20} color={active ? color.saffron : color.gold} />
+                  ) : (
+                    <BellIcon color={active ? color.saffron : color.muted} />
+                  )}
                   <View style={{ flex: 1 }}>
                     <T variant="bodyBold">{loc(item.name_hi, item.name_en)}</T>
                     {sub ? (

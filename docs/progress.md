@@ -3,6 +3,19 @@
 Running build log — one entry per shipped item, newest on top. This is the
 standup doc for the owner and the resume-from-home lifeline.
 
+- **2026-07-14** — Premium pass + audit: SVG icon set replaces every emoji
+  (tab bar, cards, tiles, meditation); AvatarTile component (gradient +
+  silhouette + gold play) on all video placeholders; gold-gradient buttons
+  with glow; daily home rebuilt to mockup quality with LIVE devotional data
+  (deity-of-the-day via scheduled row → weekday fallback — verified: Tuesday
+  → Hanuman → Hanuman Stuti shloka), sankalp/diya card, today cards; workout
+  tab restructured — admin-composed templates first (verified: "Full Body —
+  Beginner" template + ordered 5-exercise detail with effective sets/reps),
+  library grid below; new /workout/template/[id] route. Audit fixes:
+  migration 0008 (sounds.audio_media_id nullable — admin New-sound was
+  broken against NOT NULL), root tsconfig excludes admin/. All flows
+  re-verified in preview, zero console errors, both typechecks green.
+  ⚠️ USER MUST RUN migration 0008 in the Supabase SQL editor.
 - **2026-07-14** — Meditation section shipped (3-click flow per spec):
   entry (Start) → sound selector (default ॐ chant auto-plays on open, live
   switch, Silent option) → instructions + timer presets (15-min default) →

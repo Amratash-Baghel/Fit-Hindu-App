@@ -100,7 +100,8 @@ export interface Sound {
   name_en: string;
   kind: SoundKind;
   deity_id: string | null;
-  audio_media_id: string;
+  /** null = placeholder awaiting upload (migration 0008) */
+  audio_media_id: string | null;
   duration_seconds: number | null;
   status: ContentStatus;
   created_at: string;

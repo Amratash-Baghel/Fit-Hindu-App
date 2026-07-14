@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Screen, Card, Chip, Button, FooterAction, B, T, color, space } from "../../src/ui";
+import { Screen, Card, Chip, Button, FooterAction, B, AvatarTile, space } from "../../src/ui";
 import { useI18n } from "../../src/lib/i18n";
 
 const PRESETS = [5, 10, 15, 20, 30] as const;
@@ -24,22 +24,7 @@ export default function MeditationSetup() {
         <B k="how_to_meditate" variant="h1" />
 
         {/* demo video placeholder — same upload-into-placeholder pattern */}
-        <View
-          style={{
-            height: 150,
-            borderRadius: 20,
-            borderWidth: 1,
-            borderColor: "#4a3416",
-            backgroundColor: color.surface,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <T style={{ fontSize: 40 }}>🧘</T>
-          <T variant="caption" tone="muted">
-            {t("our_avatar")}
-          </T>
-        </View>
+        <AvatarTile height={150} playSize={44} silhouetteSize={76} />
 
         <Card>
           <B k="med_instructions" variant="body" />

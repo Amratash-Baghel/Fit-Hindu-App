@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { Screen, Card, T, Button, FooterAction, color, radius, space } from "../../src/ui";
+import { Screen, Card, T, Button, FooterAction, AvatarTile, color, radius, space } from "../../src/ui";
 import { useI18n, type StringKey } from "../../src/lib/i18n";
 import { getExercise, type ExerciseWithMedia } from "../../src/lib/content";
 
@@ -72,50 +72,7 @@ export default function ExerciseDetail() {
       <Stack.Screen options={{ headerShown: false }} />
 
       {/* video hero — avatar demo (placeholder until real Bunny media) */}
-      <View
-        style={{
-          height: 220,
-          borderRadius: radius.media,
-          borderWidth: 1,
-          borderColor: "#4a3416",
-          backgroundColor: color.surface,
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <View
-          style={{
-            position: "absolute",
-            top: 10,
-            left: 10,
-            paddingHorizontal: 10,
-            paddingVertical: 3,
-            borderRadius: 999,
-            backgroundColor: "rgba(15,11,7,0.6)",
-            borderWidth: 1,
-            borderColor: "#4a3416",
-          }}
-        >
-          <T variant="eyebrow" tone="gold" style={{ fontSize: 10, letterSpacing: 1.4 }}>
-            {t("our_avatar")}
-          </T>
-        </View>
-        <T style={{ fontSize: 56 }}>🧘</T>
-        <View
-          style={{
-            position: "absolute",
-            width: 66,
-            height: 66,
-            borderRadius: 999,
-            backgroundColor: color.gold,
-            alignItems: "center",
-            justifyContent: "center",
-            opacity: 0.92,
-          }}
-        >
-          <T style={{ fontSize: 24, color: "#241503" }}>▶</T>
-        </View>
-      </View>
+      <AvatarTile height={220} playSize={62} silhouetteSize={110} />
 
       <T variant="h1" style={{ marginTop: space.lg }}>
         {loc(ex.name_hi, ex.name_en)}

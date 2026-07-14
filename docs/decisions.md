@@ -11,6 +11,16 @@ One dated line per decision, with the why. Newest on top.
   larger Hindu audience than a buyer-gated companion, while Herbal Deck products
   cross-sell inside. Programs-platform architecture unchanged (now product- and
   deity-agnostic). idea.md rewritten to v1. Name/trademark availability pending.
+- **2026-07-14 (premium pass + audit)** — No emoji as UI iconography: a
+  proper SVG icon set (src/ui/icons.tsx, ported from the approved mockup
+  paths) + AvatarTile placeholder component (ember gradient, silhouette,
+  gold play badge) + gold-gradient primary buttons. Why: emoji render
+  inconsistently across Android OEM fonts and read as cheap/AI-generated
+  (owner feedback). Workout tab restructured: admin-COMPOSED workout
+  templates are the primary surface (Home/Gym), exercise library below —
+  the admin Compose area now directly drives the app. Audit fix: migration
+  0008 makes sounds.audio_media_id nullable (admin "New sound" previously
+  violated NOT NULL — placeholder-first flow requires nullable media FKs).
 - **2026-07-13 (content model: library + composed sessions)** — Exercises and
   audio tracks are standalone, reusable **library objects**; workouts and
   sound sessions are ordered **compositions** referencing library objects via
