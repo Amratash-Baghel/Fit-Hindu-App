@@ -8,11 +8,6 @@
     "scheme": "fithindu",
     "userInterfaceStyle": "dark",
     "backgroundColor": "#0F0B07",
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#0F0B07"
-    },
     "android": {
       "package": "com.herbaldeck.fithindu",
       "adaptiveIcon": {
@@ -29,7 +24,20 @@
     "plugins": [
       "expo-router",
       "expo-status-bar",
-      "expo-audio"
+      [
+        "expo-audio",
+        {
+          "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#0F0B07"
+        }
+      ]
     ]
   }
 }

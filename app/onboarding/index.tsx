@@ -1,46 +1,266 @@
-import React from "react";
-import { View } from "react-native";
-import { useRouter } from "expo-router";
-import { Screen, Card, Button, FooterAction, B, space } from "../../src/ui";
-import { useI18n } from "../../src/lib/i18n";
-import type { LanguageMode } from "../../src/types/db";
-
 /**
- * Onboarding — question #1 is ALWAYS language (spec:
- * docs/specs/onboarding-questionnaire.md). Scaffold implements just this
- * first question wired to the i18n mode; the full questionnaire follows.
+ * Onboarding v2 — the 11-step questionnaire.
+ * Spec: docs/specs/onboarding-questionnaire.md (question set v2, 2026-07-15).
+ *
+ * One route, not eleven: progress dots, Back, and resume-at-last-answered all
+ * read one state machine, and the browser/hardware back button never strands
+ * the user half-way through a stack of pushed screens.
+ *
+ * Questions are DATA (src/lib/onboarding.ts). This file renders them and owns
+ * navigation; it decides nothing about the question set itself.
  */
-export default function OnboardingLanguage() {
-  const { mode, setMode } = useI18n();
-  const router = useRouter();
+import React, { useCallback, useEffect, useState } from "react";
+import { Linking, View } from "react-native";
+import { useRouter } from "expo-router";
+import {
+  Screen, Button, FooterAction, OptionRow, ProgressDots, Checkbox, Chip,
+  B, T, space, color,
+} from "../../src/ui";
+import { useI18n, type StringKey } from "../../src/lib/i18n";
+import { listDeities, type DeityOption } from "../../src/lib/content";
+import { PRIVACY_POLICY_URL } from "../../src/lib/config";
+import {
+  STEPS, canAdvance, emptyAnswers, loadProgress, saveProgress,
+  type Answers,
+} from "../../src/lib/onboarding";
+import type { BodyArea } from "../../src/types/db";
 
-  const options: { value: LanguageMode; k: "lang_hindi" | "lang_english" | "lang_mixed" }[] = [
-    { value: "hindi", k: "lang_hindi" },
-    { value: "english", k: "lang_english" },
-    { value: "mixed", k: "lang_mixed" },
-  ];
+export default function Onboarding() {
+  const router = useRouter();
+  const { t, tSub, setMode } = useI18n();
+
+  const [answers, setAnswers] = useState<Answers>(emptyAnswers);
+  const [index, setIndex] = useState(0);
+  const [restored, setRestored] = useState(false);
+
+  // Resume where they left off (spec :58). Until this lands we render nothing,
+  // so a resuming user never sees question 1 flash before their real step.
+  useEffect(() => {
+    let alive = true;
+    void loadProgress().then((saved) => {
+      if (!alive) return;
+      if (saved) {
+        setAnswers(saved.answers);
+        setIndex(saved.step);
+        setMode(saved.answers.language_mode);
+      }
+      setRestored(true);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [setMode]);
+
+  // Persist every change so a kill mid-flow costs nothing.
+  useEffect(() => {
+    if (restored) void saveProgress(answers, index);
+  }, [answers, index, restored]);
+
+  const step = STEPS[index];
+  const isLast = index === STEPS.length - 1;
+
+  const next = useCallback(() => setIndex((i) => Math.min(i + 1, STEPS.length - 1)), []);
+  const back = useCallback(() => setIndex((i) => Math.max(i - 1, 0)), []);
+
+  if (!restored) return null;
+
+  // The 18+ gate (spec :30) — a terminal state, not a step.
+  if (answers.under_18) {
+    return (
+      <Screen scroll={false}>
+        <View style={{ flex: 1, justifyContent: "center", gap: space.lg }}>
+          <B k="age_blocked_title" variant="h1" center />
+          <B k="age_blocked_body" variant="body" tone="soft" />
+        </View>
+        <FooterAction>
+          <Button
+            k="back"
+            kind="ghost"
+            onPress={() => setAnswers((a) => ({ ...a, under_18: false }))}
+          />
+        </FooterAction>
+      </Screen>
+    );
+  }
 
   return (
     <Screen scroll={false}>
-      <View style={{ flex: 1, gap: space.md, paddingTop: space.xxl }}>
-        <B k="q_language" variant="h1" center />
-        {options.map((o) => (
-          <Card
-            key={o.value}
-            onPress={() => setMode(o.value)}
-            style={
-              mode === o.value
-                ? { borderColor: "#F0761E", backgroundColor: "rgba(240,118,30,0.10)" }
-                : undefined
-            }
-          >
-            <B k={o.k} variant="bodyBold" noSub />
-          </Card>
-        ))}
+      <View style={{ gap: space.lg, paddingTop: space.sm }}>
+        <ProgressDots total={STEPS.length} index={index} />
+        <B k={step.qk} variant="h1" center />
       </View>
+
+      <View style={{ flex: 1, paddingTop: space.xl }}>
+        {step.kind === "single" ? (
+          <View style={{ gap: space.md }}>
+            {step.options.map((o) => (
+              <OptionRow
+                key={o.value}
+                label={t(o.k)}
+                sub={tSub(o.k)}
+                selected={step.get(answers) === o.value}
+                onPress={() => {
+                  const updated = step.set(answers, o.value);
+                  setAnswers(updated);
+                  // Q1 applies instantly — the rest of the flow is already in
+                  // their language (spec :23).
+                  if (step.id === "language") setMode(updated.language_mode);
+                }}
+              />
+            ))}
+          </View>
+        ) : null}
+
+        {step.kind === "multi" ? (
+          <MultiSelect
+            options={step.options}
+            selected={answers.body_focus}
+            onToggle={(v) =>
+              setAnswers((a) => ({
+                ...a,
+                body_focus: a.body_focus.includes(v as BodyArea)
+                  ? a.body_focus.filter((x) => x !== v)
+                  : [...a.body_focus, v as BodyArea],
+              }))
+            }
+          />
+        ) : null}
+
+        {step.kind === "deity" ? (
+          <DeityPicker
+            selected={answers.deity_id}
+            onPick={(id) => setAnswers((a) => ({ ...a, deity_id: id }))}
+          />
+        ) : null}
+
+        {step.kind === "consent" ? (
+          <ConsentNotice
+            checked={answers.consent}
+            onToggle={() => setAnswers((a) => ({ ...a, consent: !a.consent }))}
+          />
+        ) : null}
+
+        {step.kind === "ready" ? (
+          <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: space.lg }}>
+            <T variant="h1" style={{ fontSize: 64 }}>
+              🪔
+            </T>
+            <B k="ready_body" variant="body" tone="soft" center />
+          </View>
+        ) : null}
+      </View>
+
       <FooterAction>
-        <Button k="continue" onPress={() => router.replace("/(tabs)")} />
+        <Button
+          k={isLast ? "ready_cta" : "continue"}
+          disabled={!canAdvance(step, answers)}
+          onPress={() => {
+            if (isLast) router.replace("/auth");
+            else next();
+          }}
+        />
+        {index > 0 && !isLast ? <Button k="back" kind="ghost" onPress={back} /> : null}
       </FooterAction>
     </Screen>
+  );
+}
+
+/** Body focus — chips, because several fit on a line and order doesn't matter. */
+function MultiSelect({
+  options,
+  selected,
+  onToggle,
+}: {
+  options: readonly { value: string; k: StringKey }[];
+  selected: string[];
+  onToggle: (v: string) => void;
+}) {
+  const { t } = useI18n();
+  return (
+    <View style={{ gap: space.lg }}>
+      <B k="q_body_focus_hint" variant="caption" tone="muted" center />
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.sm, justifyContent: "center" }}>
+        {options.map((o) => (
+          <Chip
+            key={o.value}
+            label={t(o.k)}
+            active={selected.includes(o.value)}
+            onPress={() => onToggle(o.value)}
+          />
+        ))}
+      </View>
+    </View>
+  );
+}
+
+/** Q9 — deities are content, so this list is whatever the team has published. */
+function DeityPicker({
+  selected,
+  onPick,
+}: {
+  selected: string | null | undefined;
+  onPick: (id: string | null) => void;
+}) {
+  const { t, loc, locSub } = useI18n();
+  const [deities, setDeities] = useState<DeityOption[] | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    listDeities()
+      .then((d) => alive && setDeities(d))
+      .catch(() => alive && setFailed(true));
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  if (failed) return <B k="deity_error" variant="body" tone="muted" center />;
+  if (!deities) return <B k="loading" variant="body" tone="muted" center />;
+
+  return (
+    <View style={{ gap: space.md }}>
+      <B k="q_deity_hint" variant="caption" tone="muted" center />
+      {deities.map((d) => (
+        <OptionRow
+          key={d.id}
+          label={loc(d.name_hi, d.name_en)}
+          sub={locSub(d.name_hi, d.name_en)}
+          selected={selected === d.id}
+          onPress={() => onPick(d.id)}
+        />
+      ))}
+      {/* null = explicitly skipped, which is a real answer — worship is never required. */}
+      <OptionRow label={t("skip")} selected={selected === null} onPress={() => onPick(null)} />
+    </View>
+  );
+}
+
+/** Q10 — DPDP: itemised, plain-language, unticked by default (spec :35-37). */
+function ConsentNotice({ checked, onToggle }: { checked: boolean; onToggle: () => void }) {
+  const { t } = useI18n();
+  return (
+    <View style={{ gap: space.md }}>
+      <B k="consent_intro" variant="body" tone="soft" />
+      <View style={{ gap: space.sm }}>
+        <B k="consent_item_answers" variant="caption" tone="soft" />
+        <B k="consent_item_activity" variant="caption" tone="soft" />
+        <B k="consent_item_account" variant="caption" tone="soft" />
+        <B k="consent_item_use" variant="caption" tone="soft" />
+      </View>
+      <B k="wellness_disclaimer" variant="caption" tone="muted" />
+      {/* Appears as soon as the policy is live; see PRIVACY_POLICY_URL. */}
+      {PRIVACY_POLICY_URL ? (
+        <T
+          variant="caption"
+          tone="saffron"
+          onPress={() => void Linking.openURL(PRIVACY_POLICY_URL)}
+        >
+          {t("consent_privacy_link")}
+        </T>
+      ) : null}
+      <View style={{ height: 1, backgroundColor: color.line }} />
+      <Checkbox label={t("consent_checkbox")} checked={checked} onToggle={onToggle} />
+    </View>
   );
 }

@@ -145,10 +145,10 @@ function Center({ children }: { children: React.ReactNode }) {
   return <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: space.md }}>{children}</View>;
 }
 
-/** My Workouts (F&B "add your own") — placeholder until app auth ships. */
+/** My Workouts (F&B "add your own"). Own-row RLS, so it needs a session. */
 function MyWorkoutsSection({ mine }: { mine: UserWorkoutSummary[] | null | undefined }) {
   const router = useRouter();
-  const { t, loc } = useI18n();
+  const { t } = useI18n();
   if (mine === undefined) return null; // still loading — keep the header calm
 
   return (
@@ -157,10 +157,15 @@ function MyWorkoutsSection({ mine }: { mine: UserWorkoutSummary[] | null | undef
         {t("my_workouts")}
       </T>
       {mine === null ? (
-        <Card style={{ paddingVertical: space.md }}>
-          <T variant="caption" tone="muted">
-            {t("my_workouts_soon")}
-          </T>
+        // Signed out — the one place the app asks for an account, and it asks
+        // by offering the feature rather than blocking the tab.
+        <Card onPress={() => router.push("/auth")} style={{ paddingVertical: space.md }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: space.md }}>
+            <T variant="caption" tone="saffron" style={{ flex: 1 }}>
+              {t("my_workouts_signin")}
+            </T>
+            <ChevronRight />
+          </View>
         </Card>
       ) : (
         <>

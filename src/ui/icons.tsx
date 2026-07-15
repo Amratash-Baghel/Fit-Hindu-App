@@ -85,6 +85,15 @@ export function MuteIcon({ size = 22, color = palette.muted }: IconProps) {
   );
 }
 
+/** Selection tick — answer rows and the consent checkbox. */
+export function Check({ size = 20, color = palette.saffron }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M5 12.5l4.5 4.5L19 7.5" stroke={color} strokeWidth={S} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
 export function ChevronRight({ size = 20, color = palette.saffron }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">

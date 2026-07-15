@@ -38,11 +38,11 @@ optional, DPDP consent is explicit.
 11. **Plan-ready celebration** — brief animated moment ("आपका plan तैयार
     है"), then land on Daily Home.
 
-Schema note: answers still land in `questionnaire_responses.answers` jsonb +
-typed profile columns; body_focus (body_area[]) and days_per_week (smallint)
-are added to profiles when the onboarding build cycle starts —
-`assignment_rules.conditions` jsonb already accommodates the new keys with
-zero schema change.
+Schema note: answers land in `questionnaire_responses.answers` jsonb + typed
+profile columns. **Built 2026-07-15** — migration 0010 added `level`,
+`body_focus` (body_area[]) and `days_per_week` (smallint) to profiles;
+`assignment_rules.conditions` jsonb accommodated the new keys with zero schema
+change, as predicted.
 
 ## Rules
 
@@ -59,8 +59,9 @@ zero schema change.
 
 ## Not doing (v1)
 
-- No account requirement before questionnaire (auth can come after the
-  celebration; decide during build).
+- No account requirement before questionnaire. **Decided 2026-07-15: auth comes
+  AFTER the celebration and is skippable** — answers live in AsyncStorage and
+  flush to the DB the moment a session exists (see docs/decisions.md).
 - No free-text inputs. No health-condition diagnosis questions.
 - No AI-generated plans.
 

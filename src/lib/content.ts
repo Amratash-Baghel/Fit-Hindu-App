@@ -4,7 +4,7 @@
  * has to filter status itself (we still pass it for index use + clarity).
  */
 import { supabase } from "./supabase";
-import type { BodyArea, Exercise, Media, Sound, WorkoutMode } from "../types/db";
+import type { BodyArea, Deity, Exercise, Mantra, Media, Sound, WorkoutMode } from "../types/db";
 
 /** An exercise joined with its (optional) video + thumbnail media rows. */
 export type ExerciseWithMedia = Exercise & {
@@ -56,6 +56,20 @@ export async function getExercise(id: string): Promise<ExerciseWithMedia | null>
   return (data as unknown as ExerciseWithMedia) ?? null;
 }
 
+/** Deity picker options (onboarding Q9). Content-authored, never hardcoded. */
+export type DeityOption = Pick<Deity, "id" | "slug" | "name_hi" | "name_en">;
+
+export async function listDeities(): Promise<DeityOption[]> {
+  const { data, error } = await supabase
+    .from("deities")
+    .select("id, slug, name_hi, name_en")
+    .eq("status", "published")
+    .order("sort")
+    .order("name_en");
+  if (error) throw error;
+  return (data ?? []) as DeityOption[];
+}
+
 /** A sound joined with its audio media row. */
 export type SoundWithMedia = Sound & {
   audio: Pick<Media, "playback_url" | "download_url"> | null;
@@ -78,6 +92,46 @@ export async function listMeditationSounds(): Promise<SoundWithMedia[]> {
   if (error) throw error;
   const rows = (data ?? []) as unknown as SoundWithMedia[];
   return rows.sort((a, b) => (a.kind === b.kind ? 0 : a.kind === "chant" ? -1 : 1));
+}
+
+/** Sleep sounds (docs/specs/sleep.md). Empty until the team publishes any. */
+export async function listSleepSounds(): Promise<SoundWithMedia[]> {
+  const { data, error } = await supabase
+    .from("sounds")
+    .select(SOUND_SELECT)
+    .eq("status", "published")
+    .eq("kind", "sleep")
+    .order("name_en");
+  if (error) throw error;
+  return (data ?? []) as unknown as SoundWithMedia[];
+}
+
+/** A mantra with the deity it belongs to. */
+export type MantraWithDeity = Mantra & {
+  deity: Pick<Deity, "id" | "name_hi" | "name_en"> | null;
+};
+
+/**
+ * Mantras for the jap tab (docs/specs/jap.md), the user's chosen deity first.
+ * `deityId` comes from profiles.deity_id (onboarding Q9) and may be null —
+ * choosing a deity is optional, so the unpersonalised order is a real case.
+ */
+export async function listMantras(deityId?: string | null): Promise<MantraWithDeity[]> {
+  const { data, error } = await supabase
+    .from("mantras")
+    .select(`
+      id, deity_id, text_devanagari, transliteration, meaning_hi, meaning_en,
+      chant_audio_media_id, status,
+      deity:deities!mantras_deity_id_fkey ( id, name_hi, name_en )
+    `)
+    .eq("status", "published");
+  if (error) throw error;
+  const rows = (data ?? []) as unknown as MantraWithDeity[];
+  if (!deityId) return rows;
+  // Sort client-side: PostgREST can't express "my deity first" in one order().
+  return rows.sort((a, b) =>
+    a.deity_id === deityId ? -1 : b.deity_id === deityId ? 1 : 0,
+  );
 }
 
 export async function getSound(id: string): Promise<SoundWithMedia | null> {

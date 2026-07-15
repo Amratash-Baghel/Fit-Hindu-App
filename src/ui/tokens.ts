@@ -15,6 +15,7 @@ export const color = {
 
   // brand accents
   saffron: "#F0761E", // THE action color: buttons, selection, active tabs
+  saffronWash: "rgba(240,118,30,0.12)", // selected-surface fill (saffron @ 12%)
   saffronDeep: "#B84A16", // sindoor — devotional accents
   gold: "#D9A441", // primary button + streak ONLY
   goldHi: "#F2C879",

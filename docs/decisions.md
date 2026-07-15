@@ -2,6 +2,42 @@
 
 One dated line per decision, with the why. Newest on top.
 
+- **2026-07-15 (auth: guest-first, OTP, channel-agnostic)** — The onboarding
+  spec deferred "does auth come before or after the questionnaire" to build
+  time; owner decided **after the plan-ready celebration**, and skippable.
+  Why: the user sees what they get before being asked for anything; lowest
+  drop-off, matching the Leap/F&B reference flow. Consequence: answers live in
+  AsyncStorage during the questionnaire and are flushed to
+  profiles + questionnaire_responses + user_plans the moment a session exists
+  (`flushOnboarding`), so a guest loses nothing by signing in late — and a
+  failed flush keeps the answers on disk for a retry.
+  **Channel: phone OTP is the v1 target** (a Hindi-first mass-market audience
+  has a phone habit, not an email habit) **but development runs on email OTP**
+  behind a single `AUTH_CHANNEL` constant. Why: Supabase cannot send an SMS
+  until a paid provider (MSG91/Twilio) is connected — and MSG91 needs Indian
+  DLT sender-ID registration, which takes days. Building channel-agnostic keeps
+  auth off that critical path at zero rework: the screens are identical.
+  Guests keep full access to workouts, meditation, jap and sleep — only
+  streaks and My Workouts need an account (core worship is never gated).
+- **2026-07-15 (jap/sleep ship as content-driven surfaces)** — Owner: ship the
+  jap and sleep tabs now with 2–3 placeholder items that "just update" when
+  content is added. Implemented as thin DB-driven lists (`mantras` deity-first,
+  `sounds` where kind='sleep') with an honest empty state; publishing a row in
+  the admin panel fills the tab with no code change and no release. Why: it
+  respects the programs-platform rule, puts the content team's work on the
+  clock, and avoids a fake-content demo. Specs written (docs/specs/jap.md,
+  sleep.md) — session players (mala counter, sleep timer) are the next layer.
+- **2026-07-15 (APK: no RECORD_AUDIO)** — `expo-audio` defaults
+  `recordAudioAndroid: true`, which would have shipped a microphone permission
+  the app never uses (it only ever plays; there is no recorder API anywhere in
+  the codebase). Set to false; verified against the resolved prebuild config —
+  background-playback permissions (FOREGROUND_SERVICE +
+  FOREGROUND_SERVICE_MEDIA_PLAYBACK) are kept. Why: an unused microphone
+  permission on a **Health & Fitness** listing is a needless Data-safety
+  declaration and a review risk. Also installed `expo-splash-screen` and moved
+  the splash config into its plugin: the legacy `expo.splash` block was inert
+  (nothing consumed it), so the APK would have shown a bare colour.
+
 - **2026-07-12** — Scope pivot: from "Bajrangvati companion app for product
   buyers" to **"Fit Hindu"** (working name), a standalone devotional-fitness
   app for Hindu India — workouts + diet + meditation (timer/sounds) + per-deity

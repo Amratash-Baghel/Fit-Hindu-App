@@ -2,14 +2,21 @@
  * i18n layer — three display modes chosen at onboarding question #1:
  *   hindi   → Hindi only
  *   english → English only
- *   mixed   → Hindi lead + small English caption (default)
+ *   mixed   → Hindi lead + small English caption
  *
  * Standing rule: NO user-facing string is hardcoded in a component. Every
  * string lives here as a {hi, en} pair; components render via <B> (bilingual
  * text) or t(), which respect the active mode.
  */
-import React, { createContext, useContext, useMemo, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { LanguageMode } from "../types/db";
+
+/** Survives restarts so a Hindi user never reopens the app in English. */
+const LANG_STORAGE_KEY = "fithindu.language_mode";
+
+const isLanguageMode = (v: unknown): v is LanguageMode =>
+  v === "hindi" || v === "english" || v === "mixed";
 
 export interface Str {
   hi: string;
@@ -74,13 +81,132 @@ export const strings = {
   todays_meditation: { hi: "आज का ध्यान", en: "Today's meditation" },
   todays_jap: { hi: "मंत्र जप", en: "Mantra jap" },
 
-  // onboarding
+  // onboarding — question set v2 (docs/specs/onboarding-questionnaire.md:19-39)
   q_language: { hi: "अपनी भाषा चुनें", en: "Choose your language" },
   lang_hindi: { hi: "हिंदी", en: "Hindi" },
   lang_english: { hi: "English", en: "English" },
   lang_mixed: { hi: "मिक्स (हिंदी + English)", en: "Mixed (Hindi + English)" },
 
+  back: { hi: "पीछे", en: "Back" },
+  skip: { hi: "अभी छोड़ें", en: "Skip for now" },
+
+  // Q2 — goal
+  q_goal: { hi: "आपका लक्ष्य क्या है?", en: "What's your goal?" },
+  goal_weight_gain: { hi: "वज़न बढ़ाना", en: "Gain weight" },
+  goal_strength: { hi: "ताक़त बढ़ाना", en: "Build strength" },
+  goal_weight_loss: { hi: "वज़न घटाना", en: "Lose weight" },
+  goal_healthy_routine: { hi: "स्वस्थ दिनचर्या", en: "A healthy routine" },
+
+  // Q3 — body focus
+  q_body_focus: { hi: "किस अंग पर ध्यान दें?", en: "Where do you want to focus?" },
+  q_body_focus_hint: { hi: "एक से ज़्यादा चुन सकते हैं", en: "Pick as many as you like" },
+
+  // Q4 — level
+  q_level: { hi: "आपका अनुभव कितना है?", en: "What's your experience level?" },
+
+  // Q5 — days per week
+  q_days: { hi: "हफ़्ते में कितने दिन?", en: "How many days a week?" },
+  days_3: { hi: "3 दिन", en: "3 days" },
+  days_5: { hi: "5 दिन", en: "5 days" },
+  days_7: { hi: "हर दिन", en: "Every day" },
+
+  // Q6 — age band (18+ gate)
+  q_age: { hi: "आपकी आयु?", en: "How old are you?" },
+  age_under_18: { hi: "18 से कम", en: "Under 18" },
+  age_18_25: { hi: "18–25", en: "18–25" },
+  age_26_35: { hi: "26–35", en: "26–35" },
+  age_36_50: { hi: "36–50", en: "36–50" },
+  age_50_plus: { hi: "50+", en: "50+" },
+  age_blocked_title: { hi: "क्षमा करें", en: "Sorry" },
+  age_blocked_body: {
+    hi: "यह ऐप 18 वर्ष और उससे अधिक आयु के लिए है। बड़े होने पर ज़रूर आइए — तब तक अपने माता-पिता और शिक्षक से मार्गदर्शन लें।",
+    en: "This app is for ages 18 and over. Please come back when you're older — until then, take guidance from your parents and teachers.",
+  },
+
+  // Q7 — diet
+  q_diet: { hi: "आपका आहार?", en: "What do you eat?" },
+  diet_veg: { hi: "शाकाहारी", en: "Vegetarian" },
+  diet_sattvic: { hi: "सात्विक", en: "Sattvic" },
+  diet_egg: { hi: "अंडा खाते हैं", en: "Eggs are fine" },
+  diet_nonveg: { hi: "मांसाहारी", en: "Non-vegetarian" },
+
+  // Q8 — workout mode
+  q_workout_mode: { hi: "व्यायाम कहाँ करेंगे?", en: "Where will you work out?" },
+  mode_home_full: { hi: "घर पर (बिना सामान)", en: "At home (no equipment)" },
+  mode_later: { hi: "बाद में तय करेंगे", en: "I'll decide later" },
+
+  // Q9 — deity (optional)
+  q_deity: { hi: "आपके इष्ट देव?", en: "Your chosen deity?" },
+  q_deity_hint: {
+    hi: "आपकी दैनिक प्रेरणा इनसे जुड़ी रहेगी — चाहें तो छोड़ सकते हैं",
+    en: "Your daily inspiration will be shaped around them — feel free to skip",
+  },
+  deity_error: { hi: "देव सूची लोड नहीं हो सकी", en: "Couldn't load the list" },
+
+  // Q10 — DPDP consent
+  q_consent: { hi: "आपकी जानकारी", en: "Your information" },
+  consent_intro: {
+    hi: "आपका plan बनाने के लिए हम यह जानकारी सहेजते हैं:",
+    en: "To build your plan, we save the following:",
+  },
+  consent_item_answers: {
+    hi: "• आपके ऊपर दिए उत्तर (लक्ष्य, स्तर, आहार, आयु-वर्ग)",
+    en: "• Your answers above (goal, level, diet, age band)",
+  },
+  consent_item_activity: {
+    hi: "• आपकी गतिविधि — कौन सा व्यायाम, ध्यान या जप आपने पूरा किया",
+    en: "• Your activity — which workouts, meditation or jap you complete",
+  },
+  consent_item_account: {
+    hi: "• आपका फ़ोन नंबर या ईमेल, केवल आपके खाते के लिए",
+    en: "• Your phone number or email, only for your account",
+  },
+  consent_item_use: {
+    hi: "• इसका उपयोग आपका plan बनाने, प्रगति दिखाने और ऐप सुधारने के लिए होता है",
+    en: "• We use this to build your plan, show your progress, and improve the app",
+  },
+  consent_checkbox: {
+    hi: "मैं सहमत हूँ",
+    en: "I agree",
+  },
+  consent_privacy_link: { hi: "गोपनीयता नीति पढ़ें", en: "Read the privacy policy" },
+
+  // Q11 — plan ready
+  ready_title: { hi: "आपका plan तैयार है", en: "Your plan is ready" },
+  ready_body: {
+    hi: "आज से आपकी यात्रा शुरू। एक दिन, एक कदम।",
+    en: "Your journey starts today. One day, one step at a time.",
+  },
+  ready_cta: { hi: "शुरू करें", en: "Let's begin" },
+  onboarding_saving: { hi: "आपका plan बन रहा है…", en: "Building your plan…" },
+
+  // auth (OTP — src/lib/auth.tsx)
+  auth_title: { hi: "अपना plan सुरक्षित करें", en: "Save your plan" },
+  auth_why: {
+    hi: "ताकि आपकी प्रगति और दीये कभी न खोएँ — नया फ़ोन हो या ऐप दोबारा इंस्टॉल।",
+    en: "So your progress and diyas are never lost — new phone or fresh install.",
+  },
+  auth_phone_label: { hi: "मोबाइल नंबर", en: "Mobile number" },
+  auth_email_label: { hi: "ईमेल", en: "Email" },
+  auth_send_code: { hi: "कोड भेजें", en: "Send code" },
+  auth_skip: { hi: "अभी नहीं", en: "Not now" },
+  auth_code_title: { hi: "कोड डालें", en: "Enter the code" },
+  auth_code_sent: { hi: "हमने 6 अंकों का कोड भेजा है", en: "We sent you a 6-digit code" },
+  auth_verify: { hi: "पुष्टि करें", en: "Verify" },
+  auth_resend: { hi: "कोड दोबारा भेजें", en: "Resend code" },
+  auth_resent: { hi: "नया कोड भेज दिया ✓", en: "New code sent ✓" },
+  auth_invalid_identifier: { hi: "सही जानकारी डालें", en: "Enter a valid value" },
+  auth_invalid_code: { hi: "कोड ग़लत है — दोबारा कोशिश करें", en: "That code isn't right — try again" },
+  auth_send_failed: { hi: "कोड नहीं भेजा जा सका", en: "Couldn't send the code" },
+  auth_saved: { hi: "सब सुरक्षित है 🙏", en: "Everything's saved 🙏" },
+  auth_flush_failed: {
+    hi: "आपके उत्तर सुरक्षित हैं, पर सहेजे नहीं जा सके — दोबारा कोशिश करें",
+    en: "Your answers are safe but couldn't be saved — try again",
+  },
+
   error_generic: { hi: "कुछ गड़बड़ हुई — दोबारा कोशिश करें", en: "Something went wrong — try again" },
+  jap_error: { hi: "मंत्र लोड नहीं हो सके", en: "Couldn't load the mantras" },
+  sleep_error: { hi: "ध्वनियाँ लोड नहीं हो सकीं", en: "Couldn't load the sounds" },
 
   // home (habit surface)
   todays_shloka: { hi: "आज का श्लोक", en: "Today's shloka" },
@@ -109,9 +235,9 @@ export const strings = {
   // my workouts (builder)
   my_workouts: { hi: "मेरे वर्कआउट", en: "My Workouts" },
   new_workout: { hi: "नया वर्कआउट", en: "New workout" },
-  my_workouts_soon: {
-    hi: "अपने वर्कआउट बनाएं — साइन-इन के साथ जल्द आ रहा है",
-    en: "Build your own workouts — coming soon with sign-in",
+  my_workouts_signin: {
+    hi: "अपने वर्कआउट बनाने के लिए साइन-इन करें",
+    en: "Sign in to build your own workouts",
   },
   workout_name: { hi: "वर्कआउट का नाम", en: "Workout name" },
   add_exercise: { hi: "व्यायाम जोड़ें", en: "Add exercise" },
@@ -167,9 +293,32 @@ interface I18nCtx {
 const Ctx = createContext<I18nCtx | null>(null);
 
 export function I18nProvider({ children }: { children: React.ReactNode }) {
-  // Default 'english' until onboarding stores the user's choice
-  // (profiles.language_mode) — owner decision 2026-07-13.
-  const [mode, setMode] = useState<LanguageMode>("english");
+  // 'english' is the pre-choice default only — owner decision 2026-07-13,
+  // mirrored by profiles.language_mode's default in migration 0010. Onboarding
+  // question #1 overwrites it, and the choice is restored below on every start.
+  const [mode, setModeState] = useState<LanguageMode>("english");
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    AsyncStorage.getItem(LANG_STORAGE_KEY)
+      .then((stored) => {
+        if (alive && isLanguageMode(stored)) setModeState(stored);
+      })
+      // Unreadable storage is not worth blocking the app for — the default stands.
+      .catch(() => {})
+      .finally(() => {
+        if (alive) setHydrated(true);
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const setMode = useCallback((m: LanguageMode) => {
+    setModeState(m); // flip the UI now
+    void AsyncStorage.setItem(LANG_STORAGE_KEY, m).catch(() => {}); // storage catches up
+  }, []);
 
   const value = useMemo<I18nCtx>(
     () => ({
@@ -180,8 +329,12 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
       loc: (hi, en) => (mode === "english" ? en : hi),
       locSub: (hi, en) => (mode === "mixed" ? en : null),
     }),
-    [mode],
+    [mode, setMode],
   );
+
+  // Hold the first paint until the stored choice is known, otherwise a Hindi
+  // user sees a frame of English before it swaps. The splash covers this.
+  if (!hydrated) return null;
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

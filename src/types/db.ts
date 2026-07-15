@@ -1,5 +1,5 @@
 /**
- * Database types — hand-written v1 mirror of supabase/migrations 0001–0007.
+ * Database types — hand-written v1 mirror of supabase/migrations 0001–0010.
  * Replace with `supabase gen types typescript` output once the Supabase
  * project is created and linked; keep the enum unions as the app-wide
  * vocabulary either way.
@@ -29,6 +29,10 @@ export interface Profile {
   display_name: string | null;
   language_mode: LanguageMode;
   goal: Goal | null;
+  level: Level | null;
+  /** Empty array = skipped or nothing chosen; never null (0010). */
+  body_focus: BodyArea[];
+  days_per_week: 3 | 5 | 7 | null;
   age_band: AgeBand | null;
   diet_type: DietType | null;
   workout_mode_pref: WorkoutMode | null;
@@ -205,7 +209,13 @@ export interface ProgramDay {
   is_rest_day: boolean;
 }
 
-/** conditions: absent key = "any". e.g. {goal:"strength", workout_mode:"home"} */
+/**
+ * conditions: absent key = "any". e.g. {goal:"strength", workout_mode:"home"}
+ * Every present key must match for the rule to fire; rules are evaluated by
+ * `priority` ascending and the first match wins (see src/lib/plan.ts).
+ * `body_focus` is the one non-equality key: the profile holds an array, so the
+ * rule names ONE area and matches when the user's focus includes it.
+ */
 export interface AssignmentRule {
   id: string;
   program_id: string;
@@ -216,6 +226,8 @@ export interface AssignmentRule {
     diet_type: DietType;
     workout_mode: WorkoutMode;
     level: Level;
+    body_focus: BodyArea;
+    days_per_week: 3 | 5 | 7;
   }>;
   status: ContentStatus;
 }

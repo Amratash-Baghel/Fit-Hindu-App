@@ -61,7 +61,10 @@ insert into mantras (id, deity_id, text_devanagari, transliteration, meaning_hi,
    'हनुमान जी को नमन — बल और साहस का मंत्र।', 'Salutations to Hanuman — mantra of strength and courage.', 'published'),
   ('e0000000-0000-4000-8000-000000000002', 'a0000000-0000-4000-8000-000000000003',
    'ॐ नमः शिवाय', 'Om Namah Shivaya',
-   'शिव जी को नमन — शांति का पंचाक्षर मंत्र।', 'Salutations to Shiva — the five-syllable mantra of peace.', 'published');
+   'शिव जी को नमन — शांति का पंचाक्षर मंत्र।', 'Salutations to Shiva — the five-syllable mantra of peace.', 'published'),
+  ('e0000000-0000-4000-8000-000000000003', 'a0000000-0000-4000-8000-000000000002',
+   'ॐ श्री रामाय नमः', 'Om Shri Ramaya Namah',
+   'श्री राम को नमन — मर्यादा और धैर्य का मंत्र।', 'Salutations to Ram — mantra of righteousness and patience.', 'published');
 
 -- ---------- meals ----------
 insert into meals (id, name_hi, name_en, items, kcal, meal_time, diet_types, status) values

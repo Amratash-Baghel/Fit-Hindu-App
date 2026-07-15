@@ -16,6 +16,8 @@ interface TProps {
   style?: StyleProp<TextStyle>;
   children: React.ReactNode;
   numberOfLines?: number;
+  /** Inline text links (e.g. the consent screen's privacy policy). */
+  onPress?: () => void;
 }
 
 const tones = {
@@ -29,10 +31,12 @@ const tones = {
 } as const;
 
 /** Raw styled text — use ONLY for already-localised values (numbers, names). */
-export function T({ variant = "body", tone = "cream", style, children, numberOfLines }: TProps) {
+export function T({ variant = "body", tone = "cream", style, children, numberOfLines, onPress }: TProps) {
   return (
     <RNText
       numberOfLines={numberOfLines}
+      onPress={onPress}
+      accessibilityRole={onPress ? "link" : undefined}
       style={[type[variant] as TextStyle, { color: tones[tone] }, style]}
     >
       {children}

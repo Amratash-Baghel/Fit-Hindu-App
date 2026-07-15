@@ -3,6 +3,40 @@
 Running build log — one entry per shipped item, newest on top. This is the
 standup doc for the owner and the resume-from-home lifeline.
 
+- **2026-07-15** — **Onboarding v2 + auth + plan engine — the app now has a
+  middle.** Before today every user-data surface was wired but dead: no auth
+  anywhere, onboarding was unreachable dead code (nothing routed to it, so the
+  language question no user ever saw), language reset to English on every
+  restart, and `assignment_rules` existed in the DB with nothing reading it.
+  Shipped: migration 0010 (profiles.level + body_focus body_area[] +
+  days_per_week, language_mode default 'mixed'→'english' to match the app);
+  **11-step questionnaire** as one state machine (progress dots, back,
+  resume-at-last-answered, ~45 new i18n pairs, questions as data in
+  src/lib/onboarding.ts); **plan engine** (src/lib/planRules.ts pure +
+  plan.ts I/O — first-match-by-priority, absent key = any, supersedes the
+  active plan rather than violating one-active-per-user); **guest-first OTP
+  auth** (src/lib/auth.tsx, channel-agnostic behind AUTH_CHANNEL) with the
+  guest→user bridge flushing AsyncStorage answers → profiles +
+  questionnaire_responses + user_plans; **app/index.tsx cold-start router**
+  (what finally makes onboarding reachable). Jap + sleep tabs became
+  content-driven lists (mantras deity-first, sounds kind='sleep') per new
+  specs — publishing a row fills them, no release. APK config: RECORD_AUDIO
+  removed, expo-splash-screen installed (legacy splash block was inert).
+  Verified: PGlite all 10 migrations + seed + 13 assertions PASS; 16 plan-rule
+  assertions PASS against the real module (incl. the seed rule → home wins,
+  gym/later/unanswered → null not a crash); preview — full flow in Hindi,
+  language flips live AND survives restart, 18+ gate blocks and is escapable,
+  consent unticked by default and blocks until ticked, deity list loads 4 real
+  deities from live Supabase, resume returns mid-flow, jap/sleep render live
+  rows, zero console errors, typecheck green. Fixed en route: aria-checked was
+  never reaching the DOM on the consent checkbox and answer rows
+  (accessibilityState is dropped by RN Web) — a consent control that doesn't
+  announce its state isn't acceptable. Lint ran for the first time (eslint was
+  never installed): 11 errors + 6 warnings, ALL pre-existing, none in the new
+  code — spun out as a separate task.
+  ⚠️ USER MUST RUN migrations 0008 + 0009 + 0010 in Supabase.
+  ⚠️ Auth is UNVERIFIED end-to-end: it needs a real OTP inbox — owner action.
+  ⚠️ `eas init` still not run (no extra.eas.projectId) — blocks any APK.
 - **2026-07-15** — Play Store setup delegated: wrote docs/play-store-setup.md
   — a non-technical, step-by-step runbook (documents to collect, D-U-N-S
   lookup → application, company Google account, Organization registration +
