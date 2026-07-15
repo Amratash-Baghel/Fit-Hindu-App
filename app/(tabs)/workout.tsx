@@ -7,8 +7,10 @@ import {
   listExercisesByMode,
   listExercisesByArea,
   listWorkoutTemplates,
+  listUserWorkouts,
   type ExerciseWithMedia,
   type WorkoutTemplateSummary,
+  type UserWorkoutSummary,
 } from "../../src/lib/content";
 import type { BodyArea, WorkoutMode } from "../../src/types/db";
 
@@ -45,7 +47,15 @@ export default function Workout() {
   const [area, setArea] = useState<BodyArea>("full_body");
   const [items, setItems] = useState<ExerciseWithMedia[]>([]);
   const [templates, setTemplates] = useState<WorkoutTemplateSummary[]>([]);
+  const [mine, setMine] = useState<UserWorkoutSummary[] | null | undefined>(undefined);
   const [status, setStatus] = useState<"loading" | "ok" | "error">("loading");
+
+  useEffect(() => {
+    // null = signed out (placeholder); undefined = still loading
+    listUserWorkouts()
+      .then(setMine)
+      .catch(() => setMine(null));
+  }, []);
 
   const load = useCallback(async () => {
     setStatus("loading");
@@ -116,6 +126,8 @@ export default function Workout() {
                 <TemplatesSection templates={templates} />
               ) : null}
 
+              {tab !== "custom" ? <MyWorkoutsSection mine={mine} /> : null}
+
               {items.length > 0 ? (
                 <T variant="eyebrow" tone="gold" style={{ marginTop: space.lg, marginBottom: space.xs }}>
                   {t("all_exercises")}
@@ -131,6 +143,49 @@ export default function Workout() {
 
 function Center({ children }: { children: React.ReactNode }) {
   return <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: space.md }}>{children}</View>;
+}
+
+/** My Workouts (F&B "add your own") — placeholder until app auth ships. */
+function MyWorkoutsSection({ mine }: { mine: UserWorkoutSummary[] | null | undefined }) {
+  const router = useRouter();
+  const { t, loc } = useI18n();
+  if (mine === undefined) return null; // still loading — keep the header calm
+
+  return (
+    <View style={{ marginTop: space.lg, gap: space.sm }}>
+      <T variant="eyebrow" tone="gold">
+        {t("my_workouts")}
+      </T>
+      {mine === null ? (
+        <Card style={{ paddingVertical: space.md }}>
+          <T variant="caption" tone="muted">
+            {t("my_workouts_soon")}
+          </T>
+        </Card>
+      ) : (
+        <>
+          {mine.map((w) => (
+            <Card key={w.id} onPress={() => router.push(`/workout/my/${w.id}`)} style={{ paddingVertical: space.md }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: space.md }}>
+                <View style={{ flex: 1 }}>
+                  <T variant="bodyBold">{w.name}</T>
+                  <T variant="caption" tone="muted">
+                    {w.exercise_count} {t("exercises_word")}
+                  </T>
+                </View>
+                <ChevronRight />
+              </View>
+            </Card>
+          ))}
+          <Card onPress={() => router.push("/workout/my/new")} style={{ paddingVertical: space.md }}>
+            <T variant="bodyBold" tone="saffron">
+              + {t("new_workout")}
+            </T>
+          </Card>
+        </>
+      )}
+    </View>
+  );
 }
 
 /** Composed workouts — full-width premium rows above the library. */

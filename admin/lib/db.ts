@@ -248,6 +248,25 @@ export interface DailyActivity {
   entries: number;
 }
 
+// ---------- my workouts (migration 0009, workout spec v2) ----------
+export interface UserWorkout {
+  id: string;
+  user_id: string;
+  name: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserWorkoutItem {
+  workout_id: string;
+  position: number;
+  exercise_id: string;
+  sets: number | null;
+  reps: number | null;
+  duration_seconds: number | null;
+  rest_seconds: number | null;
+}
+
 // ---------- devotional calendar ----------
 export interface Festival {
   id: string;

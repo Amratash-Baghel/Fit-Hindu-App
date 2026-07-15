@@ -11,6 +11,18 @@ One dated line per decision, with the why. Newest on top.
   larger Hindu audience than a buyer-gated companion, while Herbal Deck products
   cross-sell inside. Programs-platform architecture unchanged (now product- and
   deity-agnostic). idea.md rewritten to v1. Name/trademark availability pending.
+- **2026-07-15 (workout v2 — reference-app model)** — Owner benchmarked
+  Fitness & Bodybuilding (VGFIT/Softin), Home Workout (Leap), and Lifty;
+  adopted: F&B structure (muscle-group library ≙ body_areas, goal plans ≙
+  programs, **"My Workouts" user builder** → migration 0009 user_workouts +
+  items, per-session sets/reps/weight **journal** → activity_log.meta) +
+  Leap execution flow (**guided session player**: set tracking, rest screens
+  with +20s/skip/next-up, auto-advance, completion stats). Onboarding
+  question set v2 (goal → body-focus multi → level → days/week) in the same
+  style; language stays Q1, deity optional, DPDP consent explicit.
+  Deliberate deviations: no user-uploaded exercise media (brand-quality
+  content only), no aggressive paywall, reliable item ordering (positions
+  rewritten 1..n — the reference app's ordering is buggy).
 - **2026-07-14 (premium pass + audit)** — No emoji as UI iconography: a
   proper SVG icon set (src/ui/icons.tsx, ported from the approved mockup
   paths) + AvatarTile placeholder component (ember gradient, silhouette,

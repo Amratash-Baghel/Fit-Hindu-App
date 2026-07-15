@@ -151,6 +151,156 @@ export async function getWorkoutTemplate(id: string): Promise<WorkoutTemplateFul
   return { ...(t as Omit<WorkoutTemplateFull, "items" | "exercise_count">), exercise_count: list.length, items: list };
 }
 
+/** Whole published library (builder picker). */
+export async function listPublishedExercises(): Promise<ExerciseWithMedia[]> {
+  const { data, error } = await supabase
+    .from("exercises")
+    .select(SELECT)
+    .eq("status", "published")
+    .order("name_en");
+  if (error) throw error;
+  return (data ?? []) as unknown as ExerciseWithMedia[];
+}
+
+// ---------- my workouts (user-composed; migration 0009) ----------
+
+export interface UserWorkoutSummary {
+  id: string;
+  name: string;
+  exercise_count: number;
+  updated_at: string;
+}
+
+/** null = not signed in (pre-auth placeholder state). */
+export async function listUserWorkouts(): Promise<UserWorkoutSummary[] | null> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data, error } = await supabase
+    .from("user_workouts")
+    .select("id, name, updated_at, items:user_workout_items(position)")
+    .order("updated_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map((w) => ({
+    id: w.id,
+    name: w.name,
+    updated_at: w.updated_at,
+    exercise_count: (w.items as unknown[] | null)?.length ?? 0,
+  }));
+}
+
+export interface UserWorkoutFull {
+  id: string;
+  name: string;
+  items: TemplateItem[];
+}
+
+export async function getUserWorkout(id: string): Promise<UserWorkoutFull | null> {
+  const [{ data: w, error: wErr }, { data: items, error: iErr }] = await Promise.all([
+    supabase.from("user_workouts").select("id, name").eq("id", id).maybeSingle(),
+    supabase
+      .from("user_workout_items")
+      .select(`position, sets, reps, duration_seconds, rest_seconds, exercise:exercises(${SELECT})`)
+      .eq("workout_id", id)
+      .order("position"),
+  ]);
+  if (wErr) throw wErr;
+  if (iErr) throw iErr;
+  if (!w) return null;
+  return { id: w.id, name: w.name, items: (items ?? []) as unknown as TemplateItem[] };
+}
+
+export interface SaveUserWorkoutInput {
+  id?: string; // absent = create
+  name: string;
+  items: {
+    exercise_id: string;
+    sets: number | null;
+    reps: number | null;
+    duration_seconds: number | null;
+    rest_seconds: number | null;
+  }[];
+}
+
+/** Upsert a user workout; item positions are rewritten 1..n (ordering contract). */
+export async function saveUserWorkout(input: SaveUserWorkoutInput): Promise<string> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("auth required");
+
+  let workoutId = input.id;
+  if (workoutId) {
+    const { error } = await supabase
+      .from("user_workouts")
+      .update({ name: input.name, updated_at: new Date().toISOString() })
+      .eq("id", workoutId);
+    if (error) throw error;
+    const { error: delErr } = await supabase.from("user_workout_items").delete().eq("workout_id", workoutId);
+    if (delErr) throw delErr;
+  } else {
+    const { data, error } = await supabase
+      .from("user_workouts")
+      .insert({ user_id: user.id, name: input.name })
+      .select("id")
+      .single();
+    if (error) throw error;
+    workoutId = data.id;
+  }
+
+  if (input.items.length > 0) {
+    const rows = input.items.map((it, i) => ({ workout_id: workoutId, position: i + 1, ...it }));
+    const { error } = await supabase.from("user_workout_items").insert(rows);
+    if (error) throw error;
+  }
+  return workoutId!;
+}
+
+export async function deleteUserWorkout(id: string): Promise<void> {
+  const { error } = await supabase.from("user_workouts").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// ---------- session loader (one player, three sources) ----------
+
+export interface SessionSource {
+  kind: "template" | "user_workout" | "single";
+  refId: string;
+  name_hi: string;
+  name_en: string;
+  items: TemplateItem[];
+}
+
+export async function loadSession(params: {
+  template?: string;
+  custom?: string;
+  exercise?: string;
+}): Promise<SessionSource | null> {
+  if (params.template) {
+    const t = await getWorkoutTemplate(params.template);
+    if (!t) return null;
+    return { kind: "template", refId: t.id, name_hi: t.name_hi, name_en: t.name_en, items: t.items };
+  }
+  if (params.custom) {
+    const w = await getUserWorkout(params.custom);
+    if (!w) return null;
+    return { kind: "user_workout", refId: w.id, name_hi: w.name, name_en: w.name, items: w.items };
+  }
+  if (params.exercise) {
+    const ex = await getExercise(params.exercise);
+    if (!ex) return null;
+    return {
+      kind: "single",
+      refId: ex.id,
+      name_hi: ex.name_hi,
+      name_en: ex.name_en,
+      items: [{ position: 1, sets: null, reps: null, duration_seconds: null, rest_seconds: null, exercise: ex }],
+    };
+  }
+  return null;
+}
+
 // ---------- devotional (home screen) ----------
 
 function istDateString(): string {

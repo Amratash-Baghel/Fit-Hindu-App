@@ -114,7 +114,10 @@ export default function ExerciseDetail() {
       ) : null}
 
       <FooterAction>
-        <Button k="start_workout" onPress={() => {}} />
+        <Button
+          k="start_workout"
+          onPress={() => router.push({ pathname: "/workout/session", params: { exercise: String(id) } })}
+        />
         <T variant="caption" tone="muted" style={{ textAlign: "center", marginTop: space.xs }}>
           {t("workout_safety")}
         </T>

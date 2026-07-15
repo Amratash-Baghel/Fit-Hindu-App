@@ -145,7 +145,10 @@ export default function WorkoutTemplateScreen() {
       />
       {tpl.items.length > 0 ? (
         <FooterAction>
-          <Button k="start_workout" onPress={() => router.push(`/workout/${tpl.items[0].exercise.id}`)} />
+          <Button
+            k="start_workout"
+            onPress={() => router.push({ pathname: "/workout/session", params: { template: tpl.id } })}
+          />
         </FooterAction>
       ) : null}
     </Screen>

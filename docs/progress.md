@@ -3,6 +3,17 @@
 Running build log — one entry per shipped item, newest on top. This is the
 standup doc for the owner and the resume-from-home lifeline.
 
+- **2026-07-15** — Workout v2 (reference-app model) + deploy pipeline:
+  guided session player (work → rest → done; set tracking, timed sets,
+  +20s/skip rest with next-up preview, gym weight input, completion stats →
+  activity_log journal meta), My Workouts builder (migration 0009,
+  own-row RLS, reliable 1..n ordering) with pre-auth placeholder, workout
+  spec v2 + onboarding question-set v2 docs, eas.json (preview=APK) +
+  docs/deploy.md runbook, admin production build verified green
+  (Vercel-ready). Verified in preview: full session Squats 3 sets with
+  weight, rest +20s/skip, completion 1/3/2min; PGlite: all 9 migrations +
+  0009 smoke PASS. Learning log restarted (2 entries).
+  ⚠️ USER MUST RUN migrations 0008 + 0009 in Supabase.
 - **2026-07-14** — Premium pass + audit: SVG icon set replaces every emoji
   (tab bar, cards, tiles, meditation); AvatarTile component (gradient +
   silhouette + gold play) on all video placeholders; gold-gradient buttons

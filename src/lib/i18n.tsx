@@ -93,6 +93,33 @@ export const strings = {
   all_exercises: { hi: "सभी व्यायाम", en: "All exercises" },
   exercises_word: { hi: "व्यायाम", en: "exercises" },
 
+  // session player (workout spec v2)
+  set_word: { hi: "सेट", en: "Set" },
+  set_done: { hi: "सेट पूरा हुआ", en: "Set done" },
+  rest_now: { hi: "विश्राम करें", en: "Rest" },
+  plus_20s: { hi: "+20 से.", en: "+20 sec" },
+  skip_word: { hi: "छोड़ें", en: "Skip" },
+  next_up: { hi: "आगे", en: "Next up" },
+  weight_kg: { hi: "वज़न (कि.ग्रा.)", en: "Weight (kg)" },
+  workout_complete: { hi: "वर्कआउट पूरा हुआ 🙏", en: "Workout complete 🙏" },
+  great_work: { hi: "शानदार मेहनत! कल फिर मिलते हैं।", en: "Great work! See you again tomorrow." },
+  sets_total_word: { hi: "सेट", en: "sets" },
+  exit_confirm: { hi: "बाहर निकलें", en: "Exit" },
+
+  // my workouts (builder)
+  my_workouts: { hi: "मेरे वर्कआउट", en: "My Workouts" },
+  new_workout: { hi: "नया वर्कआउट", en: "New workout" },
+  my_workouts_soon: {
+    hi: "अपने वर्कआउट बनाएं — साइन-इन के साथ जल्द आ रहा है",
+    en: "Build your own workouts — coming soon with sign-in",
+  },
+  workout_name: { hi: "वर्कआउट का नाम", en: "Workout name" },
+  add_exercise: { hi: "व्यायाम जोड़ें", en: "Add exercise" },
+  save_word: { hi: "सहेजें", en: "Save" },
+  delete_word: { hi: "हटाएं", en: "Delete" },
+  saved_ok: { hi: "सहेजा गया ✓", en: "Saved ✓" },
+  empty_workout_hint: { hi: "नीचे से व्यायाम जोड़ें", en: "Add exercises from below" },
+
   // meditation flow (docs/specs/meditation.md — 3 clicks: Start → Next → Start)
   start_meditation: { hi: "ध्यान शुरू करें", en: "Start Meditation" },
   med_tagline: { hi: "कुछ मिनट अपने लिए — श्वास, शांति, ॐ", en: "A few minutes for yourself — breath, calm, Om" },
