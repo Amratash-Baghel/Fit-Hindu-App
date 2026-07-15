@@ -6,6 +6,23 @@
 import Link from "next/link";
 import { supabaseServer } from "@/lib/supabase/server";
 import { SignOutButton } from "@/components/SignOutButton";
+import { supabaseConfigured, MISSING_ENV_MESSAGE } from "@/lib/config";
+
+/** Rendered instead of a 500 when the deploy is missing its env vars. */
+function ConfigError() {
+  return (
+    <main className="grid min-h-screen place-items-center p-6">
+      <div className="card max-w-lg p-8">
+        <h1 className="text-lg font-bold" style={{ color: "var(--danger)" }}>
+          Setup incomplete
+        </h1>
+        <p className="mt-3 text-sm leading-relaxed" style={{ color: "var(--muted)" }}>
+          {MISSING_ENV_MESSAGE}
+        </p>
+      </div>
+    </main>
+  );
+}
 
 const NAV = [
   {
@@ -26,6 +43,8 @@ const NAV = [
 ];
 
 export default async function PanelLayout({ children }: { children: React.ReactNode }) {
+  if (!supabaseConfigured()) return <ConfigError />;
+
   const supabase = await supabaseServer();
   const { data: isAdmin } = await supabase.rpc("is_admin");
 

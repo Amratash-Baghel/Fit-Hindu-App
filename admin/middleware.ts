@@ -6,13 +6,20 @@
  */
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { SUPABASE_ANON_KEY, SUPABASE_URL, supabaseConfigured } from "@/lib/config";
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
 
+  // Without env vars createServerClient throws, and an uncaught throw in
+  // middleware becomes an opaque MIDDLEWARE_INVOCATION_FAILED 500 for EVERY
+  // route. Let the request through instead — the pages render a readable
+  // setup message (nothing is exposed: no client = no data).
+  if (!supabaseConfigured()) return response;
+
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    SUPABASE_URL!,
+    SUPABASE_ANON_KEY!,
     {
       cookies: {
         getAll() {
@@ -29,9 +36,14 @@ export async function middleware(request: NextRequest) {
     },
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // A transient Supabase/network error must not 500 the whole site either.
+  let user = null;
+  try {
+    const { data } = await supabase.auth.getUser();
+    user = data.user;
+  } catch {
+    return response; // unknown auth state — let the page handle it
+  }
 
   const isLogin = request.nextUrl.pathname.startsWith("/login");
   if (!user && !isLogin) {

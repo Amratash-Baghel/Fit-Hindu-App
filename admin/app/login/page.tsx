@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/client";
+import { supabaseConfigured, MISSING_ENV_MESSAGE } from "@/lib/config";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -10,9 +11,14 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const configured = supabaseConfigured();
 
   async function signIn(e: React.FormEvent) {
     e.preventDefault();
+    if (!configured) {
+      setError(MISSING_ENV_MESSAGE);
+      return;
+    }
     setBusy(true);
     setError(null);
     const supabase = supabaseBrowser();
