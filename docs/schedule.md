@@ -9,9 +9,11 @@ afternoon cycle.
 - [ ] Owner sit-down with docs/idea.md (v1 pivot) + research findings → scope +
       money model signed off; "Fit Hindu" name/trademark availability
       confirmed; standalone-vs-buyer-gated and devotional-scope questions locked
-- [x] ~~Owner starts D-U-N-S + Play org account~~ → **owned by another team
-      member now (off my plate). v1 is Play-only; Apple/D-U-N-S deferred, so the
-      Apple enrollment clock is no longer on the critical path.**
+- [ ] **D-U-N-S + Play org account — delegated. Runbook:
+      docs/play-store-setup.md.** v1 is **Play-only** (Apple out of scope).
+      ⚠️ **D-U-N-S is now the single critical path**: mandatory for a Play
+      org account, free track up to 30 business days, paid expedited 5–7.
+      Must start immediately; pay for expedited.
 - [ ] Draft privacy policy (DPDP-compliant, hi+en) — needed for store forms
 - [ ] Freeze content formats: diet-template spreadsheet + workout shot-list →
       hand to team; **video team starts shooting NOW, not in week 3**

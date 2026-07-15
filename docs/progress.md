@@ -3,6 +3,18 @@
 Running build log — one entry per shipped item, newest on top. This is the
 standup doc for the owner and the resume-from-home lifeline.
 
+- **2026-07-15** — Play Store setup delegated: wrote docs/play-store-setup.md
+  — a non-technical, step-by-step runbook (documents to collect, D-U-N-S
+  lookup → application, company Google account, Organization registration +
+  $25, verification, inviting Amratash, listing assets, report-back
+  checklist). Research doc updated for **Play-only** (Apple sections marked
+  out of scope; timeline + gotchas revised). **Key finding: D-U-N-S is
+  mandatory for a Play org account (PAN/GST/CIN don't substitute) and the
+  free track runs up to 30 business days — paid expedited is 5–7 days and is
+  the recommendation. It is now the entire critical path.** Also confirmed:
+  individual accounts cannot publish Health & Fitness apps since 28 Jan 2026
+  → Organization is mandatory, not just preferred. Privacy policy URL is a
+  hard publishing blocker and still undrafted.
 - **2026-07-15** — Workout v2 (reference-app model) + deploy pipeline:
   guided session player (work → rest → done; set tracking, timed sets,
   +20s/skip rest with next-up preview, gym weight input, completion stats →
