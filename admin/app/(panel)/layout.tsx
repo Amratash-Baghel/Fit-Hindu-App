@@ -31,8 +31,10 @@ const NAV = [
     items: [
       { href: "/library/exercises", label: "Exercises" },
       { href: "/library/sounds", label: "Sounds" },
+      { href: "/library/meals", label: "Meals" },
+      { href: "/library/mantras", label: "Mantras" },
     ],
-    soon: ["Meals", "Mantras", "Devotional"],
+    soon: ["Devotional"],
   },
   {
     area: "Compose",

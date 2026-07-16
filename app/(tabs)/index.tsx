@@ -123,7 +123,7 @@ export default function Home() {
         gold
         titleHi="आज का आहार"
         titleEn="Today's diet"
-        soon={t("soon_badge")}
+        onPress={() => router.push("/(tabs)/diet")}
       />
       <TodayCard
         icon={<LotusIcon color={color.saffron} />}

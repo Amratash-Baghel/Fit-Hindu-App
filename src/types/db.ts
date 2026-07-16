@@ -34,8 +34,53 @@ export interface Profile {
   workout_mode_pref: WorkoutMode | null;
   deity_id: string | null;
   consent_at: string | null;
+  // added in migration 0010
+  height_cm: number | null;
+  weight_kg: number | null;
+  region: string | null;
+  body_focus: BodyArea[];
+  days_per_week: number | null;
   created_at: string;
   updated_at: string;
+}
+
+// ---------- AI custom diet plan (migration 0010) ----------
+export type DietRequestStatus = "pending" | "generating" | "ready" | "failed";
+
+export interface DietPlanRequest {
+  id: string;
+  user_id: string;
+  answers: Record<string, unknown>;
+  plan: DietPlan | null;
+  status: DietRequestStatus;
+  error: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Shape the app renders from diet_plan_requests.plan (also the shape the n8n
+ *  workflow's AI step is instructed to return). All fields optional/defensive
+ *  since it originates from an AI generation. */
+export interface DietPlan {
+  summary_hi?: string;
+  summary_en?: string;
+  daily_kcal?: number;
+  days?: DietPlanDay[];
+}
+
+export interface DietPlanDay {
+  label_hi?: string;
+  label_en?: string;
+  meals?: DietPlanMeal[];
+}
+
+export interface DietPlanMeal {
+  meal_time?: MealTime | string;
+  title_hi?: string;
+  title_en?: string;
+  items_hi?: string[];
+  items_en?: string[];
+  kcal?: number;
 }
 
 export interface QuestionnaireResponse {

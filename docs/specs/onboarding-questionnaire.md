@@ -44,6 +44,10 @@ are added to profiles when the onboarding build cycle starts —
 `assignment_rules.conditions` jsonb already accommodates the new keys with
 zero schema change.
 
+> Note (2026-07-16): the **diet custom-plan** feature has its own separate,
+> AI-fed questionnaire (docs/specs/diet-custom-plan.md, owner override). THIS
+> onboarding questionnaire remains rule-based and unchanged by that override.
+
 ## Rules
 
 - Rule-based mapping only: answers → team-authored plan template (no AI).
