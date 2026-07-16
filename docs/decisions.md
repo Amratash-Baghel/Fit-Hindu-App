@@ -2,6 +2,29 @@
 
 One dated line per decision, with the why. Newest on top.
 
+- **2026-07-16 (video uploads: direct-to-Bunny via TUS)** — Video uploads in
+  the admin panel now go **browser → Bunny Stream directly** over TUS
+  (resumable upload), instead of proxying the binary through our Next.js
+  route handler. Why: Vercel serverless functions cap request bodies at
+  **4.5MB**; the old flow (`/api/upload` PUTting the whole file to Bunny
+  from inside the function) worked locally but silently failed on the
+  deployed admin panel for any real demo video, while small photos passed
+  through fine — that's how the bug was first noticed. The panel server
+  still creates the Bunny video object and mints a short-lived,
+  single-video signature (`/api/upload/video-auth`); the browser uses that
+  signature to upload directly, then calls `/api/upload/finalize` to write
+  the `media` row. The raw `BUNNY_STREAM_API_KEY` never reaches the
+  browser — only the derived, time-limited signature does — so this
+  preserves the 2026-07-13 "server-side key never touches the browser"
+  rule. Audio/image uploads are unchanged (still proxied through the
+  server) since they're small enough today.
+  **Known follow-up, deliberately not fixed here**: audio has the same
+  latent 4.5MB ceiling — `docs/research/media-hosting.md` estimates ~28MB
+  for a 60-min ambient/sleep track, which will fail the same way once a
+  real long-form track is uploaded. Bunny Storage has no TUS/scoped-token
+  equivalent to Stream, so that fix needs a different mechanism and its
+  own scoped change — revisit before uploading long sleep/meditation audio.
+
 - **2026-07-12** — Scope pivot: from "Bajrangvati companion app for product
   buyers" to **"Fit Hindu"** (working name), a standalone devotional-fitness
   app for Hindu India — workouts + diet + meditation (timer/sounds) + per-deity

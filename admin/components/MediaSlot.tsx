@@ -30,6 +30,8 @@ export function MediaSlot({ label, kind, targetTable, targetColumn, targetId, cu
   const [error, setError] = useState<string | null>(null);
 
   async function uploadFile(file: File) {
+    if (kind === "video") return uploadVideoDirect(file);
+
     setBusy("Uploading…");
     setError(null);
     const form = new FormData();
@@ -47,6 +49,78 @@ export function MediaSlot({ label, kind, targetTable, targetColumn, targetId, cu
       return;
     }
     router.refresh();
+  }
+
+  // Video uploads go straight from the browser to Bunny Stream via TUS —
+  // Vercel's serverless functions cap request bodies at 4.5MB, which any
+  // real demo video exceeds, so the binary can't be proxied through our own
+  // API route the way audio/image are.
+  async function uploadVideoDirect(file: File) {
+    setBusy("Starting upload…");
+    setError(null);
+
+    const authRes = await fetch("/api/upload/video-auth", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title }),
+    });
+    const auth = await authRes.json();
+    if (!authRes.ok) {
+      setBusy(null);
+      setError(auth.error ?? "Could not start upload");
+      return;
+    }
+    const { libraryId, guid, signature, expire, cdnHost } = auth as {
+      libraryId: string;
+      guid: string;
+      signature: string;
+      expire: number;
+      cdnHost: string;
+    };
+
+    const { Upload } = await import("tus-js-client");
+    const upload = new Upload(file, {
+      endpoint: "https://video.bunnycdn.com/tusupload",
+      retryDelays: [0, 1000, 3000, 5000],
+      headers: {
+        AuthorizationSignature: signature,
+        AuthorizationExpire: String(expire),
+        VideoId: guid,
+        LibraryId: libraryId,
+      },
+      metadata: { filetype: file.type, title },
+      onProgress(bytesUploaded, bytesTotal) {
+        const pct = Math.round((bytesUploaded / bytesTotal) * 100);
+        setBusy(`Uploading… ${pct}%`);
+      },
+      onError(err) {
+        setBusy(null);
+        setError(err.message ?? "Upload failed");
+      },
+      async onSuccess() {
+        setBusy("Finishing…");
+        const res = await fetch("/api/upload/finalize", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            kind: "video",
+            externalId: guid,
+            playbackUrl: `https://${cdnHost}/${guid}/playlist.m3u8`,
+            targetTable,
+            targetColumn,
+            targetId,
+          }),
+        });
+        const body = await res.json();
+        setBusy(null);
+        if (!res.ok) {
+          setError(body.error ?? "Could not save the uploaded video");
+          return;
+        }
+        router.refresh();
+      },
+    });
+    upload.start();
   }
 
   async function saveExternalUrl() {
