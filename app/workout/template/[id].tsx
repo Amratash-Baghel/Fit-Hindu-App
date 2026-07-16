@@ -23,21 +23,28 @@ export default function WorkoutTemplateScreen() {
   const { t, loc, locSub } = useI18n();
   const [tpl, setTpl] = useState<WorkoutTemplateFull | null>(null);
   const [status, setStatus] = useState<"loading" | "ok" | "error">("loading");
+  const [reloadKey, setReloadKey] = useState(0);
 
-  const load = useCallback(async () => {
-    setStatus("loading");
-    try {
-      const data = await getWorkoutTemplate(String(id));
-      setTpl(data);
-      setStatus("ok");
-    } catch {
-      setStatus("error");
-    }
-  }, [id]);
-
+  // The fetch runs in an effect; "loading" is the initial state and is re-set
+  // by retry, so the effect body stays free of sync setState.
   useEffect(() => {
-    load();
-  }, [load]);
+    let alive = true;
+    getWorkoutTemplate(String(id))
+      .then((data) => {
+        if (!alive) return;
+        setTpl(data);
+        setStatus("ok");
+      })
+      .catch(() => alive && setStatus("error"));
+    return () => {
+      alive = false;
+    };
+  }, [id, reloadKey]);
+
+  const retry = useCallback(() => {
+    setStatus("loading");
+    setReloadKey((n) => n + 1);
+  }, []);
 
   if (status === "loading") {
     return (
@@ -56,7 +63,7 @@ export default function WorkoutTemplateScreen() {
           <T variant="body" tone="muted" style={{ textAlign: "center" }}>
             {t("workout_error")}
           </T>
-          <Button k="retry" kind="ghost" onPress={load} />
+          <Button k="retry" kind="ghost" onPress={retry} />
         </View>
       </Screen>
     );

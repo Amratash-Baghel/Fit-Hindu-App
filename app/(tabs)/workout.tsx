@@ -49,6 +49,7 @@ export default function Workout() {
   const [templates, setTemplates] = useState<WorkoutTemplateSummary[]>([]);
   const [mine, setMine] = useState<UserWorkoutSummary[] | null | undefined>(undefined);
   const [status, setStatus] = useState<"loading" | "ok" | "error">("loading");
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     // null = signed out (placeholder); undefined = still loading
@@ -57,26 +58,55 @@ export default function Workout() {
       .catch(() => setMine(null));
   }, []);
 
-  const load = useCallback(async () => {
-    setStatus("loading");
-    try {
-      if (tab === "custom") {
-        setTemplates([]);
-        setItems(await listExercisesByArea(area));
-      } else {
-        const [tpl, ex] = await Promise.all([listWorkoutTemplates(tab), listExercisesByMode(tab)]);
-        setTemplates(tpl);
-        setItems(ex);
-      }
-      setStatus("ok");
-    } catch {
-      setStatus("error");
-    }
-  }, [tab, area]);
-
+  // The fetch runs in an effect; "loading" is set by whatever triggers it
+  // (tab/area press, retry) so the effect body stays free of sync setState.
   useEffect(() => {
-    load();
-  }, [load]);
+    let alive = true;
+    (async () => {
+      try {
+        if (tab === "custom") {
+          const ex = await listExercisesByArea(area);
+          if (!alive) return;
+          setTemplates([]);
+          setItems(ex);
+        } else {
+          const [tpl, ex] = await Promise.all([listWorkoutTemplates(tab), listExercisesByMode(tab)]);
+          if (!alive) return;
+          setTemplates(tpl);
+          setItems(ex);
+        }
+        setStatus("ok");
+      } catch {
+        if (alive) setStatus("error");
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [tab, area, reloadKey]);
+
+  const selectTab = useCallback(
+    (next: Tab) => {
+      if (next === tab) return;
+      setStatus("loading");
+      setTab(next);
+    },
+    [tab],
+  );
+
+  const selectArea = useCallback(
+    (next: BodyArea) => {
+      if (next === area) return;
+      setStatus("loading");
+      setArea(next);
+    },
+    [area],
+  );
+
+  const retry = useCallback(() => {
+    setStatus("loading");
+    setReloadKey((n) => n + 1);
+  }, []);
 
   return (
     <Screen scroll={false}>
@@ -86,7 +116,7 @@ export default function Workout() {
 
       <View style={{ flexDirection: "row", gap: space.sm, marginTop: space.md }}>
         {MODES.map((m) => (
-          <Chip key={m.tab} label={t(m.k)} active={tab === m.tab} onPress={() => setTab(m.tab)} />
+          <Chip key={m.tab} label={t(m.k)} active={tab === m.tab} onPress={() => selectTab(m.tab)} />
         ))}
       </View>
 
@@ -99,7 +129,7 @@ export default function Workout() {
           <T variant="body" tone="muted" style={{ textAlign: "center" }}>
             {t("workout_error")}
           </T>
-          <Button k="retry" kind="ghost" onPress={load} />
+          <Button k="retry" kind="ghost" onPress={retry} />
         </Center>
       ) : (
         <ExerciseGrid
@@ -118,7 +148,7 @@ export default function Workout() {
                     keyExtractor={(a) => a.area}
                     contentContainerStyle={{ gap: space.sm, paddingRight: space.lg }}
                     renderItem={({ item }) => (
-                      <Chip label={t(item.k)} active={area === item.area} onPress={() => setArea(item.area)} />
+                      <Chip label={t(item.k)} active={area === item.area} onPress={() => selectArea(item.area)} />
                     )}
                   />
                 </View>
@@ -148,7 +178,7 @@ function Center({ children }: { children: React.ReactNode }) {
 /** My Workouts (F&B "add your own") — placeholder until app auth ships. */
 function MyWorkoutsSection({ mine }: { mine: UserWorkoutSummary[] | null | undefined }) {
   const router = useRouter();
-  const { t, loc } = useI18n();
+  const { t } = useI18n();
   if (mine === undefined) return null; // still loading — keep the header calm
 
   return (

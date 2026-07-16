@@ -38,6 +38,13 @@ interface Target {
   setNo: number; // 1-based
 }
 
+/** Completion stats, frozen when the session finishes so render stays pure. */
+interface Summary {
+  minutes: number;
+  exercises: number;
+  sets: number;
+}
+
 function effective(item: TemplateItem) {
   const ex = item.exercise;
   return {
@@ -63,9 +70,10 @@ export default function WorkoutSession() {
   const [secLeft, setSecLeft] = useState<number | null>(null); // timed work
   const [restLeft, setRestLeft] = useState(0);
   const [weight, setWeight] = useState("");
+  const [summary, setSummary] = useState<Summary | null>(null);
 
   const log = useRef<SetLogEntry[]>([]);
-  const startedAt = useRef(Date.now());
+  const startedAt = useRef(0);
   const completed = useRef(false);
 
   useEffect(() => {
@@ -87,11 +95,27 @@ export default function WorkoutSession() {
     return () => {
       alive = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.template, params.custom, params.exercise]);
 
   const item = source?.items[target.itemIdx];
   const eff = item ? effective(item) : null;
+
+  const complete = useCallback(() => {
+    if (completed.current || !source) return;
+    completed.current = true;
+    const minutes = Math.max(1, Math.round((Date.now() - startedAt.current) / 60000));
+    setSummary({
+      minutes,
+      exercises: new Set(log.current.map((s) => s.exercise_id)).size,
+      sets: log.current.length,
+    });
+    setPhase("done");
+    logActivity(
+      "workout",
+      { source: source.kind, ref_id: source.refId, minutes, sets: log.current },
+      source.refId,
+    );
+  }, [source]);
 
   const finishSet = useCallback(() => {
     if (!source || !item || !eff) return;
@@ -115,7 +139,7 @@ export default function WorkoutSession() {
     setNext(n);
     setRestLeft(eff.rest);
     setPhase("rest");
-  }, [source, item, eff, target, weight]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [source, item, eff, target, weight, complete]);
 
   const advance = useCallback(() => {
     if (!source || !next) return;
@@ -126,38 +150,42 @@ export default function WorkoutSession() {
     setPhase("work");
   }, [source, next]);
 
-  function complete() {
-    if (completed.current || !source) return;
-    completed.current = true;
-    setPhase("done");
-    const minutes = Math.max(1, Math.round((Date.now() - startedAt.current) / 60000));
-    logActivity(
-      "workout",
-      { source: source.kind, ref_id: source.refId, minutes, sets: log.current },
-      source.refId,
-    );
-  }
+  // Latest-value mirror for the interval below: it must read current state and
+  // call the current transitions without being torn down (and so restarting its
+  // 1s cadence) every time a countdown or the weight field changes.
+  const latest = useRef({ secLeft, restLeft, finishSet, advance });
+  useEffect(() => {
+    latest.current = { secLeft, restLeft, finishSet, advance };
+  });
 
-  // one ticking interval drives both timed work and rest
+  // Rest adjustments go through the mirror synchronously: a tick landing before
+  // the next commit must count down from the adjusted value rather than
+  // overwrite it with a stale one.
+  const bumpRest = useCallback((delta: number) => {
+    const n = Math.max(0, latest.current.restLeft + delta);
+    latest.current.restLeft = n;
+    setRestLeft(n);
+  }, []);
+
+  // One ticking interval drives both timed work and rest. Reaching zero
+  // completes the timed set / advances past the rest, in the same tick.
   useEffect(() => {
     if (status !== "ok" || phase === "done") return;
     const id = setInterval(() => {
+      const { secLeft: s, restLeft: r, finishSet: fin, advance: adv } = latest.current;
       if (phase === "work") {
-        setSecLeft((s) => (s === null ? null : s > 0 ? s - 1 : 0));
+        if (s === null) return; // rep-based set: no countdown
+        const n = s > 0 ? s - 1 : 0;
+        setSecLeft(n);
+        if (n === 0) fin();
       } else if (phase === "rest") {
-        setRestLeft((r) => (r > 0 ? r - 1 : 0));
+        const n = r > 0 ? r - 1 : 0;
+        setRestLeft(n);
+        if (n === 0) adv();
       }
     }, 1000);
     return () => clearInterval(id);
   }, [status, phase]);
-
-  // timed set reaching zero completes the set; rest reaching zero advances
-  useEffect(() => {
-    if (phase === "work" && secLeft === 0) finishSet();
-  }, [phase, secLeft, finishSet]);
-  useEffect(() => {
-    if (phase === "rest" && restLeft === 0) advance();
-  }, [phase, restLeft, advance]);
 
   // ---------- render ----------
 
@@ -187,8 +215,7 @@ export default function WorkoutSession() {
   }
 
   // completion
-  if (phase === "done") {
-    const minutes = Math.max(1, Math.round((Date.now() - startedAt.current) / 60000));
+  if (phase === "done" && summary) {
     return (
       <Screen scroll={false}>
         <Stack.Screen options={{ headerShown: false }} />
@@ -197,9 +224,9 @@ export default function WorkoutSession() {
           <B k="workout_complete" variant="h1" center />
           <B k="great_work" variant="body" tone="muted" center />
           <View style={{ flexDirection: "row", gap: space.xl, marginTop: space.lg }}>
-            <Stat v={String(new Set(log.current.map((s) => s.exercise_id)).size)} label={t("exercises_word")} />
-            <Stat v={String(log.current.length)} label={t("sets_total_word")} />
-            <Stat v={String(minutes)} label={t("minutes_short")} />
+            <Stat v={String(summary.exercises)} label={t("exercises_word")} />
+            <Stat v={String(summary.sets)} label={t("sets_total_word")} />
+            <Stat v={String(summary.minutes)} label={t("minutes_short")} />
           </View>
         </View>
         <FooterAction>
@@ -243,7 +270,7 @@ export default function WorkoutSession() {
         <FooterAction>
           <View style={{ flexDirection: "row", gap: space.sm }}>
             <View style={{ flex: 1 }}>
-              <Button k="plus_20s" kind="ghost" onPress={() => setRestLeft((r) => r + 20)} />
+              <Button k="plus_20s" kind="ghost" onPress={() => bumpRest(20)} />
             </View>
             <View style={{ flex: 2 }}>
               <Button k="skip_word" onPress={advance} />

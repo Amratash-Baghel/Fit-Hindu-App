@@ -23,7 +23,7 @@ import { getTodayDevotional, type DevotionalToday } from "../../src/lib/content"
  */
 export default function Home() {
   const router = useRouter();
-  const { t, loc, locSub, mode } = useI18n();
+  const { t, loc, mode } = useI18n();
   const [dev, setDev] = useState<DevotionalToday | null>(null);
 
   useEffect(() => {

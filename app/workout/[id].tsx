@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { Screen, Card, T, Button, FooterAction, AvatarTile, color, radius, space } from "../../src/ui";
+import { Screen, Card, T, Button, FooterAction, AvatarTile, color, space } from "../../src/ui";
 import { useI18n, type StringKey } from "../../src/lib/i18n";
 import { getExercise, type ExerciseWithMedia } from "../../src/lib/content";
 

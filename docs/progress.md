@@ -3,6 +3,28 @@
 Running build log — one entry per shipped item, newest on top. This is the
 standup doc for the owner and the resume-from-home lifeline.
 
+- **2026-07-16** — Lint clean: fixed all 11 react-hooks errors + 6 unused-var
+  warnings surfaced by the first `npm run lint` run (all pre-existing). The
+  real work was the session player (app/workout/session.tsx): completion
+  stats are now frozen into state when the session completes instead of
+  recomputing `Date.now()` and reading `log.current` during render; `complete`
+  became a useCallback declared before its caller; and the work/rest
+  zero-crossings moved out of two setState-in-effect hooks into the 1s
+  interval that already owns the countdown (reading current state through a
+  latest-value mirror ref so the tick doesn't restart on every keystroke).
+  The loading fetches in the workout tab and template screen moved out of
+  sync-setState-in-effect: the spinner is now set by whatever triggers the
+  fetch (tab/area press, retry) and the effects only fetch, with cancellation
+  guards added. **The mirror-ref refactor introduced a real bug that review
+  caught and this ships fixed**: the rest tick had become an absolute write
+  from the last-committed value, so a +20s tap landing within a frame of a
+  tick was silently clobbered (~1-2% of taps) — rest adjustments now update
+  the mirror synchronously so both writers compose. Verified in the web
+  preview: full Squats session (3 sets, weight entry, rest +20s stacking
+  3 taps → +60s with none lost, skip, completion stats 1 exercise/3 sets),
+  timed path auto-advancing work→rest→work on a template session, and
+  Home/Gym/Custom tab + body-area switching. Typecheck + lint green, zero
+  console errors.
 - **2026-07-15** — Play Store setup delegated: wrote docs/play-store-setup.md
   — a non-technical, step-by-step runbook (documents to collect, D-U-N-S
   lookup → application, company Google account, Organization registration +

@@ -8,7 +8,7 @@
 import React from "react";
 import { View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { color, goldGradient, space } from "./tokens";
+import { color, goldGradient } from "./tokens";
 import { T } from "./Text";
 import { AvatarSilhouette, PlayIcon } from "./icons";
 import { useI18n } from "../lib/i18n";
