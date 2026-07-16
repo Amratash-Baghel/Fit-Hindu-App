@@ -12,16 +12,34 @@
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [-600, 300],
+      "position": [
+        -600,
+        300
+      ],
       "webhookId": "fithindu-diet-plan"
     },
     {
       "parameters": {
         "assignments": {
           "assignments": [
-            { "id": "a1", "name": "request_id", "value": "={{ $json.body.request_id }}", "type": "string" },
-            { "id": "a2", "name": "answers", "value": "={{ $json.body.answers }}", "type": "object" },
-            { "id": "a3", "name": "secret_in", "value": "={{ $json.headers['x-fithindu-secret'] }}", "type": "string" }
+            {
+              "id": "a1",
+              "name": "request_id",
+              "value": "={{ $json.body.request_id }}",
+              "type": "string"
+            },
+            {
+              "id": "a2",
+              "name": "answers",
+              "value": "={{ $json.body.answers }}",
+              "type": "object"
+            },
+            {
+              "id": "a3",
+              "name": "secret_in",
+              "value": "={{ $json.headers['x-fithindu-secret'] }}",
+              "type": "string"
+            }
           ]
         },
         "options": {}
@@ -30,19 +48,29 @@
       "name": "Extract Input",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [-400, 300]
+      "position": [
+        -400,
+        300
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "typeValidation": "strict", "version": 2 },
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "strict",
+            "version": 2
+          },
           "combinator": "and",
           "conditions": [
             {
               "id": "c1",
               "leftValue": "={{ $json.secret_in }}",
               "rightValue": "REPLACE_SHARED_SECRET",
-              "operator": { "type": "string", "operation": "equals" }
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
             }
           ]
         },
@@ -52,7 +80,10 @@
       "name": "Check Secret",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [-200, 300]
+      "position": [
+        -200,
+        300
+      ]
     },
     {
       "parameters": {
@@ -61,10 +92,22 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "REPLACE_SUPABASE_SERVICE_ROLE_KEY" },
-            { "name": "Authorization", "value": "Bearer REPLACE_SUPABASE_SERVICE_ROLE_KEY" },
-            { "name": "Content-Type", "value": "application/json" },
-            { "name": "Prefer", "value": "return=minimal" }
+            {
+              "name": "apikey",
+              "value": "REPLACE_SUPABASE_SERVICE_ROLE_KEY"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer REPLACE_SUPABASE_SERVICE_ROLE_KEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
           ]
         },
         "sendBody": true,
@@ -76,7 +119,10 @@
       "name": "Set Generating",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [0, 200]
+      "position": [
+        0,
+        200
+      ]
     },
     {
       "parameters": {
@@ -85,43 +131,66 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "x-api-key", "value": "REPLACE_ANTHROPIC_API_KEY" },
-            { "name": "anthropic-version", "value": "2023-06-01" },
-            { "name": "content-type", "value": "application/json" }
+            {
+              "name": "x-api-key",
+              "value": "REPLACE_ANTHROPIC_API_KEY"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 2000, system: 'You are a nutrition assistant for a Hindu wellness app. From the user answers, produce a practical, regional, culturally-appropriate diet plan. GENERAL WELLNESS ONLY — never medical advice, never disease-cure claims. Respect the diet_type strictly (veg/sattvic/egg/nonveg). Reply with ONLY valid JSON, no prose, no code fences, matching exactly: {\\\"summary_hi\\\":string,\\\"summary_en\\\":string,\\\"daily_kcal\\\":number,\\\"days\\\":[{\\\"label_hi\\\":string,\\\"label_en\\\":string,\\\"meals\\\":[{\\\"meal_time\\\":\\\"breakfast|lunch|snack|dinner\\\",\\\"title_hi\\\":string,\\\"title_en\\\":string,\\\"items_hi\\\":[string],\\\"items_en\\\":[string],\\\"kcal\\\":number}]}]}', messages: [{ role: 'user', content: 'User answers (JSON): ' + JSON.stringify($('Extract Input').item.json.answers) }] }) }}",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 8000, system: 'You are a nutrition assistant for a Hindu wellness app. From the user answers, produce a practical, regional, culturally-appropriate diet plan. GENERAL WELLNESS ONLY — never medical advice, never disease-cure claims. Respect the diet_type strictly (veg/sattvic/egg/nonveg). Produce EXACTLY 3 days (a rotating plan), max 4 meals per day, max 4 items per meal — keep it concise. Reply with ONLY valid JSON, no prose, no code fences, matching exactly: {\\\"summary_hi\\\":string,\\\"summary_en\\\":string,\\\"daily_kcal\\\":number,\\\"days\\\":[{\\\"label_hi\\\":string,\\\"label_en\\\":string,\\\"meals\\\":[{\\\"meal_time\\\":\\\"breakfast|lunch|snack|dinner\\\",\\\"title_hi\\\":string,\\\"title_en\\\":string,\\\"items_hi\\\":[string],\\\"items_en\\\":[string],\\\"kcal\\\":number}]}]}', messages: [{ role: 'user', content: 'User answers (JSON): ' + JSON.stringify($('Extract Input').item.json.answers) }] }) }}",
         "options": {}
       },
       "id": "55555555-5555-4555-8555-555555555555",
       "name": "Anthropic",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [200, 200]
+      "position": [
+        200,
+        200
+      ]
     },
     {
       "parameters": {
-        "jsCode": "// Parse the model's JSON out of the Anthropic response.\nconst res = $input.first().json;\nlet text = '';\ntry {\n  text = (res.content || []).map(b => b.text || '').join('').trim();\n} catch (e) {\n  text = '';\n}\n// strip accidental code fences\ntext = text.replace(/^```(json)?/i, '').replace(/```$/,'').trim();\nlet plan = null, failed = false, error = null;\ntry {\n  plan = JSON.parse(text);\n} catch (e) {\n  failed = true;\n  error = 'AI did not return valid JSON: ' + (e.message || 'parse error');\n}\nreturn [{ json: { plan, failed, error, request_id: $('Extract Input').item.json.request_id } }];"
+        "jsCode": "// Parse the model's JSON out of the Anthropic response.\nconst res = $input.first().json;\nlet text = '';\ntry {\n  text = (res.content || []).map(b => b.text || '').join('').trim();\n} catch (e) {\n  text = '';\n}\n// strip accidental code fences\ntext = text.replace(/^```(json)?/i, '').replace(/```$/,'').trim();\n// extract the outermost JSON object in case the model added prose\nconst s = text.indexOf('{'); const e = text.lastIndexOf('}');\nif (s >= 0 && e > s) text = text.slice(s, e + 1);\nlet plan = null, failed = false, error = null;\ntry {\n  plan = JSON.parse(text);\n} catch (e) {\n  failed = true;\n  error = 'AI did not return valid JSON: ' + (e.message || 'parse error');\n}\nreturn [{ json: { plan, failed, error, request_id: $('Extract Input').item.json.request_id } }];"
       },
       "id": "66666666-6666-4666-8666-666666666666",
       "name": "Parse Plan",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [400, 200]
+      "position": [
+        400,
+        200
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "typeValidation": "loose", "version": 2 },
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose",
+            "version": 2
+          },
           "combinator": "and",
           "conditions": [
             {
               "id": "p1",
               "leftValue": "={{ $json.failed }}",
               "rightValue": "",
-              "operator": { "type": "boolean", "operation": "false", "singleValue": true }
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
             }
           ]
         },
@@ -131,7 +200,10 @@
       "name": "Parse OK?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [600, 200]
+      "position": [
+        600,
+        200
+      ]
     },
     {
       "parameters": {
@@ -140,22 +212,37 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "REPLACE_SUPABASE_SERVICE_ROLE_KEY" },
-            { "name": "Authorization", "value": "Bearer REPLACE_SUPABASE_SERVICE_ROLE_KEY" },
-            { "name": "Content-Type", "value": "application/json" },
-            { "name": "Prefer", "value": "return=minimal" }
+            {
+              "name": "apikey",
+              "value": "REPLACE_SUPABASE_SERVICE_ROLE_KEY"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer REPLACE_SUPABASE_SERVICE_ROLE_KEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ status: 'ready', plan: $json.plan }) }}",
+        "jsonBody": "={{ JSON.stringify({ status: 'ready', error: null, plan: $json.plan }) }}",
         "options": {}
       },
       "id": "88888888-8888-4888-8888-888888888888",
       "name": "Save Ready",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [820, 100]
+      "position": [
+        820,
+        100
+      ]
     },
     {
       "parameters": {
@@ -164,10 +251,22 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "REPLACE_SUPABASE_SERVICE_ROLE_KEY" },
-            { "name": "Authorization", "value": "Bearer REPLACE_SUPABASE_SERVICE_ROLE_KEY" },
-            { "name": "Content-Type", "value": "application/json" },
-            { "name": "Prefer", "value": "return=minimal" }
+            {
+              "name": "apikey",
+              "value": "REPLACE_SUPABASE_SERVICE_ROLE_KEY"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer REPLACE_SUPABASE_SERVICE_ROLE_KEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
           ]
         },
         "sendBody": true,
@@ -179,7 +278,10 @@
       "name": "Save Failed",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [820, 300]
+      "position": [
+        820,
+        300
+      ]
     },
     {
       "parameters": {
@@ -191,7 +293,10 @@
       "name": "Respond OK",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1040, 200]
+      "position": [
+        1040,
+        200
+      ]
     },
     {
       "parameters": {
@@ -204,30 +309,129 @@
       "name": "Reject Secret",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [0, 460]
+      "position": [
+        0,
+        460
+      ]
     }
   ],
   "connections": {
-    "Webhook": { "main": [[{ "node": "Extract Input", "type": "main", "index": 0 }]] },
-    "Extract Input": { "main": [[{ "node": "Check Secret", "type": "main", "index": 0 }]] },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Extract Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Input": {
+      "main": [
+        [
+          {
+            "node": "Check Secret",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Check Secret": {
       "main": [
-        [{ "node": "Set Generating", "type": "main", "index": 0 }],
-        [{ "node": "Reject Secret", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Set Generating",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reject Secret",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
-    "Set Generating": { "main": [[{ "node": "Anthropic", "type": "main", "index": 0 }]] },
-    "Anthropic": { "main": [[{ "node": "Parse Plan", "type": "main", "index": 0 }]] },
-    "Parse Plan": { "main": [[{ "node": "Parse OK?", "type": "main", "index": 0 }]] },
+    "Set Generating": {
+      "main": [
+        [
+          {
+            "node": "Anthropic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic": {
+      "main": [
+        [
+          {
+            "node": "Parse Plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Plan": {
+      "main": [
+        [
+          {
+            "node": "Parse OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Parse OK?": {
       "main": [
-        [{ "node": "Save Ready", "type": "main", "index": 0 }],
-        [{ "node": "Save Failed", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Save Ready",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Save Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
-    "Save Ready": { "main": [[{ "node": "Respond OK", "type": "main", "index": 0 }]] },
-    "Save Failed": { "main": [[{ "node": "Respond OK", "type": "main", "index": 0 }]] }
+    "Save Ready": {
+      "main": [
+        [
+          {
+            "node": "Respond OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Failed": {
+      "main": [
+        [
+          {
+            "node": "Respond OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   },
-  "settings": { "executionOrder": "v1" },
+  "settings": {
+    "executionOrder": "v1"
+  },
   "active": false
 }

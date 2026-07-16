@@ -9,7 +9,9 @@
       "distribution": "internal",
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://hkycmhzsubrccdhlcqsj.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhreWNtaHpzdWJyY2NkaGxjcXNqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM5MjA5ODQsImV4cCI6MjA5OTQ5Njk4NH0.xvnBM79U3J40gk4PJNQEIzjDTzh-yMTf9nmhctkJpCI"
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhreWNtaHpzdWJyY2NkaGxjcXNqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM5MjA5ODQsImV4cCI6MjA5OTQ5Njk4NH0.xvnBM79U3J40gk4PJNQEIzjDTzh-yMTf9nmhctkJpCI",
+        "EXPO_PUBLIC_N8N_DIET_WEBHOOK_URL": "https://n8n.srv898135.hstgr.cloud/webhook/diet-plan",
+        "EXPO_PUBLIC_N8N_DIET_SECRET": "4fae3c87-e76c-4721-8856-639c132e0389"
       }
     },
     "preview": {
@@ -19,14 +21,18 @@
       },
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://hkycmhzsubrccdhlcqsj.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhreWNtaHpzdWJyY2NkaGxjcXNqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM5MjA5ODQsImV4cCI6MjA5OTQ5Njk4NH0.xvnBM79U3J40gk4PJNQEIzjDTzh-yMTf9nmhctkJpCI"
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhreWNtaHpzdWJyY2NkaGxjcXNqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM5MjA5ODQsImV4cCI6MjA5OTQ5Njk4NH0.xvnBM79U3J40gk4PJNQEIzjDTzh-yMTf9nmhctkJpCI",
+        "EXPO_PUBLIC_N8N_DIET_WEBHOOK_URL": "https://n8n.srv898135.hstgr.cloud/webhook/diet-plan",
+        "EXPO_PUBLIC_N8N_DIET_SECRET": "4fae3c87-e76c-4721-8856-639c132e0389"
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://hkycmhzsubrccdhlcqsj.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhreWNtaHpzdWJyY2NkaGxjcXNqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM5MjA5ODQsImV4cCI6MjA5OTQ5Njk4NH0.xvnBM79U3J40gk4PJNQEIzjDTzh-yMTf9nmhctkJpCI"
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhreWNtaHpzdWJyY2NkaGxjcXNqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM5MjA5ODQsImV4cCI6MjA5OTQ5Njk4NH0.xvnBM79U3J40gk4PJNQEIzjDTzh-yMTf9nmhctkJpCI",
+        "EXPO_PUBLIC_N8N_DIET_WEBHOOK_URL": "https://n8n.srv898135.hstgr.cloud/webhook/diet-plan",
+        "EXPO_PUBLIC_N8N_DIET_SECRET": "4fae3c87-e76c-4721-8856-639c132e0389"
       }
     }
   },

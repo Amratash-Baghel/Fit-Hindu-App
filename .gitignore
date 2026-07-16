@@ -19,3 +19,5 @@ expo-env.d.ts
 # misc
 npm-debug.log*
 .DS_Store
+n8n/*.local*
+.local-secret
