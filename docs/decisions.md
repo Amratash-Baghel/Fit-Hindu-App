@@ -2,6 +2,19 @@
 
 One dated line per decision, with the why. Newest on top.
 
+- **2026-07-16** — Video playback: **MP4 fallback on web, HLS + explicit
+  Referer on native**, all URL knowledge centralised in `src/lib/media.ts`.
+  Why: Chrome can't play HLS natively, and the Bunny Stream zone 403s
+  referer-less requests (native players send none by default) — diagnosed
+  with curl, not guessed. Poster images derived from the video
+  (`…/thumbnail.jpg`) get the same Referer via `imageHeaders()`.
+- **2026-07-16** — Exercise screen: video hero pinned behind a **content
+  sheet that scrolls over it**; play/pause is a **floating control** (like
+  the back button), not a tap on the video. Why: RN-web cannot reliably pass
+  a tap through the scroll layer to a view pinned behind it (verified with
+  elementsFromPoint — the scroll content container swallows the hit), and a
+  visible control is more discoverable anyway.
+
 - **2026-07-16** — Onboarding gets a **name field**, the one exception to the
   spec's "no free-text inputs" rule (owner direction). Why: it buys the single
   highest-value personalisation in the app ("राम राम, अमरतेश" on Home) for one

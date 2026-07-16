@@ -10,12 +10,14 @@ import {
   B,
   T,
   AvatarTile,
+  VideoDemo,
   DiyaIcon,
   color,
   space,
 } from "../../src/ui";
 import { useI18n } from "../../src/lib/i18n";
 import { loadSession, type SessionSource, type TemplateItem } from "../../src/lib/content";
+import { videoSource, posterUrl } from "../../src/lib/media";
 import { logActivity } from "../../src/lib/activity";
 
 /**
@@ -99,6 +101,7 @@ export default function WorkoutSession() {
 
   const item = source?.items[target.itemIdx];
   const eff = item ? effective(item) : null;
+  const sessionVideo = item ? videoSource(item.exercise.video?.playback_url) : null;
 
   const complete = useCallback(() => {
     if (completed.current || !source) return;
@@ -291,7 +294,17 @@ export default function WorkoutSession() {
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={{ paddingTop: space.sm, gap: space.md, flex: 1 }}>
-        <AvatarTile height={200} image={item.exercise.thumb?.playback_url} playSize={52} silhouetteSize={92} />
+        {sessionVideo ? (
+          // key: a new exercise must get a fresh player, not a stale one
+          <VideoDemo key={sessionVideo.uri} source={sessionVideo} height={200} playSize={52} />
+        ) : (
+          <AvatarTile
+            height={200}
+            image={posterUrl(item.exercise.thumb?.playback_url, item.exercise.video?.playback_url)}
+            playSize={52}
+            silhouetteSize={92}
+          />
+        )}
 
         <View>
           <View style={{ flexDirection: "row", alignItems: "baseline", justifyContent: "space-between" }}>

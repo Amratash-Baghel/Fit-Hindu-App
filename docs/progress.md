@@ -3,6 +3,22 @@
 Running build log — one entry per shipped item, newest on top. This is the
 standup doc for the owner and the resume-from-home lifeline.
 
+- **2026-07-16** — Exercise videos PLAY. Root cause of "uploaded but not
+  showing": the app never read exercise media (fixed earlier today for
+  thumbnails), and the Bunny Stream zone 403s referer-less requests — the
+  app now sends a Referer (web browsers already did, which is why curl
+  failed while the browser worked). expo-video installed;
+  `src/lib/media.ts` centralises URL logic (MP4 fallback on web where
+  Chrome lacks HLS, HLS on native, derived `thumbnail.jpg` posters with the
+  same Referer + on-error fallback to the avatar tile). Exercise screen
+  rebuilt per owner direction: full-bleed autoplay-muted looping video hero
+  pinned behind a rounded content sheet that scrolls up OVER it, floating
+  back + play/pause controls (tap-through to a pinned video is unreliable
+  on RN-web — verified, not assumed). Session player shows the moving demo
+  (fresh player per exercise via key). Verified on web preview incl. sheet
+  overlay geometry and play/pause; owner confirmed video plays. ⚠️ First
+  thing to test on the APK: HLS playback on a real phone (web used the MP4
+  path).
 - **2026-07-16** — Jap + Sleep + name/greeting shipped; app made demo-ready.
   **Jap** (new spec docs/specs/jap.md): deity chips (default = deity of the
   day) → mantra + transliteration + meaning → big gold tap button with a

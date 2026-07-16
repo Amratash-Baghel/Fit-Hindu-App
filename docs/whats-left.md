@@ -46,21 +46,16 @@ You also need more content overall: more mantras, more exercises (4 deities
 and ~7 exercises today — enough to demo, not enough to keep someone for a
 month).
 
-### Video playback
-This is why "the video isn't updating" — the app was never wired to *play*
-exercise videos, only recently to show their thumbnails. Playing them needs
-two things:
-1. A native video library (`expo-video`) added and the app rebuilt — it isn't
-   installed today.
-2. The Bunny **Stream** videos currently reject direct requests (they return
-   a "403 forbidden"). That usually means the Stream library has token
-   security or an allowed-domains list turned on. Either that has to be
-   relaxed for the app, or the app has to request **signed URLs** (a small
-   backend piece). Your uploaded *image* thumbnails don't have this problem —
-   they're on a normal pull zone and load fine.
+### Video playback — DONE 2026-07-16 ✓ (verify on phone)
+Exercise videos now play: the exercise screen has a full-screen video that
+autoplays silently on a loop, with the details panel sliding up over it, and
+the session player shows the moving demo too. The "403" mystery turned out to
+be simple: Bunny only refuses requests that don't say what page they came
+from, so the app now identifies itself and Bunny serves the video.
 
-Until both are done, the play button is a visual affordance, not a working
-player. This should be an early item when engineering resumes.
+One honest caveat: this is verified in the browser. **The first thing to test
+on the APK is that videos play on a real phone** — the phone uses a different
+video path (HLS) than the browser (MP4).
 
 ### Privacy policy
 Legally required for the Play Store, and required by India's DPDP law before

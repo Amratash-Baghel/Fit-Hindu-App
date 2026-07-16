@@ -13,13 +13,14 @@
  * docs/whats-left.md — needs a native video library + resolving Bunny Stream
  * auth). The thumbnail is how uploaded content becomes visible today.
  */
-import React from "react";
+import React, { useState } from "react";
 import { Image, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { color, goldGradient } from "./tokens";
 import { T } from "./Text";
 import { AvatarSilhouette, PlayIcon } from "./icons";
 import { useI18n } from "../lib/i18n";
+import { imageHeaders } from "../lib/media";
 
 interface Props {
   height?: number;
@@ -30,6 +31,8 @@ interface Props {
   playSize?: number;
   silhouetteSize?: number;
   showBadge?: boolean;
+  /** full-bleed: no rounded corners / border (hero usage) */
+  bare?: boolean;
 }
 
 export function AvatarTile({
@@ -39,22 +42,32 @@ export function AvatarTile({
   playSize = 48,
   silhouetteSize = 96,
   showBadge = true,
+  bare = false,
 }: Props) {
   const { t } = useI18n();
-  const hasImage = !!image;
+  // A failed load (offline, revoked media) degrades to the placeholder
+  // rather than an empty dark tile.
+  const [imageFailed, setImageFailed] = useState(false);
+  const hasImage = !!image && !imageFailed;
   return (
     <View
       style={{
         height,
         aspectRatio,
-        borderRadius: 16,
+        borderRadius: bare ? 0 : 16,
         overflow: "hidden",
-        borderWidth: 1,
+        borderWidth: bare ? 0 : 1,
         borderColor: "#4a3416",
+        flex: height || aspectRatio ? undefined : 1,
       }}
     >
       {hasImage ? (
-        <Image source={{ uri: image! }} resizeMode="cover" style={{ width: "100%", height: "100%" }} />
+        <Image
+          source={{ uri: image!, headers: imageHeaders(image) }}
+          resizeMode="cover"
+          style={{ width: "100%", height: "100%" }}
+          onError={() => setImageFailed(true)}
+        />
       ) : (
         <LinearGradient
           colors={["#2E1A08", "#160E06"]}
