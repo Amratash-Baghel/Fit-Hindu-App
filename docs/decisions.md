@@ -2,6 +2,33 @@
 
 One dated line per decision, with the why. Newest on top.
 
+- **2026-07-16** — Onboarding gets a **name field**, the one exception to the
+  spec's "no free-text inputs" rule (owner direction). Why: it buys the single
+  highest-value personalisation in the app ("राम राम, अमरतेश" on Home) for one
+  skippable field. The rule stands for everything else — nothing free-text may
+  ever feed a plan. Spec amended, not ignored.
+- **2026-07-16** — Home greeting is **DB content, not a hardcoded list**:
+  `devotional_items.kind='greeting'`, deity-tagged, matched to the deity of
+  the day and otherwise rotated by IST day. Why: the standing rule is that
+  devotional content is authored in admin, never hardcoded; the greeting is
+  the most-seen devotional string in the app, so the content team must own it.
+  Falls back to the i18n string when no rows exist.
+- **2026-07-16** — Greeting copy uses **"Jai Siya Ram", not "Jai Shree Ram"**.
+  Why: the CLAUDE.md fence-line keeps in-app copy devotional/cultural and
+  never politically partisan; the latter now reads as a political slogan in
+  India and is a store/ad-law risk. Siya Ram is the traditional form.
+- **2026-07-16** — Jap mala count is held in a **ref, not state**. Why: React
+  batches, and any two taps coalesced into one render both read the same stale
+  count and only decrement once — verified losing 2 of 3 rapid taps before the
+  fix. A devotee chanting 108 fast is the normal case, not an edge case.
+- **2026-07-16** — First-run gate lives in `app/(tabs)/_layout.tsx`. Why:
+  onboarding was unreachable (nothing routed to it, so the app booted straight
+  to Home and no one ever saw the language question). Gating at the tabs layout
+  puts every tab behind it and redirects at render, so no frame of Home leaks.
+- **2026-07-16** — Language choice is **persisted and hydrated before first
+  paint** (provider renders null until AsyncStorage resolves). Why: the mode
+  lived in `useState` only, so a Hindi user got English again on every launch.
+
 - **2026-07-12** — Scope pivot: from "Bajrangvati companion app for product
   buyers" to **"Fit Hindu"** (working name), a standalone devotional-fitness
   app for Hindu India — workouts + diet + meditation (timer/sounds) + per-deity

@@ -8,8 +8,9 @@
  * string lives here as a {hi, en} pair; components render via <B> (bilingual
  * text) or t(), which respect the active mode.
  */
-import React, { createContext, useContext, useMemo, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import type { LanguageMode } from "../types/db";
+import { loadProfile, saveLanguage } from "./profile";
 
 export interface Str {
   hi: string;
@@ -79,6 +80,10 @@ export const strings = {
   lang_hindi: { hi: "हिंदी", en: "Hindi" },
   lang_english: { hi: "English", en: "English" },
   lang_mixed: { hi: "मिक्स (हिंदी + English)", en: "Mixed (Hindi + English)" },
+  q_name: { hi: "आपका नाम क्या है?", en: "What is your name?" },
+  q_name_hint: { hi: "ताकि हम आपका नाम लेकर स्वागत कर सकें", en: "So we can greet you by name" },
+  name_placeholder: { hi: "आपका नाम", en: "Your name" },
+  skip_word_q: { hi: "अभी नहीं", en: "Skip" },
 
   error_generic: { hi: "कुछ गड़बड़ हुई — दोबारा कोशिश करें", en: "Something went wrong — try again" },
 
@@ -142,6 +147,27 @@ export const strings = {
   well_done: { hi: "बहुत सुंदर। कल फिर मिलते हैं।", en: "Beautifully done. See you again tomorrow." },
   done: { hi: "ठीक है", en: "Done" },
 
+  // jap (docs/specs/jap.md)
+  jap_title: { hi: "मंत्र जप", en: "Mantra Jap" },
+  jap_tagline: { hi: "एक माला — १०८ बार", en: "One mala — 108 repetitions" },
+  jap_tap_hint: { hi: "जप के लिए दबाएँ", en: "Tap to count" },
+  jap_remaining: { hi: "शेष", en: "left" },
+  jap_complete: { hi: "माला पूर्ण हुई 🙏", en: "Mala complete 🙏" },
+  jap_start_again: { hi: "फिर से शुरू करें", en: "Start again" },
+  jap_meaning: { hi: "अर्थ", en: "Meaning" },
+  jap_empty: { hi: "अभी कोई मंत्र उपलब्ध नहीं", en: "No mantras available yet" },
+  jap_error: { hi: "मंत्र लोड नहीं हो सके", en: "Couldn't load mantras" },
+
+  // sleep (docs/specs/sleep.md)
+  sleep_title: { hi: "नींद की ध्वनि", en: "Sleep Sounds" },
+  sleep_tagline: { hi: "धीमी ध्वनि — शांत नींद के लिए", en: "Soft sounds to fall asleep to" },
+  sleep_timer: { hi: "टाइमर", en: "Auto-stop" },
+  timer_off: { hi: "बंद नहीं", en: "Off" },
+  sleep_playing: { hi: "बज रही है", en: "Playing" },
+  sleep_stop: { hi: "रोकें", en: "Stop" },
+  sleep_empty: { hi: "अभी कोई ध्वनि उपलब्ध नहीं", en: "No sounds available yet" },
+  sleep_error: { hi: "ध्वनि लोड नहीं हो सकी", en: "Couldn't load sounds" },
+
   // disclaimers (compliance — docs/research/compliance.md)
   wellness_disclaimer: {
     hi: "यह ऐप केवल सामान्य स्वास्थ्य जानकारी देता है — यह चिकित्सा सलाह नहीं है। कोई भी नया व्यायाम या आहार शुरू करने से पहले चिकित्सक से परामर्श करें।",
@@ -169,12 +195,33 @@ const Ctx = createContext<I18nCtx | null>(null);
 export function I18nProvider({ children }: { children: React.ReactNode }) {
   // Default 'english' until onboarding stores the user's choice
   // (profiles.language_mode) — owner decision 2026-07-13.
-  const [mode, setMode] = useState<LanguageMode>("english");
+  const [mode, setModeState] = useState<LanguageMode>("english");
+  // Hydrate the saved choice BEFORE first paint: rendering children while the
+  // mode is still the default would flash English at a Hindi user on every
+  // launch. AsyncStorage is a few ms and the splash covers it.
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    loadProfile()
+      .then((p) => {
+        if (!alive) return;
+        if (p.languageMode) setModeState(p.languageMode);
+        setHydrated(true);
+      })
+      .catch(() => alive && setHydrated(true));
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const value = useMemo<I18nCtx>(
     () => ({
       mode,
-      setMode,
+      setMode: (m) => {
+        setModeState(m);
+        void saveLanguage(m); // fire-and-forget; a lost write costs one relaunch
+      },
       t: (k) => (mode === "english" ? strings[k].en : strings[k].hi),
       tSub: (k) => (mode === "mixed" ? strings[k].en : null),
       loc: (hi, en) => (mode === "english" ? en : hi),
@@ -183,6 +230,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     [mode],
   );
 
+  if (!hydrated) return null;
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 

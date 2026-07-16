@@ -90,6 +90,32 @@ export async function getSound(id: string): Promise<SoundWithMedia | null> {
   return (data as unknown as SoundWithMedia) ?? null;
 }
 
+/** A sleep sound + its deity label. `audio` null = placeholder awaiting upload. */
+export type SleepSound = SoundWithMedia & {
+  deity: { name_hi: string; name_en: string } | null;
+};
+
+/**
+ * Published sleep sounds (docs/specs/sleep.md). Rows with no audio_media_id
+ * are placeholders (migration 0008) and are returned as-is — the screen shows
+ * them greyed rather than hiding them, so the content team can see what they
+ * still owe an upload.
+ */
+export async function listSleepSounds(): Promise<SleepSound[]> {
+  const { data, error } = await supabase
+    .from("sounds")
+    .select(
+      `id, name_hi, name_en, kind, deity_id, audio_media_id, duration_seconds, status, created_at,
+       audio:media!sounds_audio_media_id_fkey ( playback_url, download_url ),
+       deity:deities!sounds_deity_id_fkey ( name_hi, name_en )`,
+    )
+    .eq("status", "published")
+    .eq("kind", "sleep")
+    .order("name_en");
+  if (error) throw error;
+  return (data ?? []) as unknown as SleepSound[];
+}
+
 // ---------- workout templates (composed in the admin panel) ----------
 
 export interface WorkoutTemplateSummary {
@@ -381,4 +407,68 @@ export async function getTodayDevotional(): Promise<DevotionalToday> {
   }
 
   return { deity, shloka };
+}
+
+// ---------- greetings (home) ----------
+
+export interface Greeting {
+  text_hi: string;
+  text_en: string | null;
+  deity_id: string | null;
+}
+
+/**
+ * Published greetings, deity-tagged where they belong to one.
+ * Empty list is a normal state — the caller falls back to the i18n string.
+ */
+export async function listGreetings(): Promise<Greeting[]> {
+  const { data, error } = await supabase
+    .from("devotional_items")
+    .select("text_hi, text_en, deity_id, id")
+    .eq("status", "published")
+    .eq("kind", "greeting")
+    .order("id");
+  if (error) throw error;
+  return (data ?? []) as unknown as Greeting[];
+}
+
+/**
+ * Today's greeting: prefer one tagged to today's deity (Har Har Mahadev on
+ * Shiv's day), else rotate the whole list by IST day so it still varies.
+ * Returns null when the content team hasn't authored any greeting yet.
+ */
+export function pickGreeting(all: Greeting[], deityId: string | null): Greeting | null {
+  if (all.length === 0) return null;
+  // Day-of-epoch (IST) drives both branches, so the choice is stable all day
+  // and rotates tomorrow — no randomness, no per-render churn.
+  const dayIndex = Math.floor(new Date(istDateString()).getTime() / 86_400_000);
+  const forDeity = deityId ? all.filter((g) => g.deity_id === deityId) : [];
+  const pool = forDeity.length > 0 ? forDeity : all;
+  return pool[dayIndex % pool.length];
+}
+
+// ---------- mantras (jap) ----------
+
+export interface MantraWithDeity {
+  id: string;
+  deity_id: string;
+  text_devanagari: string;
+  transliteration: string | null;
+  meaning_hi: string | null;
+  meaning_en: string | null;
+  deity: { id: string; name_hi: string; name_en: string; sort: number } | null;
+}
+
+/** Published mantras with their deity, ordered by the deity's sort. */
+export async function listMantras(): Promise<MantraWithDeity[]> {
+  const { data, error } = await supabase
+    .from("mantras")
+    .select(
+      `id, deity_id, text_devanagari, transliteration, meaning_hi, meaning_en,
+       deity:deities!mantras_deity_id_fkey ( id, name_hi, name_en, sort )`,
+    )
+    .eq("status", "published");
+  if (error) throw error;
+  const rows = (data ?? []) as unknown as MantraWithDeity[];
+  return rows.sort((a, b) => (a.deity?.sort ?? 99) - (b.deity?.sort ?? 99));
 }

@@ -21,21 +21,29 @@ optional, DPDP consent is explicit.
    - **English** — English-only UI
    - **Mixed / मिक्स** — Hindi lead + small English caption
    Applies instantly; changeable later in Profile. (Built ✓)
-2. **Goal** — weight gain / build strength / weight loss / healthy routine.
-3. **Body focus (multi-select, skippable)** — full body / chest / back /
+2. **Name (free text, skippable)** — first name only, used to personalise the
+   Home greeting ("राम राम, अमरतेश"). Amendment 2026-07-16 (owner): this is
+   the ONE exception to the no-free-text rule below — it buys the single
+   highest-value personalisation in the app for one field, and it is
+   skippable, so a user who won't type still reaches Home. Stored locally
+   (AsyncStorage) pre-auth and mirrored to `profiles.display_name` when auth
+   ships. No validation beyond trim + length cap; never used for identity.
+   (Built ✓)
+3. **Goal** — weight gain / build strength / weight loss / healthy routine.
+4. **Body focus (multi-select, skippable)** — full body / chest / back /
    shoulders / arms / core / legs. Feeds plan choice + custom-mode default.
-4. **Level** — beginner / intermediate / advanced.
-5. **Days per week** — 3 / 5 / 7 (drives program_days density; Leap 7×4
+5. **Level** — beginner / intermediate / advanced.
+6. **Days per week** — 3 / 5 / 7 (drives program_days density; Leap 7×4
    pattern maps to 7).
-6. **Age band** — 18–25 / 26–35 / 36–50 / 50+ (18+ gate; under-18 blocked).
-7. **Diet type** — veg / sattvic / eggs ok / non-veg.
-8. **Workout mode preference** — home (no equipment) / gym / decide later.
-9. **Chosen deity (optional, skippable)** — from the deities table; frames
-   the devotional layer; never required.
-10. **Consent screen (DPDP)** — itemised plain-language notice (in chosen
+7. **Age band** — 18–25 / 26–35 / 36–50 / 50+ (18+ gate; under-18 blocked).
+8. **Diet type** — veg / sattvic / eggs ok / non-veg.
+9. **Workout mode preference** — home (no equipment) / gym / decide later.
+10. **Chosen deity (optional, skippable)** — from the deities table; frames
+    the devotional layer; never required.
+11. **Consent screen (DPDP)** — itemised plain-language notice (in chosen
     language), checkbox **unticked by default**, link to privacy policy.
     Health-related questions are optional and skippable by design.
-11. **Plan-ready celebration** — brief animated moment ("आपका plan तैयार
+12. **Plan-ready celebration** — brief animated moment ("आपका plan तैयार
     है"), then land on Daily Home.
 
 Schema note: answers still land in `questionnaire_responses.answers` jsonb +
@@ -61,7 +69,10 @@ zero schema change.
 
 - No account requirement before questionnaire (auth can come after the
   celebration; decide during build).
-- No free-text inputs. No health-condition diagnosis questions.
+- No free-text inputs **except the name field (Q2)** — amended 2026-07-16 by
+  owner direction. The rule stands for everything else: no free-text goals,
+  no free-text health notes, no free-text anything that would land in a plan.
+- No health-condition diagnosis questions.
 - No AI-generated plans.
 
 ## Data

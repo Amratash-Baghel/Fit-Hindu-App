@@ -12,7 +12,7 @@ type Variant = keyof typeof type;
 
 interface TProps {
   variant?: Variant;
-  tone?: "cream" | "muted" | "soft" | "saffron" | "gold" | "ok" | "danger";
+  tone?: "cream" | "muted" | "soft" | "saffron" | "gold" | "ok" | "danger" | "nightMuted";
   style?: StyleProp<TextStyle>;
   children: React.ReactNode;
   numberOfLines?: number;
@@ -26,6 +26,8 @@ const tones = {
   gold: color.gold,
   ok: color.ok,
   danger: color.danger,
+  /** secondary text on the night ground (sleep surfaces only) */
+  nightMuted: color.nightMuted,
 } as const;
 
 /** Raw styled text — use ONLY for already-localised values (numbers, names). */

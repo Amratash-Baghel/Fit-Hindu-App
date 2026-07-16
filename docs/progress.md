@@ -3,6 +3,34 @@
 Running build log — one entry per shipped item, newest on top. This is the
 standup doc for the owner and the resume-from-home lifeline.
 
+- **2026-07-16** — Jap + Sleep + name/greeting shipped; app made demo-ready.
+  **Jap** (new spec docs/specs/jap.md): deity chips (default = deity of the
+  day) → mantra + transliteration + meaning → big gold tap button with a
+  pulsing saffron halo, 108 counting down, "Start again" on completion, one
+  `jap` activity row per completed mala. **Sleep** (new spec docs/specs/
+  sleep.md): reads live `sounds` rows (kind='sleep'), night-indigo mood,
+  15/30/60/off auto-stop, placeholder rows greyed with a Soon badge, plays via
+  the shared audio singleton. **Onboarding**: name question added as Q2 (spec
+  amended — it was the one "no free-text" exception, owner-approved) and the
+  greeting is now DB content matched to the deity of the day, so Home reads
+  "राम राम, अमरतेश". **Two latent blockers found and fixed while building:**
+  (1) nothing routed to onboarding — the app booted straight to Home, so a new
+  user never saw the language question; there's now a gate on the tabs layout.
+  (2) language was never persisted, so Hindi users got English on every
+  relaunch. **Three real bugs caught by verification/review:** the mala counter
+  lost taps to React batching (proved: 3 rapid taps registered 1 — now
+  ref-backed, 105 taps → exactly 0); a failed storage write trapped users in an
+  infinite onboarding↔tabs loop (proved by making writes throw — now survives
+  via session memory); and the sleep auto-stop tick could clobber a timer
+  change (same class as the workout +20s bug). Verified in the web preview:
+  full onboarding in Hindi, name normalisation, persistence across reload, jap
+  108→0 + deity switch reset, sleep play/timer-change/auto-stop-at-zero
+  (observed end-to-end with a temporarily shortened timer)/stop, all 5 tabs,
+  and the workout player for regressions. Typecheck + lint green, zero console
+  errors. Also: docs/whats-left.md — a plain-language gap list + APK runbook
+  for the owner. ⚠️ **USER MUST RUN `supabase/seed_add_greetings_mantras.sql`**
+  in Supabase (idempotent): greetings had ZERO rows and only 2 of 4 deities had
+  a mantra. Until then the greeting won't rotate and Jap shows 2 chips.
 - **2026-07-16** — Lint clean: fixed all 11 react-hooks errors + 6 unused-var
   warnings surfaced by the first `npm run lint` run (all pre-existing). The
   real work was the session player (app/workout/session.tsx): completion

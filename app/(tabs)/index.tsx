@@ -13,7 +13,14 @@ import {
   DiyaIcon,
 } from "../../src/ui/icons";
 import { useI18n } from "../../src/lib/i18n";
-import { getTodayDevotional, type DevotionalToday } from "../../src/lib/content";
+import {
+  getTodayDevotional,
+  listGreetings,
+  pickGreeting,
+  type DevotionalToday,
+  type Greeting,
+} from "../../src/lib/content";
+import { loadProfile } from "../../src/lib/profile";
 
 /**
  * Daily Home — the habit surface (most polished screen in the app).
@@ -25,16 +32,32 @@ export default function Home() {
   const router = useRouter();
   const { t, loc, mode } = useI18n();
   const [dev, setDev] = useState<DevotionalToday | null>(null);
+  const [greetings, setGreetings] = useState<Greeting[]>([]);
+  const [name, setName] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
     getTodayDevotional()
       .then((d) => alive && setDev(d))
       .catch(() => alive && setDev({ deity: null, shloka: null }));
+    // Greeting + name are chrome: either failing must leave Home usable, so
+    // each falls back on its own rather than through a shared error state.
+    listGreetings()
+      .then((g) => alive && setGreetings(g))
+      .catch(() => alive && setGreetings([]));
+    loadProfile()
+      .then((p) => alive && setName(p.displayName))
+      .catch(() => alive && setName(null));
     return () => {
       alive = false;
     };
   }, []);
+
+  // Deity-matched greeting → rotate the list → the i18n string if the content
+  // team hasn't authored any greeting yet.
+  const greeting = pickGreeting(greetings, dev?.deity?.id ?? null);
+  const greetText = greeting ? loc(greeting.text_hi, greeting.text_en ?? greeting.text_hi) : t("greeting");
+  const greetLine = name ? `${greetText}, ${name}` : greetText;
 
   const dateLine = new Intl.DateTimeFormat(mode === "english" ? "en-IN" : "hi-IN", {
     weekday: "long",
@@ -48,7 +71,9 @@ export default function Home() {
       {/* greeting + deity of the day */}
       <View style={{ flexDirection: "row", alignItems: "center", paddingTop: space.sm }}>
         <View style={{ flex: 1 }}>
-          <B k="greeting" variant="h1" noSub />
+          <T variant="h1" numberOfLines={1}>
+            {greetLine}
+          </T>
           <T variant="caption" tone="muted">
             {dateLine}
           </T>
