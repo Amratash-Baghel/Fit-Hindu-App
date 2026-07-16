@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Redirect, Tabs } from "expo-router";
 import { color } from "../../src/ui";
-import { HomeIcon, DumbbellIcon, LotusIcon, OmGlyph, MoonIcon } from "../../src/ui/icons";
+import { HomeIcon, DumbbellIcon, LotusIcon, OmGlyph, MoonIcon, BowlIcon } from "../../src/ui/icons";
 import { useI18n } from "../../src/lib/i18n";
 import { loadProfile } from "../../src/lib/profile";
 
@@ -56,6 +56,13 @@ export default function TabsLayout() {
         options={{
           title: t("tab_workout"),
           tabBarIcon: ({ color: c }) => <DumbbellIcon color={c} />,
+        }}
+      />
+      <Tabs.Screen
+        name="diet"
+        options={{
+          title: t("tab_diet"),
+          tabBarIcon: ({ color: c }) => <BowlIcon color={c} />,
         }}
       />
       <Tabs.Screen

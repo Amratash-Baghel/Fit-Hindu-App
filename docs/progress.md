@@ -69,6 +69,26 @@ standup doc for the owner and the resume-from-home lifeline.
   timed path auto-advancing work→rest→work on a template session, and
   Home/Gym/Custom tab + body-area switching. Typecheck + lint green, zero
   console errors.
+- **2026-07-16** — Diet section + AI custom plan + admin unlock +
+  onboarding questionnaire (5 features, owner-directed). **Admin:** Meals and
+  Mantras CRUD unlocked (list/detail/form matching the exercises/sounds
+  pattern; Meals gets a jsonb items sub-editor; Mantras handles the NOT NULL
+  deity FK). **App:** full 10-step onboarding questionnaire built (was
+  language-only) — goal→body-focus→level→days→age(18+)→diet→mode→deity→DPDP
+  consent→plan-ready, back-nav + progress dots, auth-guarded save; new Diet
+  tab with a "Generate your custom diet plan" hero, its own ht/wt/region
+  questionnaire, and a polling plan viewer. **UI:** added TextField/
+  NumberField/SelectCard/Checkbox/ProgressDots primitives to src/ui.
+  **Backend (owner override of the no-AI rule, diet only):** migration 0010
+  (`diet_plan_requests` own-row table + `diet_request_status` enum + profile
+  fields), importable `n8n/diet-plan-workflow.json` (Anthropic Claude) +
+  `docs/n8n-diet-setup.md` (paste 4 keys, copy 1 URL), `docs/specs/diet-custom-plan.md`.
+  Docs reconciled (CLAUDE.md, decisions.md, onboarding spec). Both apps
+  typecheck clean; admin `npm run build` green.
+  ⚠️ USER MUST RUN migration 0010 in Supabase (0008 + 0009 also still pending).
+  ⚠️ Compliance follow-up before launch: disclose Anthropic processor +
+  ht/wt/region health data in legal/ + Play Data Safety.
+
 - **2026-07-15** — Play Store setup delegated: wrote docs/play-store-setup.md
   — a non-technical, step-by-step runbook (documents to collect, D-U-N-S
   lookup → application, company Google account, Organization registration +

@@ -24,8 +24,13 @@ See docs/idea.md (v1, 2026-07-12 pivot) for the full vision.
   "program" = questionnaire mapping + plan templates + content library.
   Fitness programs, per-deity mantra sets, and devotional series are all
   content, authored in the admin panel — never hardcoded.
-- **Plans are rule-based in v1.** Questionnaire answers map to team-authored
-  plan templates. No AI generation of health advice.
+- **Plans are rule-based in v1** — with ONE owner-approved exception. The
+  onboarding plan engine and workout/diet templates stay rule-based
+  (questionnaire answers → team-authored templates). **Exception (owner
+  override 2026-07-16):** the **diet custom-plan** feature generates a plan via
+  AI (n8n → Anthropic) — see docs/specs/diet-custom-plan.md. The AI output is
+  general wellness only (never medical advice/cure claims), and this override
+  does NOT extend to any other plan surface.
 - **Health claims:** the app gives general wellness guidance, never medical
   advice or disease-cure claims. Diet/workout screens carry disclaimers.
   When writing user-facing copy about the product, stay descriptive
@@ -49,8 +54,10 @@ See docs/idea.md (v1, 2026-07-12 pivot) for the full vision.
   directly — object storage / CDN behind a swappable layer (see
   docs/decisions.md once hosting is chosen).
 - **Time:** day boundaries and streaks use Asia/Kolkata (IST).
-- **Not in v1** (do not build even if it seems easy): payments, AI plan
-  generation, chat/community, consultations, referrals, third-party ads.
+- **Not in v1** (do not build even if it seems easy): payments,
+  chat/community, consultations, referrals, third-party ads. (AI plan
+  generation was here too; as of 2026-07-16 the owner approved it for the
+  **diet custom-plan feature only** — see the rule-based-plans note above.)
 
 ## Workflow
 

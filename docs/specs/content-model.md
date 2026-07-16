@@ -51,11 +51,18 @@ migration when built). Never copies — compositions reference library rows.
 1. Admin navigates to the exact slot: Library → Exercises → Chest →
    "Incline Pushup" (or creates the exercise right there).
 2. The form has an upload field — drag the avatar demo video in.
-3. The panel uploads to **Bunny via its API using a server-side key that
-   never touches the browser** (Next.js route handler / server action).
-4. Bunny returns the video URL/ID → the panel writes a `media` row and sets
-   the exercise's `video_media_id` — one action, no separate "media manager"
-   step required.
+3. **Video**: the browser uploads the file **directly to Bunny Stream**
+   over TUS, using a short-lived, single-video signature the panel server
+   mints on request (Vercel's serverless functions cap request bodies at
+   4.5MB — proxying a real video through them fails, so the binary bypasses
+   our server entirely). The raw Bunny API key never leaves the server;
+   only the derived, expiring signature reaches the browser. Once the
+   upload finishes, the browser tells the panel server to write the `media`
+   row and set the exercise's `video_media_id`.
+   **Audio/image**: small enough to keep proxying through the panel server
+   with a server-side key that never touches the browser, same as before.
+4. Either way, the panel writes a `media` row and sets the target FK —
+   one action, no separate "media manager" step required.
 5. **Inline preview player renders immediately after upload** so the team
    verifies the right file landed in the right slot (this one detail
    prevents most content mistakes).
@@ -63,7 +70,9 @@ migration when built). Never copies — compositions reference library rows.
 Same flow for audio: Library → Sounds → Sleep → "Rain" → upload MP3 → saved
 → preview plays. Until an upload happens, the slot shows the placeholder
 state — the app renders a placeholder tile for content whose media is
-missing, so content can be authored before videos are shot.
+missing, so content can be authored before videos are shot. Note: long
+audio (e.g. a 60-min sleep track) has the same latent Vercel body-size risk
+as video did — not yet hit, not yet fixed; see docs/decisions.md.
 
 Also in the panel: questionnaire-mapping editor (answers → program),
 devotional calendar (deity days, festivals, daily shloka), draft → published

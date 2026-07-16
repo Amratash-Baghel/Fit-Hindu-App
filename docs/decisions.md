@@ -41,6 +41,52 @@ One dated line per decision, with the why. Newest on top.
 - **2026-07-16** — Language choice is **persisted and hydrated before first
   paint** (provider renders null until AsyncStorage resolves). Why: the mode
   lived in `useState` only, so a Hindi user got English again on every launch.
+- **2026-07-16 (AI custom diet plan — owner override + admin unlock)** — Owner
+  explicitly lifted the "no AI plan generation" v1 rule for the **diet
+  custom-plan feature only**. New Diet tab: a short questionnaire
+  (height/weight/region/goal/diet/activity) inserts a `diet_plan_requests`
+  row and calls an external **n8n** workflow, which asks **Anthropic Claude**
+  for a structured plan and writes it back to the row via the Supabase
+  service-role key; the app polls the row and renders the plan. Why (owner):
+  a personalised plan is a stronger habit hook than templates alone, and n8n
+  keeps the AI/keys off both the app and our servers. Security: app holds only
+  the webhook URL + a shared secret; the service-role and Anthropic keys live
+  only in n8n; `diet_plan_requests` RLS is read+insert-own (no client update),
+  so a user can't forge their plan. Scope guard: override does NOT extend to
+  onboarding or any other plan surface — those stay rule-based. Delivered:
+  migration 0010 (`diet_plan_requests` + profile fields
+  height_cm/weight_kg/region/body_focus/days_per_week), `n8n/diet-plan-workflow.json`
+  + `docs/n8n-diet-setup.md`, `docs/specs/diet-custom-plan.md`. Also this
+  session: **admin Meals + Mantras** unlocked (CRUD over existing tables), and
+  the **full onboarding questionnaire** built (was language-only).
+  **REQUIRED follow-up before launch:** new AI processor (Anthropic) + new
+  health data (ht/wt/region) must be added to legal/THIRD_PARTY_PROCESSORS.md,
+  legal/DATA_INVENTORY.md, the privacy policy, and Play Data Safety. Also:
+  user-owned diet requests need app auth to function (staged, like the rest of
+  the app).
+
+- **2026-07-16 (video uploads: direct-to-Bunny via TUS)** — Video uploads in
+  the admin panel now go **browser → Bunny Stream directly** over TUS
+  (resumable upload), instead of proxying the binary through our Next.js
+  route handler. Why: Vercel serverless functions cap request bodies at
+  **4.5MB**; the old flow (`/api/upload` PUTting the whole file to Bunny
+  from inside the function) worked locally but silently failed on the
+  deployed admin panel for any real demo video, while small photos passed
+  through fine — that's how the bug was first noticed. The panel server
+  still creates the Bunny video object and mints a short-lived,
+  single-video signature (`/api/upload/video-auth`); the browser uses that
+  signature to upload directly, then calls `/api/upload/finalize` to write
+  the `media` row. The raw `BUNNY_STREAM_API_KEY` never reaches the
+  browser — only the derived, time-limited signature does — so this
+  preserves the 2026-07-13 "server-side key never touches the browser"
+  rule. Audio/image uploads are unchanged (still proxied through the
+  server) since they're small enough today.
+  **Known follow-up, deliberately not fixed here**: audio has the same
+  latent 4.5MB ceiling — `docs/research/media-hosting.md` estimates ~28MB
+  for a 60-min ambient/sleep track, which will fail the same way once a
+  real long-form track is uploaded. Bunny Storage has no TUS/scoped-token
+  equivalent to Stream, so that fix needs a different mechanism and its
+  own scoped change — revisit before uploading long sleep/meditation audio.
 
 - **2026-07-12** — Scope pivot: from "Bajrangvati companion app for product
   buyers" to **"Fit Hindu"** (working name), a standalone devotional-fitness
