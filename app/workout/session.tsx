@@ -291,7 +291,7 @@ export default function WorkoutSession() {
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={{ paddingTop: space.sm, gap: space.md, flex: 1 }}>
-        <AvatarTile height={200} playSize={52} silhouetteSize={92} />
+        <AvatarTile height={200} image={item.exercise.thumb?.playback_url} playSize={52} silhouetteSize={92} />
 
         <View>
           <View style={{ flexDirection: "row", alignItems: "baseline", justifyContent: "space-between" }}>

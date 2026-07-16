@@ -28,16 +28,39 @@ Nothing ships without it. It's the critical path and it's already in motion —
 see `docs/play-store-setup.md`. Everything below can happen while you wait.
 
 ### Real content
-Every video and every sound in the app right now is a **fake link**
-(`example.com/...`). Nothing actually plays. The screens are built and read
-from the database properly, so the moment your fitness hire uploads real
-files through the admin panel, they appear — no code change needed.
+The **thumbnail images** you upload now show up in the app — the workout grid
+and the exercise screen display the real picture you uploaded through the
+admin panel (verified 2026-07-16). Exercises without a thumbnail keep the
+"Our Avatar" placeholder.
 
-You need, at minimum:
-- Exercise videos for the ~6 exercises that exist.
-- 2–3 sleep sounds and 2–3 meditation sounds (real audio files).
-- More mantras and more exercises (right now there are 4 deities and 6
-  exercises — enough to demo, not enough to keep someone for a month).
+Two things still need work here:
+- **Exercise videos don't play yet.** You can upload a video and its
+  thumbnail appears, but tapping the play button doesn't play the video. See
+  "Video playback" below — it's a real piece of engineering, not an upload
+  problem.
+- **Audio is still fake.** Every sound (sleep, meditation, jap) is a
+  placeholder `example.com` link. Real audio files need uploading, and unlike
+  video they *will* just work once uploaded — the audio player is wired.
+
+You also need more content overall: more mantras, more exercises (4 deities
+and ~7 exercises today — enough to demo, not enough to keep someone for a
+month).
+
+### Video playback
+This is why "the video isn't updating" — the app was never wired to *play*
+exercise videos, only recently to show their thumbnails. Playing them needs
+two things:
+1. A native video library (`expo-video`) added and the app rebuilt — it isn't
+   installed today.
+2. The Bunny **Stream** videos currently reject direct requests (they return
+   a "403 forbidden"). That usually means the Stream library has token
+   security or an allowed-domains list turned on. Either that has to be
+   relaxed for the app, or the app has to request **signed URLs** (a small
+   backend piece). Your uploaded *image* thumbnails don't have this problem —
+   they're on a normal pull zone and load fine.
+
+Until both are done, the play button is a visual affordance, not a working
+player. This should be an early item when engineering resumes.
 
 ### Privacy policy
 Legally required for the Play Store, and required by India's DPDP law before

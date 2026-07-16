@@ -71,8 +71,9 @@ export default function ExerciseDetail() {
     <Screen>
       <Stack.Screen options={{ headerShown: false }} />
 
-      {/* video hero — avatar demo (placeholder until real Bunny media) */}
-      <AvatarTile height={220} playSize={62} silhouetteSize={110} />
+      {/* video hero — real thumbnail when uploaded, else the avatar placeholder.
+          HLS playback on tap is still pending (see docs/whats-left.md). */}
+      <AvatarTile height={220} image={ex.thumb?.playback_url} playSize={62} silhouetteSize={110} />
 
       <T variant="h1" style={{ marginTop: space.lg }}>
         {loc(ex.name_hi, ex.name_en)}

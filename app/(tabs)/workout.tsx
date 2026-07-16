@@ -296,7 +296,7 @@ function ExerciseGrid({ items, header }: { items: ExerciseWithMedia[]; header: R
         const sub = locSub(item.name_hi, item.name_en);
         return (
           <Card onPress={() => router.push(`/workout/${item.id}`)} style={{ flex: 1, padding: space.sm }}>
-            <AvatarTile aspectRatio={4 / 3} playSize={30} silhouetteSize={62} />
+            <AvatarTile aspectRatio={4 / 3} image={item.thumb?.playback_url} playSize={30} silhouetteSize={62} />
             <View style={{ paddingHorizontal: space.xs, paddingTop: space.sm, paddingBottom: space.xs }}>
               <T variant="bodyBold" numberOfLines={1}>
                 {loc(item.name_hi, item.name_en)}
