@@ -8,21 +8,24 @@
 >
 > Contract: `docs/specs/feature-sprint.md`. Source prompt: `prompts/feature-sprint.md`.
 
-**Last updated:** 2026-07-28 · slice 1 committed, migrations NOT yet applied.
+**Last updated:** 2026-07-28 · slice 1b built + verified, not yet committed.
 
 ---
 
 ## Where we are
 
-**Slice 1 — migrations. Written, validated, committed. NOT APPLIED.**
+**Slice 1b — settings screen. Built, verified in web preview.** Owner confirmed
+migrations 0011 + 0012 applied clean in Supabase.
 
-⚠️ **Migrations 0011 and 0012 must be run in the Supabase SQL editor before any
-later slice works.** Nothing in the app reads them yet, so the tree is safe
-either way — but slice 4 (streak) and slice 6 (tracking) will fail against a
-database that has not had them applied.
+Settings ships as a stack route (`app/settings/index.tsx`) behind a Home header
+gear, with three real sections: Language (changeable post-onboarding for the
+first time; persists to `profiles.language_mode` when signed in), Account
+(guest → sign in / user → inline sign-out confirm), and About (privacy link when
+live, wellness disclaimer, version). Slices 2 and 7 add their toggle sections.
 
-Next action: **slice 1b, settings screen** — a stack route behind a Home header
-icon. Safe to interrupt. Slices 2, 7 and 8 hang their toggles on it.
+Next action: **slice 2, feedback service** (haptics + sound). Needs
+`expo-haptics` installed and builds the Switch/Toggle primitive + wires the
+Haptics/Sound toggles into the settings screen.
 
 ## Session start checklist
 
@@ -37,9 +40,9 @@ icon. Safe to interrupt. Slices 2, 7 and 8 hang their toggles on it.
 | # | Slice | Status | Notes |
 |---|---|---|---|
 | 0 | Audit + spec | ✅ done | Spec approved 2026-07-28 |
-| 1 | Migrations 0011 + 0012 | ✅ written | 34/34 PGlite checks pass. **Not applied in Supabase.** |
-| 1b | Settings screen | ⬜ next | Stack route behind Home header icon |
-| 2 | Feedback service | ⬜ not started | Needs 1b for toggles |
+| 1 | Migrations 0011 + 0012 | ✅ applied | 34/34 PGlite checks. Owner ran both in Supabase. |
+| 1b | Settings screen | ✅ done | Verified in web preview. Language/Account/About. |
+| 2 | Feedback service | ⬜ next | Install expo-haptics; add Toggle; wire settings section |
 | 3 | Splash | ⬜ not started | Safe to interrupt |
 | 4 | Streak | ⬜ not started | **Uninterruptible.** Needs 0012. |
 | 5 | Plan-ready ceremony | ⬜ not started | Safe to interrupt. Reuses splash system. |
@@ -62,8 +65,8 @@ not up front.
 | Migration | Written | **Applied in Supabase** |
 |---|---|---|
 | 0001-0010 | ✅ | ✅ (per `docs/progress.md`) |
-| 0011 sessions + push | ✅ | ⬜ **owner action** |
-| 0012 activity_log + streak | ✅ | ⬜ **owner action** |
+| 0011 sessions + push | ✅ | ✅ (owner ran 2026-07-28) |
+| 0012 activity_log + streak | ✅ | ✅ (owner ran 2026-07-28) |
 
 **Never assume a migration has been applied.** Never leave one partially
 applied — either it runs clean and is committed, or it is not started.

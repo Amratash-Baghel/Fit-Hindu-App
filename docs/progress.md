@@ -3,6 +3,18 @@
 Running build log — one entry per shipped item, newest on top. This is the
 standup doc for the owner and the resume-from-home lifeline.
 
+- **2026-07-28** — **Feature sprint slices 1 + 1b.** Migrations 0011 (workout
+  sessions, exercise logs, push tokens, notification prefs + a security_invoker
+  session_summary view) and 0012 (activity_log gets program_id + client_event_id,
+  streak rewritten for one forgiveness day per rolling 7 days, new streak_state()
+  RPC) — validated against real Postgres via PGlite (34 checks) and applied in
+  Supabase. Then slice 1b: the app finally has a **settings screen**, a stack
+  route behind a Home header gear. Three sections that are real today — Language
+  (the first way to change language after onboarding; writes through to
+  profiles.language_mode when signed in so it survives a reinstall), Account
+  (guest → sign in, user → inline sign-out confirm), and About (privacy link
+  when live, wellness disclaimer, build version). Slices 2 and 7 add Haptics/
+  Sound and Notification sections. Verified by clicking through in web preview.
 - **2026-07-15** — **Onboarding v2 + auth + plan engine — the app now has a
   middle.** Before today every user-data surface was wired but dead: no auth
   anywhere, onboarding was unreachable dead code (nothing routed to it, so the

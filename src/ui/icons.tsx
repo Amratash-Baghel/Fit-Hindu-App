@@ -102,6 +102,31 @@ export function ChevronRight({ size = 20, color = palette.saffron }: IconProps) 
   );
 }
 
+export function ChevronLeft({ size = 24, color = palette.cream }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M15 5l-7 7 7 7" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+/**
+ * Settings entry (Home header). Drawn as three adjustment sliders rather than a
+ * cog — cleaner at 22px on low-density Android, and the same line weight as the
+ * rest of the set. The knobs are filled with the ground colour so they read as
+ * sitting on the rail; on the ink Home background that is `ink`.
+ */
+export function SettingsIcon({ size = 22, color = palette.muted }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M4 7h16M4 12h16M4 17h16" stroke={color} strokeWidth={S} strokeLinecap="round" />
+      <Circle cx="9" cy="7" r="2.4" fill={palette.ink} stroke={color} strokeWidth={S} />
+      <Circle cx="15" cy="12" r="2.4" fill={palette.ink} stroke={color} strokeWidth={S} />
+      <Circle cx="8" cy="17" r="2.4" fill={palette.ink} stroke={color} strokeWidth={S} />
+    </Svg>
+  );
+}
+
 export function PlayIcon({ size = 14, color = "#241503" }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24">

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { Screen, Card, Chip, B, T, color, space } from "../../src/ui";
@@ -11,6 +11,7 @@ import {
   MoonIcon,
   ChevronRight,
   DiyaIcon,
+  SettingsIcon,
 } from "../../src/ui/icons";
 import { useI18n } from "../../src/lib/i18n";
 import { getTodayDevotional, type DevotionalToday } from "../../src/lib/content";
@@ -54,6 +55,15 @@ export default function Home() {
           </T>
         </View>
         {dev?.deity ? <Chip label={loc(dev.deity.name_hi, dev.deity.name_en)} active /> : null}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t("settings_title")}
+          onPress={() => router.push("/settings")}
+          hitSlop={10}
+          style={{ padding: space.xs, marginLeft: space.sm }}
+        >
+          <SettingsIcon color={color.muted} />
+        </Pressable>
       </View>
 
       {/* today's shloka — ember card with ॐ watermark (mockup) */}

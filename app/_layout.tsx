@@ -25,6 +25,7 @@ export default function RootLayout() {
             <Stack.Screen name="onboarding/index" />
             <Stack.Screen name="auth/index" />
             <Stack.Screen name="auth/verify" />
+            <Stack.Screen name="settings/index" />
           </Stack>
         </AuthProvider>
       </I18nProvider>

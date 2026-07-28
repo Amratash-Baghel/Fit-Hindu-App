@@ -268,6 +268,27 @@ export const strings = {
   well_done: { hi: "बहुत सुंदर। कल फिर मिलते हैं।", en: "Beautifully done. See you again tomorrow." },
   done: { hi: "ठीक है", en: "Done" },
 
+  // settings (stack route behind the Home header icon — slice 1b)
+  settings_title: { hi: "सेटिंग्स", en: "Settings" },
+  settings_language: { hi: "भाषा", en: "Language" },
+  settings_account: { hi: "खाता", en: "Account" },
+  settings_about: { hi: "ऐप के बारे में", en: "About" },
+  settings_guest: { hi: "अतिथि", en: "Guest" },
+  settings_guest_hint: {
+    hi: "अपनी प्रगति और दीये सुरक्षित रखने के लिए साइन-इन करें।",
+    en: "Sign in to keep your progress and diyas safe.",
+  },
+  sign_in: { hi: "साइन-इन करें", en: "Sign in" },
+  sign_out: { hi: "साइन-आउट", en: "Sign out" },
+  sign_out_q: { hi: "साइन-आउट करें?", en: "Sign out?" },
+  sign_out_body: {
+    hi: "आपकी प्रगति आपके खाते में सुरक्षित रहेगी — दोबारा साइन-इन करके वापस पा सकते हैं।",
+    en: "Your progress stays saved to your account — sign back in anytime to restore it.",
+  },
+  cancel: { hi: "रद्द करें", en: "Cancel" },
+  settings_privacy: { hi: "गोपनीयता नीति", en: "Privacy policy" },
+  settings_version: { hi: "ऐप संस्करण", en: "App version" },
+
   // disclaimers (compliance — docs/research/compliance.md)
   wellness_disclaimer: {
     hi: "यह ऐप केवल सामान्य स्वास्थ्य जानकारी देता है — यह चिकित्सा सलाह नहीं है। कोई भी नया व्यायाम या आहार शुरू करने से पहले चिकित्सक से परामर्श करें।",
