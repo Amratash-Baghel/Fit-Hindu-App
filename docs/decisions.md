@@ -2,6 +2,78 @@
 
 One dated line per decision, with the why. Newest on top.
 
+- **2026-07-28 (streak: computed, never stored counters)** — The feature-sprint
+  prompt asked for a `streaks` table with `current_streak`/`longest_streak`
+  columns kept fresh by a trigger. Overruled in favour of the existing design:
+  streaks are **computed server-side from `activity_log`**
+  (`current_streak()`, 0006). Why: stored counters are a second source of truth
+  that drifts from the log, and every idempotency worry in the prompt — "two
+  exercises on the same day must not increment twice" — is a symptom of that
+  drift. Under the computed model `count(distinct ist_date)` **cannot**
+  double-count; the bug class is structurally impossible rather than defended
+  against in trigger code. Matches `docs/specs/tracking-streaks.md:29-31` and
+  0006's zero-backfill promise. Revisit only if a real latency problem is
+  measured on a slow connection, and then as a cache, not as truth.
+- **2026-07-28 (streak rules)** — Day boundary **Asia/Kolkata** (already correct
+  via `ist_today()`). A day counts on **≥1 core activity**. Rest days
+  **preserve, do not increment**. **One freeze per rolling 7 days**, auto-applied
+  — promised by `tracking-streaks.md:26` but absent from `current_streak()`,
+  so the function is being rewritten. Retroactive completion **not allowed**
+  (`ist_date` is server-defaulted; no UI exists for it). "At risk" is derived,
+  not stored: `last_date = ist_today() - 1 AND current > 0`. Why the freeze: a
+  devotional habit app that punishes one missed day with total loss triggers
+  rage-quit, and the spec already committed to gentle recovery framing.
+- **2026-07-28 (guests bank a local streak, merged on sign-in)** — Guest-first
+  onboarding (2026-07-15) meant `logActivity` no-ops without a session
+  (`activity.ts:22`), so the default new user completed a workout and banked
+  nothing. Guests now log to AsyncStorage and see a real streak; signing in
+  replays it into `activity_log`. Why: it makes the streak the *reason* to sign
+  in rather than a feature locked behind sign-in, without touching the
+  guest-first decision. Cost: a replay path with its own dedup requirement.
+- **2026-07-28 (guest-merge dedup is DB-enforced, keyed on the event)** — Replay
+  idempotency is a database constraint, not app-level checking. Owner specified
+  a unique key on `(user_id, program_id, activity_date)`; **corrected to
+  `client_event_id` with unique `(user_id, client_event_id)`**. Why the change:
+  a day key permits only one activity row per user per day, which breaks
+  `daily_activity` (0006:51-59 aggregates `array_agg(distinct activity_type)`
+  and `count(*) as entries`), breaks `current_streak_for()` per-habit streaks,
+  and would stop a user logging a workout *and* a meditation on the same day.
+  The event key preserves the owner's principle — enforcement in the DB — and
+  does double duty as the offline-queue dedup key for workout sessions, so one
+  mechanism covers both instead of two.
+- **2026-07-28 (`activity_log` retrofitted with `program_id`)** — The table
+  predates the programs-platform rule and carries no `program_id`, which made
+  program-scoped streaks impossible. Added in migration 0012 as **nullable →
+  backfill from `user_plans` → set not null**; a bare `not null` add fails
+  against seeded rows.
+- **2026-07-28 (ceremony sub-palette, splash + plan-ready only)** — The owner's
+  splash reference (oxblood field, terracotta filigree panels, cream, charcoal)
+  is a different system from the shipped black/saffron/gold approved 2026-07-12.
+  Rather than a one-off (banned) or a re-theme (expensive, discards an approved
+  system), the reference colours enter `src/ui/tokens.ts` namespaced as
+  `tokens.ceremony.*`, commented as usable **only** by the splash and the
+  plan-ready screen. Why: the premium reference look on the two ceremonial
+  surfaces, with no one-off values anywhere and the daily-use app untouched.
+- **2026-07-28 (workstream 3 is a ceremony, not a generation loader)** — The
+  prompt specified staged progress messaging over a slow diet-plan generation.
+  No such generation exists — the diet card is a `soon` badge, and `assignPlan()`
+  is one indexed query plus one insert. Building a fake progress bar over a
+  sub-second call would also drift toward implying AI generation, which the
+  v1 rules forbid. Built instead as a **plan-ready ceremony** whose stages are
+  driven by the real awaits inside `flushOnboarding`, parameterised for reuse
+  when diet and workout generation genuinely land. Diet content itself stays out
+  of scope: it is a content-model + admin-panel workstream.
+- **2026-07-28 (three dependencies added)** — `expo-haptics` and
+  `expo-notifications` are unavoidable for their features. `react-native-reanimated`
+  is added for one specific reason: the splash's stroke-dash arch reveal.
+  `strokeDashoffset` is not native-driver-able, so under RN's built-in `Animated`
+  it would cost a frame of bridge traffic per tick — the exact low-end Android
+  failure the sprint is trying to avoid. Every other beat in the motion brief
+  (fade, translate, rotate, scale, cross-fade) runs natively without it.
+- **2026-07-28 (settings screen: stack route, not a sixth tab)** — Three
+  workstreams need a settings surface and none existed. Placed on a stack route
+  behind a Home header icon. Why: five tabs already, and Hindi labels are wide
+  at 360dp — a sixth would crowd the primary navigation for the target device.
 - **2026-07-15 (auth: guest-first, OTP, channel-agnostic)** — The onboarding
   spec deferred "does auth come before or after the questionnaire" to build
   time; owner decided **after the plan-ready celebration**, and skippable.
