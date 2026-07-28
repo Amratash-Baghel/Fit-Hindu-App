@@ -2,6 +2,25 @@
 
 One dated line per decision, with the why. Newest on top.
 
+- **2026-07-28 (streak exposes `freezes_used`)** — `streak_state()` returns the
+  count of forgiveness days spent in the *current* run, not just the streak
+  number. Why: the 2026-07-28 freeze rule promises gentle recovery framing, and
+  without this the UI cannot tell a clean 10-day run from one a freeze rescued —
+  it would either stay silent about the missed day or have to guess. Caught by
+  the reviewer as a silent drop from the written spec; added before slice 4
+  builds against the contract, since adding it later costs another migration.
+- **2026-07-28 (`notification_prefs` carries no `program_id`)** — Deliberate
+  exception to program-scoping, shaped like `profiles`. Why: "do not disturb"
+  and "remind me at 19:00" are properties of the person, not of whichever
+  program they are on, and there is no UI through which a user could express a
+  per-program notification preference. `push_tokens` keeps `program_id` because
+  a send is targeted at a device.
+- **2026-07-28 (offline/replay dedup keys on position, not exercise)** —
+  `exercise_logs` is keyed `(session_id, item_position, set_no)`. Why: a circuit
+  or superset may legitimately list the same exercise at two positions, and
+  keying on `exercise_id` would make the second occurrence collide with the
+  first and silently drop a real set.
+
 - **2026-07-28 (streak: computed, never stored counters)** — The feature-sprint
   prompt asked for a `streaks` table with `current_streak`/`longest_streak`
   columns kept fresh by a trigger. Overruled in favour of the existing design:

@@ -1,5 +1,5 @@
 /**
- * Database types — hand-written v1 mirror of supabase/migrations 0001–0010.
+ * Database types — hand-written v1 mirror of supabase/migrations 0001–0012.
  * Replace with `supabase gen types typescript` output once the Supabase
  * project is created and linked; keep the enum unions as the app-wide
  * vocabulary either way.
@@ -22,6 +22,12 @@ export type ContentStatus = "draft" | "published" | "archived";
 export type MediaKind = "video" | "audio" | "image";
 export type PlanStatus = "active" | "completed" | "abandoned";
 export type DevotionalKind = "shloka" | "quote" | "greeting";
+
+// ---------- enums (mirror 0011) ----------
+export type SessionStatus = "active" | "completed" | "abandoned";
+/** The three sources loadSession() supports (src/lib/content.ts). */
+export type SessionSourceKind = "template" | "custom" | "exercise";
+export type DevicePlatform = "android" | "ios" | "web";
 
 // ---------- identity ----------
 export interface Profile {
@@ -250,6 +256,14 @@ export interface ActivityLogEntry {
   ist_date: string; // date
   occurred_at: string;
   meta: Record<string, unknown>;
+  /**
+   * Null = not attributable to a program, which is a first-class state (0012):
+   * jap/meditation/sleep are standalone, and some users match no rule at all.
+   */
+  program_id: string | null;
+  /** Device-generated; unique per (user_id, client_event_id). Replaying the
+   *  same event — guest merge, offline flush — is an `on conflict do nothing`. */
+  client_event_id: string;
 }
 
 /** row of the daily_activity view — powers home-screen ticks */
@@ -295,4 +309,89 @@ export interface DailyDevotional {
   deity_id: string;
   shloka_item_id: string | null;
   mantra_id: string | null;
+}
+
+// ---------- workout sessions (migration 0011) ----------
+export interface WorkoutSession {
+  /** Client-generated, so an offline device can log sets against a session the
+   *  server has not seen yet, and a retry upserts instead of duplicating. */
+  id: string;
+  user_id: string;
+  program_id: string | null;
+  plan_id: string | null;
+  source: SessionSourceKind;
+  source_ref_id: string | null;
+  status: SessionStatus;
+  ist_date: string;
+  started_at: string;
+  completed_at: string | null;
+}
+
+export interface ExerciseLog {
+  session_id: string;
+  /** 0-based index within the session. Part of the key instead of exercise_id,
+   *  because a circuit may repeat one exercise at several positions. */
+  item_position: number;
+  set_no: number; // 1-based
+  exercise_id: string;
+  reps: number | null;
+  duration_seconds: number | null;
+  weight_kg: number | null;
+  skipped: boolean;
+  completed_at: string;
+}
+
+/** row of the session_summary view — aggregates stay server-side */
+export interface SessionSummary {
+  session_id: string;
+  user_id: string;
+  program_id: string | null;
+  ist_date: string;
+  status: SessionStatus;
+  started_at: string;
+  completed_at: string | null;
+  sets_done: number;
+  exercises_done: number;
+  minutes: number;
+}
+
+// ---------- push (migration 0011) ----------
+export interface PushToken {
+  user_id: string;
+  /** Upsert key with user_id, so a reinstall replaces rather than duplicates. */
+  device_id: string;
+  expo_push_token: string;
+  platform: DevicePlatform;
+  program_id: string | null;
+  last_seen_at: string;
+  created_at: string;
+}
+
+/** Server-side, not local: the Edge Function cannot honour a preference it
+ *  cannot read, and these must survive a reinstall. */
+export interface NotificationPrefs {
+  user_id: string;
+  enabled: boolean;
+  daily_reminder: boolean;
+  /** Wall-clock "HH:MM:SS" in Asia/Kolkata; the sender converts. */
+  reminder_time: string;
+  streak_at_risk: boolean;
+  plan_ready: boolean;
+  updated_at: string;
+}
+
+// ---------- streak (migration 0012) ----------
+/** Return of the streak_state(uid) RPC — one round-trip for the whole card.
+ *  User-level, not program-scoped (owner decision 2026-07-28). */
+export interface StreakState {
+  current_streak: number;
+  longest_streak: number;
+  /** Most recent day with any activity; null for a user with no history. */
+  last_date: string | null;
+  /** Completed yesterday, nothing today — what the evening nudge hooks into. */
+  at_risk: boolean;
+  /** Forgiveness days spent inside the current run; 0 on a clean streak.
+   *  Lets the UI say a freeze rescued the sankalp instead of silently hiding
+   *  the missed day. */
+  freezes_used: number;
 }

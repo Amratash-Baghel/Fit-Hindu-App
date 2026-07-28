@@ -8,17 +8,21 @@
 >
 > Contract: `docs/specs/feature-sprint.md`. Source prompt: `prompts/feature-sprint.md`.
 
-**Last updated:** 2026-07-28 · after Phase 1 approval, before any code.
+**Last updated:** 2026-07-28 · slice 1 committed, migrations NOT yet applied.
 
 ---
 
 ## Where we are
 
-**Slice 0 — planning. Complete.** No feature code has been written.
+**Slice 1 — migrations. Written, validated, committed. NOT APPLIED.**
 
-Next action: **slice 1, migrations 0011 + 0012.** Do not start it without quota
-headroom — it is a schema change to shipped, seeded tables and must not be cut
-in half.
+⚠️ **Migrations 0011 and 0012 must be run in the Supabase SQL editor before any
+later slice works.** Nothing in the app reads them yet, so the tree is safe
+either way — but slice 4 (streak) and slice 6 (tracking) will fail against a
+database that has not had them applied.
+
+Next action: **slice 1b, settings screen** — a stack route behind a Home header
+icon. Safe to interrupt. Slices 2, 7 and 8 hang their toggles on it.
 
 ## Session start checklist
 
@@ -33,8 +37,8 @@ in half.
 | # | Slice | Status | Notes |
 |---|---|---|---|
 | 0 | Audit + spec | ✅ done | Spec approved 2026-07-28 |
-| 1 | Migrations 0011 + 0012 | ⬜ not started | **Uninterruptible.** Confirm quota first. |
-| 1b | Settings screen | ⬜ not started | Stack route behind Home header icon |
+| 1 | Migrations 0011 + 0012 | ✅ written | 34/34 PGlite checks pass. **Not applied in Supabase.** |
+| 1b | Settings screen | ⬜ next | Stack route behind Home header icon |
 | 2 | Feedback service | ⬜ not started | Needs 1b for toggles |
 | 3 | Splash | ⬜ not started | Safe to interrupt |
 | 4 | Streak | ⬜ not started | **Uninterruptible.** Needs 0012. |
@@ -58,11 +62,20 @@ not up front.
 | Migration | Written | **Applied in Supabase** |
 |---|---|---|
 | 0001-0010 | ✅ | ✅ (per `docs/progress.md`) |
-| 0011 new tables | ⬜ | ⬜ |
-| 0012 alter activity_log + streak rewrite | ⬜ | ⬜ |
+| 0011 sessions + push | ✅ | ⬜ **owner action** |
+| 0012 activity_log + streak | ✅ | ⬜ **owner action** |
 
 **Never assume a migration has been applied.** Never leave one partially
 applied — either it runs clean and is committed, or it is not started.
+
+Re-run the schema checks any time with:
+`npx --yes -p @electric-sql/pglite node supabase/tests/validate.mjs`
+(34 checks; PGlite is not a package.json dependency by design.)
+
+**What that harness does NOT prove:** RLS enforcement. PGlite runs as table
+owner and owners bypass RLS, so a green run says the policies exist and are
+well-formed, not that they hold against a hostile client. Spot-check in
+Supabase with a real anon session before launch.
 
 ## Open items on the owner
 
@@ -81,7 +94,13 @@ recorded in `docs/decisions.md`.
 
 ## Anything half-finished needing cleanup
 
-None. Working tree is clean apart from this sprint's documentation.
+None from this sprint.
+
+**Pre-existing, not ours:** `npm run lint` fails at HEAD with 11 errors and 5
+warnings — verified identical before and after slice 1, so it is a baseline, not
+a regression. Most of them are `react-hooks` errors in `app/workout/session.tsx`,
+which slice 6 rewrites anyway; clean them there rather than in a drive-by.
+`npm run typecheck` is green.
 
 ## Checkpoint discipline
 
