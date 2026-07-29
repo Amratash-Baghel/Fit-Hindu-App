@@ -159,6 +159,7 @@ export default function Home() {
 const WEEK_DIYAS = 7;
 
 function StreakCard() {
+  const router = useRouter();
   const { t } = useI18n();
   const { streak, loading, refresh } = useStreak();
 
@@ -196,7 +197,10 @@ function StreakCard() {
   }
 
   return (
-    <Card>
+    // The sankalp card is the way into the full progress screen (slice 6) —
+    // "my streak" and "how far I've come" are the same question, and it keeps
+    // Progress off the tab bar, which is already full at five.
+    <Card onPress={() => router.push("/progress")}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: space.md }}>
         <DiyaIcon size={30} dim={!active} />
         <View style={{ flex: 1 }}>

@@ -33,7 +33,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AppState } from "react-native";
 import { supabase } from "./supabase";
-import { logActivity } from "./activity";
 import type { SessionSource } from "./content";
 
 const SESSION_KEY = "fithindu.session.current";
@@ -81,10 +80,40 @@ export interface LocalSession {
  * land before its sets. Draining sequentially and stopping at the first failure
  * preserves that without the queue needing to model dependencies.
  */
-type QueuedOp =
+type QueuedOp = {
+  /** Attempts so far. A permanently-failing op (an FK that can never resolve,
+   *  a row the server will always reject) must not wedge every later write
+   *  behind it forever — this queue is one shared FIFO, so one poisoned op
+   *  would stall all future workouts. After MAX_ATTEMPTS it is dropped. */
+  tries?: number;
+} & (
   | { kind: "session"; row: Record<string, unknown> }
   | { kind: "sets"; session_id: string; rows: Record<string, unknown>[] }
-  | { kind: "finish"; session_id: string; status: "completed" | "abandoned"; completed_at: string };
+  | { kind: "finish"; session_id: string; status: "completed" | "abandoned"; completed_at: string }
+  // The streak's row. Queued like everything else rather than written directly:
+  // finishing a workout offline must not be the one case where the most
+  // important row in the app is dropped on the floor.
+  | { kind: "activity"; row: Record<string, unknown> }
+);
+
+const MAX_ATTEMPTS = 8;
+
+/**
+ * Serialises every read-modify-write of the two AsyncStorage keys.
+ *
+ * `enqueue` and the mirror update are read → mutate → write. Two overlapping
+ * calls both read the old value and the second write wins, silently dropping
+ * the first — and overlapping calls are entirely normal here: `logSet` is fired
+ * from a tap handler and storage is slow on the target device. Without this the
+ * module's core promise ("a set cannot be lost before the network is even
+ * involved") is false.
+ */
+let chain: Promise<unknown> = Promise.resolve();
+function serial<T>(fn: () => Promise<T>): Promise<T> {
+  const run = chain.then(fn, fn);
+  chain = run.catch(() => undefined);
+  return run;
+}
 
 // ---------- ids ----------
 
@@ -163,10 +192,12 @@ async function writeQueue(q: QueuedOp[]): Promise<void> {
   }
 }
 
-async function enqueue(op: QueuedOp): Promise<void> {
-  const q = await readQueue();
-  q.push(op);
-  await writeQueue(q);
+function enqueue(op: QueuedOp): Promise<void> {
+  return serial(async () => {
+    const q = await readQueue();
+    q.push(op);
+    await writeQueue(q);
+  });
 }
 
 /** Serialises flushes: two overlapping drains would double-send and could
@@ -194,14 +225,36 @@ export async function flushQueue(): Promise<boolean> {
     if (!user) return false;
 
     while (q.length) {
-      const op = q[0];
+      // Coalesce the run of consecutive set-writes for one session into a
+      // single upsert. The spec's mitigation for chatty writes on 2G is a
+      // "batched queue flush"; draining an offline session set-by-set is one
+      // round-trip per set, which is the thing that mitigation exists to
+      // avoid. Only a contiguous run is merged, so ordering still holds.
+      let take = 1;
+      let op = q[0];
+      if (op.kind === "sets") {
+        const rows = [...op.rows];
+        while (take < q.length) {
+          const nxt = q[take];
+          if (nxt.kind !== "sets" || nxt.session_id !== op.session_id) break;
+          rows.push(...nxt.rows);
+          take += 1;
+        }
+        op = { ...op, rows };
+      }
+
       const ok = await send(op, user.id);
       if (!ok) {
-        await writeQueue(q); // persist whatever is left; retry next time
+        // Count the attempt against the head op only. Dropping it after a
+        // bounded number of tries loses at most that one write, where keeping
+        // it would lose every write that ever queues behind it.
+        const head = { ...q[0], tries: (q[0].tries ?? 0) + 1 };
+        q = head.tries >= MAX_ATTEMPTS ? q.slice(1) : [head, ...q.slice(1)];
+        await serial(() => writeQueue(q));
         return false;
       }
-      q = q.slice(1);
-      await writeQueue(q);
+      q = q.slice(take);
+      await serial(() => writeQueue(q));
     }
     return true;
   } catch {
@@ -228,6 +281,18 @@ async function send(op: QueuedOp, userId: string): Promise<boolean> {
         .from("exercise_logs")
         .upsert(op.rows, {
           onConflict: "session_id,item_position,set_no",
+          ignoreDuplicates: true,
+        });
+      return !error;
+    }
+    if (op.kind === "activity") {
+      // The replay contract 0012 was written for: the client_event_id was
+      // stamped at enqueue time, so a retry after a lost response inserts
+      // nothing rather than double-crediting a day in an append-only table.
+      const { error } = await supabase
+        .from("activity_log")
+        .upsert({ ...op.row, user_id: userId }, {
+          onConflict: "user_id,client_event_id",
           ignoreDuplicates: true,
         });
       return !error;
@@ -315,17 +380,24 @@ export async function startSession(src: SessionSource): Promise<LocalSession | n
  * before sign-in): the caller should not have to branch on it.
  */
 export async function logSet(sessionId: string, entry: LoggedSet): Promise<void> {
-  const local = await readLocal();
-  if (!local || local.id !== sessionId) return;
+  // Read-modify-write of the mirror, serialised: two taps whose storage
+  // round-trips overlap would otherwise each read the old set list and the
+  // second write would drop the first's set.
+  const ok = await serial(async () => {
+    const local = await readLocal();
+    if (!local || local.id !== sessionId) return false;
 
-  // Replace-or-append, keyed the same way the database is, so a repeated call
-  // for the same set can never grow the mirror unboundedly.
-  const i = local.sets.findIndex(
-    (s) => s.item_position === entry.item_position && s.set_no === entry.set_no,
-  );
-  if (i >= 0) local.sets[i] = entry;
-  else local.sets.push(entry);
-  await writeLocal(local);
+    // Replace-or-append, keyed the same way the database is, so a repeated call
+    // for the same set can never grow the mirror unboundedly.
+    const i = local.sets.findIndex(
+      (s) => s.item_position === entry.item_position && s.set_no === entry.set_no,
+    );
+    if (i >= 0) local.sets[i] = entry;
+    else local.sets.push(entry);
+    await writeLocal(local);
+    return true;
+  });
+  if (!ok) return;
 
   await enqueue({
     kind: "sets",
@@ -349,9 +421,12 @@ export async function finishSession(
   const local = await readLocal();
   if (!local || local.id !== sessionId || local.finished) return;
 
-  local.finished = true;
-  await writeLocal(local);
-
+  // Enqueue BEFORE marking the mirror finished. The other order has a fatal
+  // window: a kill between the two leaves `finished: true` on disk with no
+  // finish op queued, so reconcile's `!local.finished` guard skips it forever,
+  // the row stays 'active', and every set that DID flush is excluded from all
+  // progress aggregates (they filter status = 'completed'). The training would
+  // be on the server and invisible.
   await enqueue({
     kind: "finish",
     session_id: sessionId,
@@ -361,15 +436,45 @@ export async function finishSession(
 
   if (status === "completed") {
     const minutes = Math.max(1, Math.round((Date.now() - local.started_at_ms) / 60000));
-    await logActivity(
-      "workout",
-      { session_id: sessionId, source: local.source, minutes, sets: local.sets.length },
-      local.source_ref_id ?? undefined,
-    );
+    await enqueueActivity(local, minutes, false);
   }
+
+  local.finished = true;
+  await writeLocal(local);
 
   await flushQueue();
   await writeLocal(null); // the mirror's job is done; the queue owns delivery now
+}
+
+/**
+ * The streak's activity_log row, as a queued op.
+ *
+ * Deliberately not `logActivity()`: that writes straight to Supabase with no
+ * persistence and no retry, so finishing a workout offline — the exact case
+ * this module exists for — would durably record the session and its sets while
+ * silently losing the single row the streak reads.
+ *
+ * `client_event_id` is stamped HERE, once, so every retry of this op carries
+ * the same id and 0012's unique (user_id, client_event_id) turns a replay into
+ * a no-op. activity_log is append-only; a duplicate could not be cleaned up.
+ */
+function enqueueActivity(local: LocalSession, minutes: number, recovered: boolean): Promise<void> {
+  return enqueue({
+    kind: "activity",
+    row: {
+      activity_type: "workout",
+      ref_id: local.source_ref_id,
+      program_id: local.program_id,
+      client_event_id: uuidv4(),
+      meta: {
+        session_id: local.id,
+        source: local.source,
+        minutes,
+        sets: local.sets.length,
+        ...(recovered ? { recovered: true } : {}),
+      },
+    },
+  });
 }
 
 /**
@@ -402,11 +507,7 @@ export async function reconcile(): Promise<void> {
     });
     if (trained && local.ist_date === istToday()) {
       const minutes = Math.max(1, Math.round((Date.now() - local.started_at_ms) / 60000));
-      await logActivity(
-        "workout",
-        { session_id: local.id, source: local.source, minutes, sets: local.sets.length, recovered: true },
-        local.source_ref_id ?? undefined,
-      );
+      await enqueueActivity(local, minutes, true);
     }
     await writeLocal(null);
   }

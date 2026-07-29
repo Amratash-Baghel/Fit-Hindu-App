@@ -249,6 +249,35 @@ export const strings = {
   sankalp_longest: { hi: "सबसे लंबा: {n} दिन", en: "Longest: {n} days" },
   soon_badge: { hi: "जल्द", en: "Soon" },
 
+  // progress screen (slice 6). Numbers are rendered at the call site and the
+  // labels stay separate, so nothing here needs interpolation. Copy is
+  // descriptive and effort-based — never a health outcome or a body claim.
+  progress_title: { hi: "आपकी प्रगति", en: "Your progress" },
+  progress_this_week: { hi: "इस सप्ताह", en: "This week" },
+  progress_sessions: { hi: "सत्र", en: "sessions" },
+  progress_minutes: { hi: "मिनट", en: "minutes" },
+  progress_sets: { hi: "कुल सेट", en: "total sets" },
+  progress_days_trained: { hi: "दिन अभ्यास", en: "days trained" },
+  progress_all_time: { hi: "अब तक", en: "All time" },
+  progress_plan: { hi: "आपका plan", en: "Your plan" },
+  progress_plan_days: { hi: "दिन पूरे", en: "days done" },
+  progress_areas: { hi: "अंग के अनुसार", en: "By body area" },
+  progress_activity: { hi: "पिछले 30 दिन", en: "Last 30 days" },
+  progress_streak: { hi: "संकल्प", en: "Sankalp" },
+  progress_longest: { hi: "सबसे लंबा", en: "Longest" },
+  // Empty state — a brand-new user must meet encouragement, not a wall of
+  // zeros (spec slice 6: "empty states are load-bearing").
+  progress_empty_title: { hi: "आपकी यात्रा यहीं से दिखेगी", en: "Your journey will show up here" },
+  progress_empty_body: {
+    hi: "पहला व्यायाम पूरा करें — उसी क्षण से आपके दिन, मिनट और अंग यहाँ जुड़ने लगेंगे।",
+    en: "Finish your first workout — your days, minutes and body areas start filling in from that moment.",
+  },
+  progress_empty_cta: { hi: "व्यायाम शुरू करें", en: "Start a workout" },
+  progress_signin_body: {
+    hi: "अपनी प्रगति सहेजने के लिए साइन-इन करें — नया फ़ोन हो या ऐप दोबारा इंस्टॉल, कुछ नहीं खोएगा।",
+    en: "Sign in to save your progress — new phone or fresh install, nothing is lost.",
+  },
+
   // workout structure
   workouts_section: { hi: "वर्कआउट", en: "Workouts" },
   all_exercises: { hi: "सभी व्यायाम", en: "All exercises" },

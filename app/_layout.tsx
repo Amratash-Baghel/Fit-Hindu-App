@@ -74,6 +74,7 @@ export default function RootLayout() {
                 back too — see app/plan/ready.tsx. */}
             <Stack.Screen name="plan/ready" options={{ gestureEnabled: false }} />
             <Stack.Screen name="settings/index" />
+            <Stack.Screen name="progress/index" />
           </Stack>
           <SplashGate />
         </AuthProvider>

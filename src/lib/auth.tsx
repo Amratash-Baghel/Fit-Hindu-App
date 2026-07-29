@@ -19,6 +19,7 @@ import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "./supabase";
 import { useI18n, type StringKey } from "./i18n";
 import { assignPlan } from "./plan";
+import { flushQueue } from "./session";
 import {
   QUESTIONNAIRE_VERSION, answersToProfile, clearProgress, loadProgress, markOnboarded,
 } from "./onboarding";
@@ -163,6 +164,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!alive) return;
       setSession(s);
       setLoading(false);
+      // The session-tracking queue (slice 6) needs an authenticated user to
+      // send anything, and its launch-time flush can run BEFORE the stored
+      // session has been restored — on a cold start that never returns to the
+      // foreground, nothing else would retry. Flushing the moment a user
+      // exists closes that window; the queue is idempotent, so an extra call
+      // is free.
+      if (s) void flushQueue();
     });
 
     return () => {

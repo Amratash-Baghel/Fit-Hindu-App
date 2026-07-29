@@ -89,6 +89,8 @@ export default function WorkoutSession() {
    *  applied yet at that point — reading the state there undercounts the
    *  summary by exactly one, every time. */
   const setsLogged = useRef(0);
+  /** "itemIdx:setNo" of the last set recorded — the double-tap guard. */
+  const lastLogged = useRef<string | null>(null);
   const completed = useRef(false);
 
   useEffect(() => {
@@ -142,6 +144,14 @@ export default function WorkoutSession() {
 
   const finishSet = useCallback(() => {
     if (!source || !item || !eff) return;
+    // A double-tap fires twice against the same unchanged target before React
+    // re-renders. The server dedupes (the exercise_logs PK), but the on-screen
+    // counters would not: the bar and the completion summary would both read
+    // one set too many. Guard on the set actually being the one still open.
+    const key = `${target.itemIdx}:${target.setNo}`;
+    if (lastLogged.current === key) return;
+    lastLogged.current = key;
+
     feedback.tap(); // each set completed — the lightest acknowledgement
 
     const w = parseFloat(weight);
@@ -194,26 +204,44 @@ export default function WorkoutSession() {
     advanceRef.current = advance;
   }, [finishSet, advance]);
 
+  // The live counter values, mirrored so the tick can read them without the
+  // interval depending on them. State updaters below stay PURE — calling
+  // finishSet() from inside one would re-run the side effect whenever React
+  // re-invokes an updater (it does exactly that in StrictMode to surface
+  // impurity), double-logging every timed set.
+  const secRef = useRef<number | null>(null);
+  const restRef = useRef(0);
+  useEffect(() => {
+    secRef.current = secLeft;
+  }, [secLeft]);
+  useEffect(() => {
+    restRef.current = restLeft;
+  }, [restLeft]);
+
   useEffect(() => {
     if (status !== "ok" || phase === "done") return;
     const id = setInterval(() => {
       if (phase === "work") {
-        setSecLeft((s) => {
-          if (s === null) return null; // rep-based set: no countdown at all
-          if (s <= 1) {
-            finishSetRef.current();
-            return 0;
-          }
-          return s - 1;
-        });
+        const s = secRef.current;
+        if (s === null) return; // rep-based set: no countdown at all
+        if (s <= 1) {
+          secRef.current = 0;
+          setSecLeft(0);
+          finishSetRef.current();
+        } else {
+          secRef.current = s - 1;
+          setSecLeft(s - 1);
+        }
       } else {
-        setRestLeft((r) => {
-          if (r <= 1) {
-            advanceRef.current();
-            return 0;
-          }
-          return r - 1;
-        });
+        const r = restRef.current;
+        if (r <= 1) {
+          restRef.current = 0;
+          setRestLeft(0);
+          advanceRef.current();
+        } else {
+          restRef.current = r - 1;
+          setRestLeft(r - 1);
+        }
       }
     }, 1000);
     return () => clearInterval(id);
