@@ -17,9 +17,8 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "./supabase";
-import { useI18n } from "./i18n";
+import { useI18n, type StringKey } from "./i18n";
 import { assignPlan } from "./plan";
-import { feedback } from "./feedback";
 import {
   QUESTIONNAIRE_VERSION, answersToProfile, clearProgress, loadProgress, markOnboarded,
 } from "./onboarding";
@@ -61,6 +60,31 @@ export async function verifyOtp(identifier: string, token: string): Promise<void
 }
 
 /**
+ * The four real awaits `flushOnboarding` performs, in order, as catalog keys.
+ *
+ * The list lives HERE, next to the awaits it describes, rather than in the
+ * ceremony screen: that adjacency is what keeps the staged progress honest. A
+ * stage is painted because a network round-trip is genuinely in flight, never
+ * because a timer fired (docs/specs/feature-sprint.md slice 5). Add an await,
+ * add a label — they cannot drift apart unnoticed.
+ */
+export const FLUSH_STAGES = [
+  "plan_stage_profile", // profiles upsert
+  "plan_stage_answers", // questionnaire_responses insert
+  "plan_stage_matching", // assignment_rules query
+  "plan_stage_assembling", // user_plans insert
+] as const satisfies readonly StringKey[];
+
+/**
+ * What the flush actually achieved. `no-answers` means there was nothing to do
+ * (already flushed, or the user never consented); `no-plan` is the survivable
+ * plan.ts null — the write succeeded, the content team simply has no program
+ * for this combination yet, and the ceremony owes the user a real screen rather
+ * than a silent drop into the tabs.
+ */
+export type FlushOutcome = "no-answers" | "assigned" | "no-plan";
+
+/**
  * The guest→user bridge: everything answered before sign-in becomes real here.
  *
  * Writes the typed columns on `profiles`, appends a versioned
@@ -69,21 +93,29 @@ export async function verifyOtp(identifier: string, token: string): Promise<void
  * success — a failure leaves them on disk so the caller can retry, which is
  * what the spec's "retain answers locally, retry CTA" state requires
  * (docs/specs/onboarding-questionnaire.md:57).
+ *
+ * `onStage` receives the index into FLUSH_STAGES of the step now in flight.
+ * Deliberately no success chirp in here: the plan-ready ceremony owns that
+ * moment now, and firing it twice would double-buzz.
  */
-export async function flushOnboarding(): Promise<void> {
+export async function flushOnboarding(
+  onStage?: (index: number) => void,
+): Promise<FlushOutcome> {
   const saved = await loadProgress();
-  if (!saved || !saved.answers.consent) return; // nothing consented to save
+  if (!saved || !saved.answers.consent) return "no-answers"; // nothing consented to save
 
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return;
+  if (!user) return "no-answers";
 
   const profile = answersToProfile(saved.answers);
   // upsert, not update: handle_new_user() normally creates the row, but an
   // upsert also covers the case where it didn't rather than silently updating
   // zero rows.
+  onStage?.(0);
   const { error: pErr } = await supabase.from("profiles").upsert({ id: user.id, ...profile });
   if (pErr) throw pErr;
 
+  onStage?.(1);
   const { error: qErr } = await supabase.from("questionnaire_responses").insert({
     user_id: user.id,
     version: QUESTIONNAIRE_VERSION,
@@ -92,14 +124,15 @@ export async function flushOnboarding(): Promise<void> {
   if (qErr) throw qErr;
 
   // No matching rule is survivable (see plan.ts) — don't fail the flush over it.
-  await assignPlan(saved.answers);
-  feedback.success(); // the plan is assigned — a small "yes" (slice 5 owns the full ceremony)
+  const plan = await assignPlan(saved.answers, (s) => onStage?.(s === "matching" ? 2 : 3));
 
   // Marker first, then drop the answers: if the app died between these two, a
   // spare marker is harmless, whereas cleared answers with no marker would
   // re-ask all 11 questions.
   await markOnboarded();
   await clearProgress();
+
+  return plan ? "assigned" : "no-plan";
 }
 
 interface AuthCtx {

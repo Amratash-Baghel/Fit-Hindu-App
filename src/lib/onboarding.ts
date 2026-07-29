@@ -297,6 +297,31 @@ export async function hasOnboarded(): Promise<boolean> {
   }
 }
 
+/**
+ * Consented answers still on disk that have NEVER been flushed — the cold-start
+ * signal to resume the plan-ready ceremony (slice 5).
+ *
+ * The marker check is the load-bearing half. `flushOnboarding` ends with
+ * `markOnboarded()` then `clearProgress()`, two non-atomic AsyncStorage writes;
+ * a kill between them (routine on the low-end Android this app targets) leaves
+ * the marker set AND the answers behind. Testing the answers alone would then
+ * re-run a flush that already succeeded, and `questionnaire_responses` is
+ * deliberately append-only with no unique key (migration 0002) — so it would
+ * write a second response row for a questionnaire taken once.
+ *
+ * The marker also records "the user has settled this", which is what lets
+ * someone walk away from a permanently failing write instead of being steered
+ * back into the ceremony on every cold start.
+ */
+export async function isFlushPending(): Promise<boolean> {
+  try {
+    const [flag, p] = await Promise.all([AsyncStorage.getItem(DONE_KEY), loadProgress()]);
+    return flag !== "1" && p?.answers.consent === true;
+  } catch {
+    return false;
+  }
+}
+
 // ---------- DB shapes ----------
 
 /**

@@ -2,6 +2,49 @@
 
 One dated line per decision, with the why. Newest on top.
 
+- **2026-07-29 (staged progress is driven by real awaits, never by timers)** —
+  The plan-ready ceremony's four stages map 1:1 onto the four network round-trips
+  inside `flushOnboarding` (profile upsert → questionnaire insert → rule query →
+  plan insert), and the label list `FLUSH_STAGES` lives in `src/lib/auth.tsx`
+  beside those awaits rather than in the screen. Why the adjacency: it is what
+  stops the labels drifting from the work — add an await, add a label. The bar
+  fills to `(stage + 1) / (stages + 1)`, so with four stages it reaches 0.8 and
+  stops; only a terminal status can reach 1. **The final stage therefore cannot
+  claim completion before the data lands** (the spec's hard requirement), and a
+  failure hides the bar entirely rather than showing a full gold one under an
+  error headline.
+- **2026-07-29 (the plan-ready ceremony owns the guest→user write)** — The
+  bridge that turns a guest's answers into a profile, a questionnaire row and an
+  assigned plan moved out of `app/auth/verify.tsx` into `app/plan/ready.tsx`.
+  Why: it was running invisibly behind a disabled OTP button, and its one
+  interesting outcome — no assignment rule matched, `plan.ts` returns null — was
+  silently indistinguishable from success, dumping the user into the tabs with
+  no plan and no explanation. That outcome is now its own screen. Back is
+  blocked for the whole route (gesture + Android hardware): during the write it
+  would orphan a half-finished flush, and after it "back" means a spent OTP form.
+- **2026-07-29 (an interrupted flush resumes, but only once, and the user may
+  walk away)** — Cold start sends a signed-in user with never-flushed answers
+  back to the ceremony, gated on `isFlushPending()` = consented answers on disk
+  **and** no onboarded marker. Why the marker half is load-bearing:
+  `flushOnboarding` ends with two non-atomic AsyncStorage writes, and a kill
+  between them (routine on low-end Android) leaves the marker set with the
+  answers behind — testing the answers alone would replay a flush that already
+  succeeded, and `questionnaire_responses` is deliberately append-only with no
+  unique key, so it would record a second response for a questionnaire taken
+  once. Leaving a failed write also sets the marker, so a permanently failing
+  account is never steered back into the ceremony on every launch; the answers
+  stay on disk and the next sign-in retries.
+- **2026-07-29 (Reanimated does not drive animations under react-native-web)** —
+  Verified with an isolated probe: a bare `withRepeat(withTiming(…))` on a plain
+  `View` stays pinned to its initial value, and `useAnimatedStyle` never
+  re-evaluates after mount — direct shared-value assignment included. So
+  `CeremonyLoader` layers plain prop-derived styles over the animated ones on web
+  only. Why it matters beyond the preview: without it the progress bar sits at
+  zero in the web build while the writes run fine underneath, i.e. the screen
+  lies. Native, the shipping target, animates normally. **Consequence for this
+  sprint: the web preview verifies layout, copy and state, never motion** —
+  animation smoothness stays a physical-device check.
+
 - **2026-07-29 (splash = oxblood-and-gold ceremony, Reanimated on the UI
   thread)** — The launch screen is an animated SVG composition (radial maroon
   field, gold ogee arch drawn with a stroke-dash reveal, gada emblem on a gold

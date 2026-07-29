@@ -91,3 +91,6 @@ export const type = {
 
 /** Minimum tap target (dp) — enforced by base components. */
 export const tapTarget = 48;
+
+/** Progress bars — the ceremony loader's, and the three slice 6 needs. */
+export const progressBar = { height: 6, radius: 3 } as const;

@@ -8,48 +8,75 @@
 >
 > Contract: `docs/specs/feature-sprint.md`. Source prompt: `prompts/feature-sprint.md`.
 
-**Last updated:** 2026-07-29 · slice 4 built + reviewed + verified, committing.
+**Last updated:** 2026-07-29 · slice 5 built + reviewed + verified, committing.
 
 ---
 
 ## Where we are
 
-**Slice 4 — streak wired to the UI. Built, reviewed, verified.**
+**Slice 5 — plan-ready ceremony. Built, reviewed, verified.**
 
-The server-side streak logic (`streak_state()` in migration 0012) was already
-done in slice 1; slice 4 was the UI wiring. New `src/lib/streak.ts` exposes a
-`useStreak()` hook that reads the `streak_state()` RPC for signed-in users and
-returns null for guests. `app/(tabs)/index.tsx`'s hardcoded three-dim-diya
-sankalp stub is replaced with a live `StreakCard`: gold day-count headline + a
-seven-diya week row (lit = min(streak, 7)), the longest line, the at-risk nudge,
-and the gentle `freezes_used` "a forgiveness day kept your sankalp" line. No-
-guilt framing throughout; guests and the first-read window see the invitation,
-not a zero or a flash of "start over". Four i18n strings added
-(`sankalp_at_risk`, `sankalp_freeze_saved`, and `{n}`-interpolated
-`sankalp_days`/`sankalp_longest`) — all copy in the catalog.
+The guest→user bridge (`flushOnboarding`) was running invisibly inside
+`app/auth/verify.tsx` behind a disabled button, and its one interesting outcome —
+no assignment rule matched, `plan.ts` returns null — was indistinguishable from
+success, dropping the user into the tabs with no plan and no explanation. That
+write now belongs to a real screen.
 
-Re-ran the PGlite harness: **34/34 green** (same-day double, one/two-day gaps,
-freeze bridging, at-risk, dead-streak, longest-survives, `freezes_used`, per-user
-isolation). Reviewer (`.claude/agents/reviewer.md`) on the diff: RLS
-(streak_state is stable + NOT security definer, so activity_log RLS protects the
-caller), program-scoping (user-level by the 2026-07-28 decision — correct),
-secrets, health-claims, and low-end perf all clean; fixed a slow-network flash of
-the invitation for returning streak-holders and moved the dynamic strings into
-the catalog. Typecheck green; lint at the 11-error baseline (new files add zero).
+New `src/ui/CeremonyLoader.tsx`: full-screen, parameterised on stage labels +
+status + outcome copy, reusing the slice 3 artwork (field, ogee arch, gada) so
+the two ceremonies read as one product. Deliberately generic — workout-plan
+generation is meant to be its second caller with no change to the file. New
+`app/plan/ready.tsx` drives it.
 
-Verified in web preview: Home renders the StreakCard (8 diya SVGs = 1 header + 7
-week), guest invitation state, zero console errors. Physical-device / real-session
-only: the lit-diya active state, the RPC round-trip, and refresh-on-focus after a
-real activity logs.
+**Staged progress is real.** The four stages map 1:1 onto the four awaits in
+`flushOnboarding`; `FLUSH_STAGES` lives beside them in `src/lib/auth.tsx` so
+labels can't drift from the work. The bar fills to `(stage+1)/(stages+1)` — 0.8
+with four stages — and only a terminal status reaches 1, so the last stage cannot
+claim completion before the data lands. Errors hide the bar rather than showing a
+full gold one under a failure headline. `flushOnboarding` now returns a
+`FlushOutcome` and no longer fires its own chirp (the ceremony owns that moment).
 
-**Deferred (flagged):** the "guests bank a local streak, merged on sign-in"
-decision (2026-07-28) is recorded but NOT built — `activity.ts` still no-ops for
-guests, so the default signed-out user banks nothing and the streak stays an
-invitation until they sign in. Its own slice (AsyncStorage log + replay on
-`flushOnboarding` with the `client_event_id` dedup already in 0012).
+Three outcomes, no dead screens: assigned → celebrate; no-plan → its own honest
+screen; failure → retry, answers still on disk. Back blocked for the whole route
+(`gestureEnabled: false` + Android hardware back). Cold start resumes an
+interrupted flush via a new `isFlushPending()`.
 
-Next action: **slice 5, plan-ready ceremony** — safe to interrupt, reuses the
-splash system.
+**Four bugs caught before commit** — two by verifying in the preview instead of
+assuming, two by the reviewer:
+1. The art composition never rendered — `onLayout` never delivered a box, so the
+   arch and gada were absent entirely. Replaced measure-then-render with flexbox
+   `aspectRatio` (no measurement pass, nothing can pin it at zero).
+2. Both animations sat frozen: they were gated on
+   `AccessibilityInfo.isReduceMotionEnabled()`, which never settles under RNW.
+   The bar would have hung at zero while the writes ran fine. Now defaults to
+   "animate" and downgrades when the query answers.
+3. Cold-start resume could replay an already-completed flush and write a
+   duplicate `questionnaire_responses` row (append-only, no unique key). Fixed by
+   gating on the onboarded marker, not just the answers.
+4. Retry had no reentrancy guard — a double-tap could fire two concurrent
+   flushes. Added an in-flight ref.
+
+Also added a `progressBar` token (slice 6 needs three progress bars).
+
+Typecheck green; lint at the 11-error baseline (new files add zero). Verified in
+web preview: all four stages (bar 0.2 → 0.4 → 0.6 → 0.8 with correct labels, and
+it stops at 0.8), all four states, mixed-language mode, the no-answers redirect,
+zero console errors.
+
+**Physical-device only:** the motion itself. An isolated probe established that
+Reanimated does not animate under react-native-web in this setup at all — the web
+preview verifies layout, copy and state, never motion. Also untested from here:
+the real Supabase round-trip through all four stages, and the haptic/chirp on
+outcome.
+
+**Deferred (flagged, unchanged):** the "guests bank a local streak, merged on
+sign-in" decision (2026-07-28) is recorded but NOT built — `activity.ts` still
+no-ops for guests. Its own slice (AsyncStorage log + replay on `flushOnboarding`
+with the `client_event_id` dedup already in 0012).
+
+Next action: **slice 6, workout tracking + the three progress bars** — needs 0011
+(applied). This one is a multi-file refactor of `app/workout/session.tsx`; it is
+also where the 11 lint errors get cleaned rather than in a drive-by.
 
 ## Session start checklist
 
@@ -69,8 +96,8 @@ splash system.
 | 2 | Feedback service | ✅ done | expo-haptics; Toggle; wired call sites; reviewed. |
 | 3 | Splash | ✅ done | reanimated+worklets+babel; ceremony palette; arch + gada SVG; reviewed. |
 | 4 | Streak | ✅ done | `useStreak()` + live `StreakCard`; 34/34 tests; reviewed. Guest local streak deferred. |
-| 5 | Plan-ready ceremony | ⬜ next | Safe to interrupt. Reuses splash system. |
-| 6 | Workout tracking + progress | ⬜ not started | Needs 0011 |
+| 5 | Plan-ready ceremony | ✅ done | `CeremonyLoader` + `/plan/ready`; real staged awaits; 3 outcomes; reviewed. |
+| 6 | Workout tracking + progress | ⬜ next | Needs 0011 (applied). Multi-file refactor — not safe to interrupt. Clean the 11 lint errors here. |
 | 7 | Push end-to-end | ⬜ not started | Blocked on FCM credentials |
 
 Ordering rationale: schema first because four slices depend on it. Slices 1 and

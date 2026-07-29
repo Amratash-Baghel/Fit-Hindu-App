@@ -14,6 +14,15 @@ import { pickProgramId } from "./planRules";
 import type { AssignmentRule, UserPlan } from "../types/db";
 import type { Answers } from "./onboarding";
 
+/**
+ * The two real awaits `assignPlan` performs, reported to a caller that wants to
+ * show progress (the plan-ready ceremony, slice 5). These are events, not
+ * timers: "matching" fires as the rules query goes out, "assembling" only once a
+ * program actually matched and the plan row is about to be written. A caller can
+ * therefore never paint a stage the data has not reached.
+ */
+export type PlanStage = "matching" | "assembling";
+
 /** The winning program for these answers, or null if no rule matches. */
 export async function resolveProgramId(a: Answers): Promise<string | null> {
   const { data, error } = await supabase
@@ -33,12 +42,18 @@ export async function resolveProgramId(a: Answers): Promise<string | null> {
  * (library, meditation, jap all stand alone); the user just has no day-by-day
  * plan. Never throw a user out of onboarding over it.
  */
-export async function assignPlan(a: Answers): Promise<UserPlan | null> {
+export async function assignPlan(
+  a: Answers,
+  onStage?: (s: PlanStage) => void,
+): Promise<UserPlan | null> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
+  onStage?.("matching");
   const programId = await resolveProgramId(a);
   if (!programId) return null;
+
+  onStage?.("assembling");
 
   // One active plan per user is enforced by user_plans_one_active_idx, so a
   // re-take must supersede the old plan rather than insert a second one.

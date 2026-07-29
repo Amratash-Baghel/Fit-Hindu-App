@@ -14,16 +14,22 @@ import { useEffect, useState } from "react";
 import { View } from "react-native";
 import { Redirect } from "expo-router";
 import { useAuth } from "../src/lib/auth";
-import { hasOnboarded } from "../src/lib/onboarding";
+import { hasOnboarded, isFlushPending } from "../src/lib/onboarding";
 import { ceremony } from "../src/ui";
 
 export default function Index() {
   const { session, loading } = useAuth();
   const [onboarded, setOnboarded] = useState<boolean | null>(null);
+  /** Consented answers on disk that have never been flushed. */
+  const [pending, setPending] = useState<boolean | null>(null);
 
   useEffect(() => {
     let alive = true;
-    void hasOnboarded().then((v) => alive && setOnboarded(v));
+    void Promise.all([hasOnboarded(), isFlushPending()]).then(([v, p]) => {
+      if (!alive) return;
+      setOnboarded(v);
+      setPending(p);
+    });
     return () => {
       alive = false;
     };
@@ -34,8 +40,19 @@ export default function Index() {
   // the root layout, on top) covers this window, but we paint the ceremony field
   // rather than a bare `null` so there is never a black/white flash if the
   // overlay has already faded but the redirect target hasn't mounted yet.
-  if (loading || onboarded === null)
+  if (loading || onboarded === null || pending === null)
     return <View style={{ flex: 1, backgroundColor: ceremony.field }} />;
+
+  // Signed in with answers that were never flushed: the ceremony was cut short
+  // — a kill mid-write, or a failure the user never retried. `hasOnboarded()`
+  // counts those pending answers as done, so without this they would land in
+  // the tabs and the answers would sit there forever, with no plan and no route
+  // back to one. Resume the ceremony; it ends in the tabs either way.
+  //
+  // `isFlushPending` (not the raw answers) is what makes this safe to repeat:
+  // it is false once the flush has completed, so a successful write is never
+  // replayed, and false once the user has walked away from a failing one.
+  if (session && pending) return <Redirect href="/plan/ready" />;
 
   return <Redirect href={session || onboarded ? "/(tabs)" : "/onboarding"} />;
 }

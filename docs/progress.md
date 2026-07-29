@@ -3,6 +3,32 @@
 Running build log — one entry per shipped item, newest on top. This is the
 standup doc for the owner and the resume-from-home lifeline.
 
+- **2026-07-29** — **Feature sprint slice 5: plan-ready ceremony.** The single
+  most important write in the app — a guest's answers becoming a profile, a
+  questionnaire row and an assigned plan — was running invisibly inside the OTP
+  screen behind a disabled button, and its "no rule matched" outcome was
+  indistinguishable from success. New `src/ui/CeremonyLoader.tsx` (reusable,
+  parameterised on stage labels + status; workout-plan generation is meant to be
+  its second caller) and `app/plan/ready.tsx` now own it. The four stages are
+  driven by the four real awaits inside `flushOnboarding` — no faked timers —
+  and the bar caps at 0.8 until the data actually lands. Three outcomes, none of
+  them a dead screen: plan assigned; write succeeded but no rule matched (its own
+  honest screen, not a silent drop into the tabs); write failed (retry, answers
+  still on disk). Back blocked for the route, gesture and Android hardware. Cold
+  start now resumes an interrupted flush via a new `isFlushPending()`. Reuses the
+  slice 3 artwork so the two ceremonies read as one product. **Two bugs caught by
+  verifying rather than assuming:** the art composition never rendered at all
+  (`onLayout` never delivered a box — replaced the measure-then-render pass with
+  flexbox `aspectRatio`), and both animations sat frozen because they were gated
+  on `AccessibilityInfo.isReduceMotionEnabled()`, which never settles under
+  react-native-web — the bar would have hung at zero while the writes ran fine.
+  An isolated probe then established that Reanimated does not animate on RNW at
+  all here, so web takes a plain-style path (see decisions). **Two more caught by
+  the reviewer:** the cold-start resume could replay a completed flush and write
+  a duplicate `questionnaire_responses` row, and Retry had no reentrancy guard.
+  Added a `progressBar` token for slice 6's three bars. Typecheck green; lint at
+  the 11-error baseline (new files add zero). Verified in web preview across all
+  four stages, all four states, and mixed-language mode.
 - **2026-07-29** — **Feature sprint slice 4: streak wired to the UI.** The Home
   "sankalp" card showed three permanently-dim diyas — a mockup stub. Replaced it
   with a live `StreakCard` driven by a new `useStreak()` hook (`src/lib/streak.ts`)

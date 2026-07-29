@@ -60,6 +60,10 @@ export default function RootLayout() {
             <Stack.Screen name="onboarding/index" />
             <Stack.Screen name="auth/index" />
             <Stack.Screen name="auth/verify" />
+            {/* The ceremony writes the plan; swiping out mid-write would orphan
+                a half-finished flush. The route blocks the Android hardware
+                back too — see app/plan/ready.tsx. */}
+            <Stack.Screen name="plan/ready" options={{ gestureEnabled: false }} />
             <Stack.Screen name="settings/index" />
           </Stack>
           <SplashGate />

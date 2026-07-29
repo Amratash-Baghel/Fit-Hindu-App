@@ -185,6 +185,30 @@ export const strings = {
   ready_cta: { hi: "शुरू करें", en: "Let's begin" },
   onboarding_saving: { hi: "आपका plan बन रहा है…", en: "Building your plan…" },
 
+  // plan-ready ceremony (slice 5) — the four stage labels map 1:1 onto the four
+  // real awaits in flushOnboarding (see FLUSH_STAGES in src/lib/auth.tsx). Copy
+  // stays descriptive: a plan is matched and assembled, never prescribed, and
+  // nothing here claims a health outcome.
+  plan_stage_profile: { hi: "आपकी जानकारी सहेजी जा रही है…", en: "Saving your details…" },
+  plan_stage_answers: { hi: "आपके उत्तर दर्ज हो रहे हैं…", en: "Recording your answers…" },
+  plan_stage_matching: { hi: "आपके लिए कार्यक्रम चुना जा रहा है…", en: "Matching your program…" },
+  plan_stage_assembling: { hi: "आपका plan जोड़ा जा रहा है…", en: "Assembling your plan…" },
+  plan_working_title: { hi: "आपका plan बन रहा है", en: "Building your plan" },
+  plan_working_body: {
+    hi: "बस कुछ क्षण — आपके उत्तरों के अनुसार।",
+    en: "Just a moment — shaped by the answers you gave.",
+  },
+  // No rule matched yet. A real state, not an error: the write succeeded, the
+  // content team simply has no program for this combination so far.
+  plan_none_title: { hi: "अभी आपका plan तैयार नहीं है", en: "Your plan isn't ready yet" },
+  plan_none_body: {
+    hi: "आपके उत्तर सुरक्षित हैं। तब तक व्यायाम, ध्यान और जप आपके लिए खुले हैं — plan बनते ही यहीं दिखेगा।",
+    en: "Your answers are safe. Workouts, meditation and jap are open to you meanwhile — your plan will appear here as soon as it's ready.",
+  },
+  plan_error_title: { hi: "सहेजा नहीं जा सका", en: "Couldn't save it" },
+  plan_enter: { hi: "ऐप में जाएँ", en: "Go to the app" },
+  plan_progress_label: { hi: "प्रगति", en: "Progress" },
+
   // auth (OTP — src/lib/auth.tsx)
   auth_title: { hi: "अपना plan सुरक्षित करें", en: "Save your plan" },
   auth_why: {

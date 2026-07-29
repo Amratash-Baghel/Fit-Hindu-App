@@ -1,18 +1,17 @@
 /**
- * Sign-in step 2 — the 6-digit code, and the moment everything becomes real.
+ * Sign-in step 2 — the 6-digit code.
  *
- * On success this is where the guest→user bridge runs: the answers held in
- * AsyncStorage become profile columns, a questionnaire_responses row, and an
- * assigned plan. If that write fails the answers stay on disk and the user gets
- * a retry — the spec's "retain answers locally, retry CTA" state
- * (docs/specs/onboarding-questionnaire.md:57).
+ * On success it hands straight off to the plan-ready ceremony
+ * (`app/plan/ready.tsx`), which owns the guest→user bridge and every outcome
+ * that write can have. This screen used to run the bridge itself, invisibly,
+ * behind a disabled button; slice 5 moved it somewhere the user can see it.
  */
 import React, { useState } from "react";
 import { TextInput, View } from "react-native";
 import { Redirect, useRouter } from "expo-router";
 import { Screen, Button, FooterAction, B, T, space, color, radius, tapTarget } from "../../src/ui";
 import { useI18n } from "../../src/lib/i18n";
-import { flushOnboarding, getPendingIdentifier, sendOtp, verifyOtp } from "../../src/lib/auth";
+import { getPendingIdentifier, sendOtp, verifyOtp } from "../../src/lib/auth";
 
 export default function AuthVerify() {
   const router = useRouter();
@@ -20,7 +19,7 @@ export default function AuthVerify() {
   // Held in module state, not a route param — it must not reach the URL.
   const id = getPendingIdentifier();
   const [code, setCode] = useState("");
-  const [error, setError] = useState<"code" | "flush" | "resend" | null>(null);
+  const [error, setError] = useState<"code" | "resend" | null>(null);
   const [busy, setBusy] = useState(false);
   const [resent, setResent] = useState(false);
 
@@ -35,16 +34,10 @@ export default function AuthVerify() {
       setBusy(false);
       return;
     }
-    // Signed in. Now save what they answered as a guest.
-    try {
-      await flushOnboarding();
-      router.replace("/(tabs)");
-    } catch {
-      // Session is live but the write failed — answers are still on disk, so
-      // Verify becomes Retry rather than losing 10 questions of work.
-      setError("flush");
-      setBusy(false);
-    }
+    // Signed in. The guest→user write, and every outcome it can have, now
+    // belongs to the plan-ready ceremony (slice 5) — this screen's job ended at
+    // the code. `replace` so back can never return to a spent OTP form.
+    router.replace("/plan/ready");
   };
 
   // Landing here without having asked for a code (a web reload, a deep link):
@@ -87,13 +80,7 @@ export default function AuthVerify() {
         />
         {error ? (
           <T variant="caption" tone="danger" style={{ textAlign: "center" }}>
-            {t(
-              error === "code"
-                ? "auth_invalid_code"
-                : error === "resend"
-                  ? "auth_send_failed"
-                  : "auth_flush_failed",
-            )}
+            {t(error === "code" ? "auth_invalid_code" : "auth_send_failed")}
           </T>
         ) : null}
         {resent && !error ? (
@@ -105,7 +92,7 @@ export default function AuthVerify() {
 
       <FooterAction>
         <Button
-          k={busy ? "onboarding_saving" : error === "flush" ? "retry" : "auth_verify"}
+          k={busy ? "loading" : "auth_verify"}
           disabled={busy || code.length < 6}
           onPress={() => void submit()}
         />
