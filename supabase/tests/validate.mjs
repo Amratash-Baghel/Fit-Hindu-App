@@ -65,7 +65,11 @@ async function apply(f) {
   }
 }
 
-for (const f of files.filter(f => !f.startsWith("0012"))) {
+// Everything BEFORE 0012 goes on first, so legacy rows can be inserted against
+// the pre-0012 shape below. Ordering by name, not by an exclusion filter: a
+// filter of `!startsWith("0012")` would sort 0013+ into this first pass and
+// apply them before the migration they follow.
+for (const f of files.filter(f => f < "0012")) {
   if (!(await apply(f))) { console.error("aborting"); process.exit(1); }
 }
 check("migrations 0001-0011 apply", true, true);
@@ -89,6 +93,12 @@ await db.exec(`
 // ---- now 0012, against populated tables ----
 if (!(await apply("0012_activity_program_streak.sql"))) process.exit(1);
 check("migration 0012 applies over existing rows", true, true);
+
+// ---- and everything after it, in order ----
+for (const f of files.filter(f => f > "0012z")) {
+  if (!(await apply(f))) { console.error("aborting"); process.exit(1); }
+}
+check("migrations after 0012 apply", true, true);
 
 const q = async (sql) => (await db.query(sql)).rows;
 
@@ -226,6 +236,88 @@ await db.exec(`insert into exercise_logs (session_id, item_position, set_no, exe
                values ('${SESS}', 0, 1, '${EX}') on conflict do nothing`);
 check("offline replay of the same set is a no-op",
   (await q(`select count(*)::int c from exercise_logs where session_id='${SESS}'`))[0].c, 2);
+
+// ---------- 0013: progress aggregates ----------
+// Purpose-built fixtures rather than the seed's exercises, so every expected
+// number below is derivable by hand from what is inserted here.
+const P = "55555555-0000-4000-8000-0000000000"; // progress-test id prefix
+const EX_CHEST_ARMS = `${P}01`; // two body areas — a set counts toward BOTH
+const EX_LEGS = `${P}02`;
+const U3 = "11111111-0000-4000-8000-000000000003"; // isolated progress user
+
+await db.exec(`
+  insert into auth.users (id) values ('${U3}');
+  insert into exercises (id, slug, name_hi, name_en, body_areas, status) values
+    ('${EX_CHEST_ARMS}', 'p-pushup', 'x', 'Push-up', '{chest,arms}', 'published'),
+    ('${EX_LEGS}',       'p-squat',  'y', 'Squat',   '{legs}',       'published');
+`);
+
+// Three sessions for U3: two completed (one today, one 20 days ago) and one
+// abandoned today. 6 non-skipped sets + 1 skipped across the completed pair.
+const S1 = `${P}11`, S2 = `${P}12`, S3 = `${P}13`;
+await db.exec(`
+  insert into workout_sessions (id, user_id, source, status, ist_date, started_at, completed_at) values
+    ('${S1}', '${U3}', 'template', 'completed', ist_today(),      now() - interval '30 min', now()),
+    ('${S2}', '${U3}', 'template', 'completed', ist_today() - 20, now() - interval '10 min', now()),
+    ('${S3}', '${U3}', 'template', 'abandoned', ist_today(),      now() - interval '90 min', null);
+  insert into exercise_logs (session_id, item_position, set_no, exercise_id, skipped) values
+    ('${S1}', 0, 1, '${EX_CHEST_ARMS}', false),
+    ('${S1}', 0, 2, '${EX_CHEST_ARMS}', false),
+    ('${S1}', 1, 1, '${EX_LEGS}',       false),
+    ('${S1}', 1, 2, '${EX_LEGS}',       true),   -- skipped: excluded everywhere
+    ('${S2}', 0, 1, '${EX_CHEST_ARMS}', false),
+    ('${S2}', 1, 1, '${EX_LEGS}',       false),
+    ('${S2}', 1, 2, '${EX_LEGS}',       false),
+    ('${S3}', 0, 1, '${EX_LEGS}',       false);  -- abandoned: excluded everywhere
+`);
+
+const sum = (await q(`select * from progress_summary('${U3}')`))[0];
+check("progress_summary: counts completed sessions only", sum.sessions_total, 2);
+check("progress_summary: week window excludes the 20-day-old session", sum.sessions_week, 1);
+check("progress_summary: distinct training days", sum.active_days, 2);
+// session_summary.sets_done already filters skipped -> 3 + 3
+check("progress_summary: sets exclude skipped and abandoned", sum.sets_total, 6);
+check("progress_summary: minutes are positive and week <= total",
+  sum.minutes_total >= sum.minutes_week && sum.minutes_week > 0, true);
+
+const areas = await q(`select * from body_area_progress('${U3}')`);
+const byArea = Object.fromEntries(areas.map(r => [r.area, r.sets_done]));
+// chest+arms exercise: 2 sets in S1 + 1 in S2 = 3, counted toward each area.
+check("body_area_progress: multi-area exercise counts toward every area",
+  [byArea.chest, byArea.arms], [3, 3]);
+// legs: S1 has 1 done + 1 skipped, S2 has 2 done -> 3
+check("body_area_progress: skipped sets excluded", byArea.legs, 3);
+check("body_area_progress: abandoned session excluded", areas.length, 3);
+check("body_area_progress: last_done is the most recent training date",
+  (await q(`select (last_done = ist_today()) t from body_area_progress('${U3}') where area='chest'`))[0].t, true);
+
+// A user with no history gets one row of zeroes, never a null row.
+const empty = (await q(`select * from progress_summary('${U2}')`))[0];
+check("progress_summary: no history returns zeroes, not null",
+  [empty.sessions_total, empty.minutes_total, empty.sets_total], [0, 0, 0]);
+check("body_area_progress: no history returns no rows",
+  (await q(`select count(*)::int c from body_area_progress('${U2}')`))[0].c, 0);
+
+// plan_progress: U (seeded active plan, started 30 days ago) vs U3 (no plan).
+await db.exec(`insert into workout_sessions (id, user_id, source, status, ist_date)
+               values ('${P}21','${U}','template','completed', ist_today()),
+                      ('${P}22','${U}','template','completed', ist_today()),
+                      ('${P}23','${U}','template','completed', ist_today() - 2),
+                      ('${P}24','${U}','template','completed', ist_today() - 60)`);
+const pp = (await q(`select * from plan_progress('${U}')`))[0];
+check("plan_progress: two sessions in one day count as one day", pp.days_done, 2);
+check("plan_progress: sessions before the plan started are excluded", pp.days_done < 3, true);
+check("plan_progress: reports the program length", pp.duration_days > 0, true);
+check("plan_progress: no active plan returns no rows",
+  (await q(`select count(*)::int c from plan_progress('${U3}')`))[0].c, 0);
+
+// Same security contract as streak_state: these must NOT be security definer,
+// or RLS stops applying and any uid could be read.
+const prosec = await q(`select proname, prosecdef from pg_proc
+  where proname in ('progress_summary','body_area_progress','plan_progress') order by proname`);
+check("progress functions are not security definer",
+  prosec.map(p => `${p.proname}:${p.prosecdef}`),
+  ["body_area_progress:false", "plan_progress:false", "progress_summary:false"]);
 
 console.log("\n" + results.join("\n"));
 console.log(`\n${pass} passed, ${fail} failed\n`);

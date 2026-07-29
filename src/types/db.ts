@@ -395,3 +395,39 @@ export interface StreakState {
    *  the missed day. */
   freezes_used: number;
 }
+
+// ---------- progress aggregates (migration 0013) ----------
+
+/** Return of progress_summary(uid). Always exactly one row — a user with no
+ *  history gets zeroes, never null, so the UI branches on the numbers rather
+ *  than on the shape. "Week" is the rolling last 7 days in IST. */
+export interface ProgressSummary {
+  sessions_total: number;
+  sessions_week: number;
+  minutes_total: number;
+  minutes_week: number;
+  sets_total: number;
+  /** Distinct days trained. NOT the streak — that counts every activity type. */
+  active_days: number;
+}
+
+/** One row per body area the user has actually trained; areas never touched are
+ *  absent rather than zero. An exercise trains several areas at once, so these
+ *  deliberately sum to more than `sets_total` — per-area totals, never shares
+ *  of a whole (see migration 0013). */
+export interface BodyAreaProgress {
+  area: BodyArea;
+  sets_done: number;
+  last_done: string;
+}
+
+/** Return of plan_progress(uid). ZERO rows when there is no active plan — a
+ *  real, common state (the rules engine leaves some users unmatched), so the
+ *  client renders no plan bar rather than a 0/0 one. `days_done` is distinct
+ *  training days and is NOT capped at `duration_days`. */
+export interface PlanProgress {
+  program_id: string;
+  duration_days: number;
+  days_done: number;
+  started_on: string;
+}
