@@ -8,24 +8,38 @@
 >
 > Contract: `docs/specs/feature-sprint.md`. Source prompt: `prompts/feature-sprint.md`.
 
-**Last updated:** 2026-07-28 · slice 2 built + reviewed + verified, committing.
+**Last updated:** 2026-07-29 · slice 3 built + reviewed + verified, committing.
 
 ---
 
 ## Where we are
 
-**Slice 2 — feedback service (haptics + sound). Built, reviewed, verified.**
+**Slice 3 — splash / launch screen. Built, reviewed, verified.**
 
-`src/lib/feedback.ts` (tap/success/complete/error), `src/lib/settings.ts` (the
-two device-local toggles, default on), a `Toggle` primitive, the Feedback
-section in Settings, and wired call sites. Reviewer found two issues (unhandled
-`seekTo` rejection; a misleading audio-mode comment) — both fixed. `expo-haptics`
-installed. Four placeholder SFX in `assets/sfx/` await the sound designer.
+Animated oxblood-and-gold ceremony replaces the C4 dead cold-start frame.
+`app/_layout.tsx` calls `preventAutoHideAsync()` at module scope and mounts a
+`SplashGate` (inside AuthProvider) that renders `src/ui/CeremonySplash.tsx`
+above the router; `src/ui/ceremony/art.tsx` holds the pure SVG marks; ceremony
+palette added as `tokens.ceremony.*`; `splash_tagline` string added; `app.json`
+splash background aligned to the ceremony maroon; `app/index.tsx`'s bare `null`
+replaced with a maroon field. Reanimated on the UI thread — added
+`babel.config.js` (repo's first) for the `react-native-worklets` plugin, and
+declared `react-native-reanimated ~4.5.1` + `react-native-worklets 0.10.2` in
+package.json (both already installed, owner-approved). Motion 1.6–2.2 s, 1.2 s
+min beat, 6 s hard timeout, reduce-motion static path; completion runs on plain
+timers (not rAF callbacks) so a frozen frame loop never traps the user.
+Reviewer: no high/critical findings; fixed an idle-shimmer restart, recorded the
+brand-wordmark i18n exception in `docs/decisions.md`. Typecheck + lint green
+(lint at the documented 11-error baseline; the new files add zero).
 
-Next action: **slice 3, splash / launch screen** — the ceremony palette, the
-arch + gada SVG, Reanimated motion, `preventAutoHideAsync`. Safe to interrupt.
-Needs `react-native-reanimated` installed (approved). The owner reference image
-is in hand.
+Verified in web preview: splash mounts (19 SVG paths, wordmark + tagline) and
+self-dismisses to onboarding even in a backgrounded tab. Physical-device-only:
+motion smoothness on low-end hardware, native→animated handoff seam,
+reduce-motion visual, haptics.
+
+Next action: **slice 4, streak** — wire the existing `streak_state` backend to
+the UI and replace the hardcoded diyas. **Uninterruptible** (server-side logic +
+test cases); needs 0012 (applied). Start on a fresh quota window.
 
 ## Session start checklist
 
@@ -43,8 +57,8 @@ is in hand.
 | 1 | Migrations 0011 + 0012 | ✅ applied | 34/34 PGlite checks. Owner ran both in Supabase. |
 | 1b | Settings screen | ✅ done | Verified in web preview. Language/Account/About. |
 | 2 | Feedback service | ✅ done | expo-haptics; Toggle; wired call sites; reviewed. |
-| 3 | Splash | ⬜ next | Install reanimated; ceremony palette; arch + gada SVG |
-| 4 | Streak | ⬜ not started | **Uninterruptible.** Needs 0012. |
+| 3 | Splash | ✅ done | reanimated+worklets+babel; ceremony palette; arch + gada SVG; reviewed. |
+| 4 | Streak | ⬜ next | **Uninterruptible.** Needs 0012. |
 | 5 | Plan-ready ceremony | ⬜ not started | Safe to interrupt. Reuses splash system. |
 | 6 | Workout tracking + progress | ⬜ not started | Needs 0011 |
 | 7 | Push end-to-end | ⬜ not started | Blocked on FCM credentials |
@@ -57,7 +71,10 @@ restart.
 ## Dependencies
 
 - `expo-haptics` ~57.0.1 — **installed** (slice 2).
-- `react-native-reanimated` — approved, install in slice 3.
+- `react-native-reanimated` ~4.5.1 + `react-native-worklets` 0.10.2 —
+  **installed + declared** (slice 3). Needs `babel.config.js` (added) +
+  New Architecture (Expo SDK 57 default). Reanimated 4 required the worklets
+  peer + its babel plugin.
 - `expo-notifications` — approved, install in slice 7.
 
 Install at the slice that needs each, not up front.

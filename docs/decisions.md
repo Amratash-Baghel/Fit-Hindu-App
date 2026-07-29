@@ -2,6 +2,33 @@
 
 One dated line per decision, with the why. Newest on top.
 
+- **2026-07-29 (splash = oxblood-and-gold ceremony, Reanimated on the UI
+  thread)** — The launch screen is an animated SVG composition (radial maroon
+  field, gold ogee arch drawn with a stroke-dash reveal, gada emblem on a gold
+  ring, terracotta filigree panels sweeping in). Motion budget **1.6–2.2 s**;
+  **minimum 1.2 s beat** so early data can't cause a stutter; gentle gold
+  shimmer idle-loop if data is slow; **6 s hard timeout** to the app so the user
+  is never trapped. The gold bloom is a layered `RadialGradient`, never an SVG
+  blur/`<FeGaussianBlur>` filter (software-rasterised on Android). Reduce-motion
+  → static composition + cross-fade only. Why the timers, not Reanimated
+  callbacks, own completion: a backgrounded tab (or a stalled UI thread) freezes
+  `requestAnimationFrame`, so anything gated on a `withTiming` callback could
+  strand the user faded-but-mounted; the ceremony's state machine runs on plain
+  `setTimeout`s instead. Added `babel.config.js` (the repo's first) for the
+  `react-native-worklets` plugin that Reanimated 4 requires; `babel-preset-expo`
+  is resolved from expo's nested copy since npm didn't hoist it.
+- **2026-07-29 (ceremony palette is namespaced `tokens.ceremony.*`)** — The
+  oxblood + antique-gold ritual colours live in their own token namespace and
+  are used ONLY by the splash and the (later) plan-ready ceremony. Why: they
+  must not leak into everyday app surfaces, which stay on the premium-black /
+  saffron / gold system. `app.json`'s native splash background is set to the
+  same `ceremony.field` maroon so the native→animated handoff shows no seam.
+- **2026-07-29 (the "Fit Hindu" wordmark is not routed through i18n)** —
+  Deliberate, recorded exception to the never-hardcode-display-text rule: the
+  splash wordmark and its `accessibilityLabel` render the raw brand name. Why:
+  it is a proper noun, identical in Hindi and English; the tagline beneath it
+  (`splash_tagline`) IS bilingual through the catalog. Logged explicitly (per
+  reviewer flag) so it is a reviewed exception, not a silent one.
 - **2026-07-28 (feedback = one service, haptics + sound paired)** — All tactile/
   audio feedback goes through `src/lib/feedback.ts` (tap/success/complete/error);
   no component calls `Haptics.*` or a UI audio player directly. Why: the two

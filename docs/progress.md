@@ -3,6 +3,28 @@
 Running build log — one entry per shipped item, newest on top. This is the
 standup doc for the owner and the resume-from-home lifeline.
 
+- **2026-07-29** — **Feature sprint slice 3: splash / launch screen.** Replaced
+  the bare `null` cold-start frame (the C4 "dead frame") with an animated
+  oxblood-and-gold ceremony. `preventAutoHideAsync()` holds the native splash
+  from module load; a `SplashGate` inside AuthProvider paints the animated
+  overlay, hides the native splash on its first frame (seam-free — `app.json`
+  splash background now matches `ceremony.field` maroon), plays the motion, then
+  cross-fades to the home screen mounted underneath. Artwork is all
+  `react-native-svg` paths in `src/ui/ceremony/art.tsx` (no bitmaps): radial
+  field, gold ogee arch drawn via stroke-dash, gada emblem on a gold ring,
+  terracotta filigree panels. Motion is Reanimated on the UI thread (added
+  `babel.config.js` for the `react-native-worklets` plugin; `react-native-reanimated`
+  + `react-native-worklets` declared in package.json — owner-approved). Budget
+  1.6–2.2 s, 1.2 s min beat, gold-shimmer idle hold for slow data, 6 s hard
+  timeout, reduce-motion → static. Completion runs on plain timers, not rAF
+  callbacks, so a frozen frame loop can never trap the user — verified in web
+  preview that the splash mounts (19 SVG paths, wordmark + tagline) and reliably
+  self-dismisses to onboarding even in a backgrounded tab. Ceremony palette
+  namespaced `tokens.ceremony.*` (splash + plan-ready only). Reviewer
+  (`.claude/agents/reviewer.md`) run on the diff: no high/critical findings;
+  fixed an idle-shimmer restart and recorded the brand-wordmark i18n exception.
+  Motion smoothness on low-end hardware and the native handoff seam are
+  physical-device-only.
 - **2026-07-28** — **Feature sprint slice 2: haptics + sound feedback.** The app
   had zero tactile/audio feedback (not broken — never built). Added
   `src/lib/feedback.ts` — one service, `tap/success/complete/error`, each a

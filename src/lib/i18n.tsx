@@ -32,6 +32,11 @@ export const strings = {
   tab_jap: { hi: "जप", en: "Jap" },
   tab_sleep: { hi: "नींद", en: "Sleep" },
 
+  // splash / launch ceremony (slice 3) — wordmark is the brand name (rendered
+  // raw, not translated); only the tagline is bilingual. Kept devotional and
+  // non-medical per the health-claim rule.
+  splash_tagline: { hi: "आपकी दैनिक साधना", en: "Your daily sadhana" },
+
   // shared
   coming_soon: { hi: "जल्द आ रहा है", en: "Coming soon" },
   continue: { hi: "आगे बढ़ें", en: "Continue" },

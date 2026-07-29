@@ -1,12 +1,30 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import * as SplashScreen from "expo-splash-screen";
 import { I18nProvider } from "../src/lib/i18n";
-import { AuthProvider } from "../src/lib/auth";
+import { AuthProvider, useAuth } from "../src/lib/auth";
 import { hydrateFeedbackPrefs } from "../src/lib/settings";
 import { preloadFeedback } from "../src/lib/feedback";
-import { color } from "../src/ui";
+import { CeremonySplash, color } from "../src/ui";
+
+// Hold the native splash from the very first module evaluation so there is zero
+// flash of white before the animated ceremony paints (slice 3). The animated
+// overlay hides it again once its first frame is up.
+SplashScreen.preventAutoHideAsync().catch(() => {});
+
+/**
+ * The animated splash lives here, inside AuthProvider, so it can gate on the
+ * auth session ("first data"). It renders on top of the router and unmounts
+ * itself once it has cross-faded to the home screen underneath.
+ */
+function SplashGate() {
+  const { loading } = useAuth();
+  const [done, setDone] = useState(false);
+  if (done) return null;
+  return <CeremonySplash ready={!loading} onFinish={() => setDone(true)} />;
+}
 
 export default function RootLayout() {
   // Load the haptics/sound choice and warm the SFX players once, so the first
@@ -14,6 +32,14 @@ export default function RootLayout() {
   useEffect(() => {
     void hydrateFeedbackPrefs();
     preloadFeedback();
+  }, []);
+
+  // Last-resort safety: if the ceremony gate never mounts (e.g. a provider
+  // never hydrates), the native splash must still come down so the user is
+  // never trapped. The overlay's own 6 s timeout handles the common path.
+  useEffect(() => {
+    const t = setTimeout(() => SplashScreen.hideAsync().catch(() => {}), 6500);
+    return () => clearTimeout(t);
   }, []);
 
   return (
@@ -36,6 +62,7 @@ export default function RootLayout() {
             <Stack.Screen name="auth/verify" />
             <Stack.Screen name="settings/index" />
           </Stack>
+          <SplashGate />
         </AuthProvider>
       </I18nProvider>
     </SafeAreaProvider>

@@ -40,6 +40,27 @@ export const color = {
  *  flat `gold` is the fallback). */
 export const goldGradient = ["#F2C879", "#D9A441", "#B07E2B"] as const;
 
+/**
+ * Ceremony palette — the deep oxblood + antique-gold ritual look, namespaced so
+ * it stays OUT of the everyday app surfaces (owner decision 4, 2026-07-28). Used
+ * ONLY by the splash (slice 3) and the plan-ready ceremony (slice 5). Everything
+ * else uses the tokens above; nothing here leaks into normal screens.
+ * `field` is mirrored by the native splash background in app.json so the
+ * native→animated handoff shows no seam.
+ */
+export const ceremony = {
+  field: "#5C1A1C", // oxblood base — app.json splash background matches this
+  fieldHi: "#6B1F21", // lifted maroon — radial centre of the field
+  fieldDeep: "#3B0F11", // vignette edge
+  gold: "#D4A24C", // emblem, arch, filigree
+  goldHi: "#F0CE84", // specular highlight + gada bloom
+  goldShade: "#A9762A", // shaded gold facets
+  terracotta: "#D2582A", // side-panel filigree
+  terracottaHi: "#E2703A",
+  cream: "#F2EDE6", // cream negative space / corners
+  charcoal: "#2B2B2B", // base band
+} as const;
+
 export const space = {
   xs: 4,
   sm: 8,
