@@ -3,6 +3,7 @@ export { T, B } from "./Text";
 export { Button, FooterAction } from "./Button";
 export { Card, Chip } from "./Card";
 export { OptionRow, ProgressDots, Checkbox } from "./Choice";
+export { ProgressBar } from "./ProgressBar";
 export { Toggle } from "./Toggle";
 export { Screen } from "./Screen";
 export { CeremonySplash } from "./CeremonySplash";

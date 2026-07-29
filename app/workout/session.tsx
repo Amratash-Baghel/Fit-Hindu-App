@@ -1,4 +1,21 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+/**
+ * Guided session player (workout spec v2 — F&B structure, Leap execution):
+ *   [Exercise · Set k/N] → set done → [Rest: countdown · +20s · Skip ·
+ *   next-up preview] → next set / next exercise → [Complete: diya + stats].
+ * One player, three sources: ?template=, ?custom=, ?exercise=.
+ *
+ * Slice 6 changed what this file does with the work it records. It used to keep
+ * every set in a `useRef` and write a single activity_log row at the very end —
+ * kill the app at set 9 of 10 and all of it was gone. Now each set goes to
+ * `src/lib/session.ts` as it happens (local mirror first, network second), and
+ * an interrupted session is closed out on the next launch.
+ *
+ * The countdown drives its own transitions from inside the interval callback
+ * rather than from an effect watching the counter. That is not a style choice:
+ * an effect that fires `finishSet()` when `secLeft` hits 0 is a setState
+ * cascade, and it double-fired if a re-render landed on the same zero.
+ */
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, TextInput, View } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useKeepAwake } from "expo-keep-awake";
@@ -7,6 +24,7 @@ import {
   Card,
   Button,
   FooterAction,
+  ProgressBar,
   B,
   T,
   AvatarTile,
@@ -16,27 +34,20 @@ import {
 } from "../../src/ui";
 import { useI18n } from "../../src/lib/i18n";
 import { loadSession, type SessionSource, type TemplateItem } from "../../src/lib/content";
-import { logActivity } from "../../src/lib/activity";
+import { finishSession, logSet, startSession } from "../../src/lib/session";
 import { feedback } from "../../src/lib/feedback";
-
-/**
- * Guided session player (workout spec v2 — F&B structure, Leap execution):
- *   [Exercise · Set k/N] → set done → [Rest: countdown · +20s · Skip ·
- *   next-up preview] → next set / next exercise → [Complete: diya + stats].
- * One player, three sources: ?template=, ?custom=, ?exercise=.
- */
-
-interface SetLogEntry {
-  exercise_id: string;
-  set_no: number;
-  reps?: number;
-  seconds?: number;
-  weight_kg?: number;
-}
 
 interface Target {
   itemIdx: number;
   setNo: number; // 1-based
+}
+
+/** Stats for the completion screen, captured when the session ends so the
+ *  render never has to read a ref (and never recomputes minutes on re-render). */
+interface Summary {
+  exercises: number;
+  sets: number;
+  minutes: number;
 }
 
 function effective(item: TemplateItem) {
@@ -64,45 +75,90 @@ export default function WorkoutSession() {
   const [secLeft, setSecLeft] = useState<number | null>(null); // timed work
   const [restLeft, setRestLeft] = useState(0);
   const [weight, setWeight] = useState("");
+  const [setsDone, setSetsDone] = useState(0);
+  const [summary, setSummary] = useState<Summary | null>(null);
 
-  const log = useRef<SetLogEntry[]>([]);
-  const startedAt = useRef(Date.now());
+  /** Server session id; null for a guest, who still gets the whole player. */
+  const sessionId = useRef<string | null>(null);
+  /** Set at load, never during render (Date.now() in a ref initialiser is an
+   *  impure call on every render, not just the first). */
+  const startedAtMs = useRef(0);
+  const exercisesSeen = useRef(new Set<string>());
+  /** Synchronous twin of `setsDone`. The last set completes the workout in the
+   *  same call that records it, and the `setsDone` state update has not been
+   *  applied yet at that point — reading the state there undercounts the
+   *  summary by exactly one, every time. */
+  const setsLogged = useRef(0);
   const completed = useRef(false);
 
   useEffect(() => {
     let alive = true;
     loadSession({ template: params.template, custom: params.custom, exercise: params.exercise })
-      .then((s) => {
+      .then(async (s) => {
         if (!alive) return;
         if (!s || s.items.length === 0) {
           setStatus("error");
           return;
         }
         setSource(s);
-        const eff = effective(s.items[0]);
-        setSecLeft(eff.duration ?? null);
+        setSecLeft(effective(s.items[0]).duration ?? null);
+        startedAtMs.current = Date.now();
         setStatus("ok");
-        startedAt.current = Date.now();
+
+        // Open the server-side session after painting: a slow network must not
+        // hold up the first exercise. Sets logged before this resolves are
+        // no-ops (logSet checks the mirror), which is why the very first set
+        // cannot be recorded for a user who starts instantly on a dead
+        // connection — acceptable, and far better than a blocking spinner.
+        const local = await startSession(s);
+        if (alive) sessionId.current = local?.id ?? null;
       })
-      .catch(() => alive && setStatus("error"));
+      .catch(() => {
+        if (alive) setStatus("error");
+      });
     return () => {
       alive = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.template, params.custom, params.exercise]);
 
   const item = source?.items[target.itemIdx];
   const eff = item ? effective(item) : null;
 
+  /** Every set the session will contain — the denominator of the progress bar. */
+  const totalSets = useMemo(
+    () => (source ? source.items.reduce((n, it) => n + effective(it).sets, 0) : 0),
+    [source],
+  );
+
+  const complete = useCallback(() => {
+    if (completed.current) return;
+    completed.current = true;
+    feedback.complete(); // workout finished — the reward chime
+    const minutes = Math.max(1, Math.round((Date.now() - startedAtMs.current) / 60000));
+    setSummary({ exercises: exercisesSeen.current.size, sets: setsLogged.current, minutes });
+    setPhase("done");
+    if (sessionId.current) void finishSession(sessionId.current);
+  }, []);
+
   const finishSet = useCallback(() => {
     if (!source || !item || !eff) return;
     feedback.tap(); // each set completed — the lightest acknowledgement
-    const entry: SetLogEntry = { exercise_id: item.exercise.id, set_no: target.setNo };
-    if (eff.duration) entry.seconds = eff.duration;
-    else if (eff.reps) entry.reps = eff.reps;
+
     const w = parseFloat(weight);
-    if (!Number.isNaN(w) && w > 0) entry.weight_kg = w;
-    log.current.push(entry);
+    if (sessionId.current) {
+      void logSet(sessionId.current, {
+        item_position: target.itemIdx,
+        set_no: target.setNo,
+        exercise_id: item.exercise.id,
+        ...(eff.duration ? { duration_seconds: eff.duration } : {}),
+        ...(!eff.duration && eff.reps ? { reps: eff.reps } : {}),
+        ...(!Number.isNaN(w) && w > 0 ? { weight_kg: w } : {}),
+        skipped: false,
+      });
+    }
+    exercisesSeen.current.add(item.exercise.id);
+    setsLogged.current += 1;
+    setSetsDone(setsLogged.current);
     setWeight("");
 
     // where do we go next?
@@ -117,50 +173,51 @@ export default function WorkoutSession() {
     setNext(n);
     setRestLeft(eff.rest);
     setPhase("rest");
-  }, [source, item, eff, target, weight]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [source, item, eff, target, weight, complete]);
 
   const advance = useCallback(() => {
     if (!source || !next) return;
-    const nEff = effective(source.items[next.itemIdx]);
     setTarget(next);
+    setSecLeft(effective(source.items[next.itemIdx]).duration ?? null);
     setNext(null);
-    setSecLeft(nEff.duration ?? null);
     setPhase("work");
   }, [source, next]);
 
-  function complete() {
-    if (completed.current || !source) return;
-    completed.current = true;
-    feedback.complete(); // workout finished — the reward chime
-    setPhase("done");
-    const minutes = Math.max(1, Math.round((Date.now() - startedAt.current) / 60000));
-    logActivity(
-      "workout",
-      { source: source.kind, ref_id: source.refId, minutes, sets: log.current },
-      source.refId,
-    );
-  }
+  // One ticking interval drives both timed work and rest. The transition at
+  // zero happens HERE, in the timer callback — an event, not a render and not
+  // an effect body — so it neither cascades nor fires twice on the same zero.
+  // Latest callbacks come from refs so the interval isn't rebuilt every tick.
+  const finishSetRef = useRef(finishSet);
+  const advanceRef = useRef(advance);
+  useEffect(() => {
+    finishSetRef.current = finishSet;
+    advanceRef.current = advance;
+  }, [finishSet, advance]);
 
-  // one ticking interval drives both timed work and rest
   useEffect(() => {
     if (status !== "ok" || phase === "done") return;
     const id = setInterval(() => {
       if (phase === "work") {
-        setSecLeft((s) => (s === null ? null : s > 0 ? s - 1 : 0));
-      } else if (phase === "rest") {
-        setRestLeft((r) => (r > 0 ? r - 1 : 0));
+        setSecLeft((s) => {
+          if (s === null) return null; // rep-based set: no countdown at all
+          if (s <= 1) {
+            finishSetRef.current();
+            return 0;
+          }
+          return s - 1;
+        });
+      } else {
+        setRestLeft((r) => {
+          if (r <= 1) {
+            advanceRef.current();
+            return 0;
+          }
+          return r - 1;
+        });
       }
     }, 1000);
     return () => clearInterval(id);
   }, [status, phase]);
-
-  // timed set reaching zero completes the set; rest reaching zero advances
-  useEffect(() => {
-    if (phase === "work" && secLeft === 0) finishSet();
-  }, [phase, secLeft, finishSet]);
-  useEffect(() => {
-    if (phase === "rest" && restLeft === 0) advance();
-  }, [phase, restLeft, advance]);
 
   // ---------- render ----------
 
@@ -190,8 +247,7 @@ export default function WorkoutSession() {
   }
 
   // completion
-  if (phase === "done") {
-    const minutes = Math.max(1, Math.round((Date.now() - startedAt.current) / 60000));
+  if (phase === "done" && summary) {
     return (
       <Screen scroll={false}>
         <Stack.Screen options={{ headerShown: false }} />
@@ -200,9 +256,9 @@ export default function WorkoutSession() {
           <B k="workout_complete" variant="h1" center />
           <B k="great_work" variant="body" tone="muted" center />
           <View style={{ flexDirection: "row", gap: space.xl, marginTop: space.lg }}>
-            <Stat v={String(new Set(log.current.map((s) => s.exercise_id)).size)} label={t("exercises_word")} />
-            <Stat v={String(log.current.length)} label={t("sets_total_word")} />
-            <Stat v={String(minutes)} label={t("minutes_short")} />
+            <Stat v={String(summary.exercises)} label={t("exercises_word")} />
+            <Stat v={String(summary.sets)} label={t("sets_total_word")} />
+            <Stat v={String(summary.minutes)} label={t("minutes_short")} />
           </View>
         </View>
         <FooterAction>
@@ -220,6 +276,9 @@ export default function WorkoutSession() {
     return (
       <Screen scroll={false}>
         <Stack.Screen options={{ headerShown: false }} />
+        <View style={{ paddingTop: space.sm }}>
+          <ProgressBar value={setsDone} max={totalSets} trailing={`${setsDone}/${totalSets}`} />
+        </View>
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: space.lg }}>
           <T variant="eyebrow" tone="gold">
             {t("rest_now")}
@@ -267,6 +326,9 @@ export default function WorkoutSession() {
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={{ paddingTop: space.sm, gap: space.md, flex: 1 }}>
+        {/* in-session progress — sets completed across the whole workout */}
+        <ProgressBar value={setsDone} max={totalSets} trailing={`${setsDone}/${totalSets}`} />
+
         <AvatarTile height={200} playSize={52} silhouetteSize={92} />
 
         <View>
@@ -333,7 +395,18 @@ export default function WorkoutSession() {
 
       <FooterAction>
         {timed ? null : <Button k="set_done" onPress={finishSet} />}
-        <Button k="exit_confirm" kind="ghost" onPress={() => router.back()} />
+        {/* Leaving early still closes the session out, so the sets already
+            logged count and no row is left 'active' for reconcile to find. */}
+        <Button
+          k="exit_confirm"
+          kind="ghost"
+          onPress={() => {
+            if (sessionId.current) {
+              void finishSession(sessionId.current, setsDone > 0 ? "completed" : "abandoned");
+            }
+            router.back();
+          }}
+        />
       </FooterAction>
     </Screen>
   );
