@@ -3,6 +3,33 @@
 Running build log — one entry per shipped item, newest on top. This is the
 standup doc for the owner and the resume-from-home lifeline.
 
+- **2026-07-29** — **Feature sprint slice 4: streak wired to the UI.** The Home
+  "sankalp" card showed three permanently-dim diyas — a mockup stub. Replaced it
+  with a live `StreakCard` driven by a new `useStreak()` hook (`src/lib/streak.ts`)
+  that reads the server-side `streak_state()` RPC (migration 0012, already
+  applied): the streak is computed in Postgres in Asia/Kolkata with the
+  one-freeze-per-week rule, never on the untrustworthy device clock. The card
+  now renders the real day count (gold headline + a seven-diya week row, lit =
+  min(streak, 7)), the longest-streak line, the at-risk nudge, and the gentle
+  "a forgiveness day kept your sankalp" line off `freezes_used`. Framing stays
+  no-guilt: a broken streak reads as an invitation to begin again. Guests (no
+  session) and the first-read window show that invitation rather than a zero or
+  a flash of "start over". Streak logic itself was already proven by the PGlite
+  harness — re-ran `supabase/tests/validate.mjs`, **34/34 green**, covering
+  same-day double, one/two-day gaps, freeze bridging, at-risk, dead-streak,
+  longest-survives, `freezes_used`, and per-user isolation. Two new i18n pairs
+  (`sankalp_at_risk`, `sankalp_freeze_saved`) plus `{n}`-interpolated
+  `sankalp_days`/`sankalp_longest` — all copy in the catalog. Reviewer
+  (`.claude/agents/reviewer.md`) run on the diff: RLS/program-scoping/secrets/
+  health-claims/perf all clean; flagged and fixed a slow-network flash of the
+  invitation for returning streak-holders, and moved the dynamic strings into
+  the catalog. Typecheck green, lint at the 11-error baseline (new files add
+  zero). Verified in web preview: Home renders the StreakCard (8 diya SVGs = 1
+  header + 7 week), invitation state for a guest, zero console errors. The
+  lit-diya active state and the RPC round-trip are physical-device / real-session
+  only. **Deferred, and now flagged:** the "guests bank a local streak" decision
+  (2026-07-28) is recorded but NOT built — `activity.ts` still no-ops for guests,
+  so the default signed-out user banks nothing. Left for its own slice.
 - **2026-07-29** — **Feature sprint slice 3: splash / launch screen.** Replaced
   the bare `null` cold-start frame (the C4 "dead frame") with an animated
   oxblood-and-gold ceremony. `preventAutoHideAsync()` holds the native splash

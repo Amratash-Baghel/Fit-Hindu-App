@@ -8,38 +8,48 @@
 >
 > Contract: `docs/specs/feature-sprint.md`. Source prompt: `prompts/feature-sprint.md`.
 
-**Last updated:** 2026-07-29 · slice 3 built + reviewed + verified, committing.
+**Last updated:** 2026-07-29 · slice 4 built + reviewed + verified, committing.
 
 ---
 
 ## Where we are
 
-**Slice 3 — splash / launch screen. Built, reviewed, verified.**
+**Slice 4 — streak wired to the UI. Built, reviewed, verified.**
 
-Animated oxblood-and-gold ceremony replaces the C4 dead cold-start frame.
-`app/_layout.tsx` calls `preventAutoHideAsync()` at module scope and mounts a
-`SplashGate` (inside AuthProvider) that renders `src/ui/CeremonySplash.tsx`
-above the router; `src/ui/ceremony/art.tsx` holds the pure SVG marks; ceremony
-palette added as `tokens.ceremony.*`; `splash_tagline` string added; `app.json`
-splash background aligned to the ceremony maroon; `app/index.tsx`'s bare `null`
-replaced with a maroon field. Reanimated on the UI thread — added
-`babel.config.js` (repo's first) for the `react-native-worklets` plugin, and
-declared `react-native-reanimated ~4.5.1` + `react-native-worklets 0.10.2` in
-package.json (both already installed, owner-approved). Motion 1.6–2.2 s, 1.2 s
-min beat, 6 s hard timeout, reduce-motion static path; completion runs on plain
-timers (not rAF callbacks) so a frozen frame loop never traps the user.
-Reviewer: no high/critical findings; fixed an idle-shimmer restart, recorded the
-brand-wordmark i18n exception in `docs/decisions.md`. Typecheck + lint green
-(lint at the documented 11-error baseline; the new files add zero).
+The server-side streak logic (`streak_state()` in migration 0012) was already
+done in slice 1; slice 4 was the UI wiring. New `src/lib/streak.ts` exposes a
+`useStreak()` hook that reads the `streak_state()` RPC for signed-in users and
+returns null for guests. `app/(tabs)/index.tsx`'s hardcoded three-dim-diya
+sankalp stub is replaced with a live `StreakCard`: gold day-count headline + a
+seven-diya week row (lit = min(streak, 7)), the longest line, the at-risk nudge,
+and the gentle `freezes_used` "a forgiveness day kept your sankalp" line. No-
+guilt framing throughout; guests and the first-read window see the invitation,
+not a zero or a flash of "start over". Four i18n strings added
+(`sankalp_at_risk`, `sankalp_freeze_saved`, and `{n}`-interpolated
+`sankalp_days`/`sankalp_longest`) — all copy in the catalog.
 
-Verified in web preview: splash mounts (19 SVG paths, wordmark + tagline) and
-self-dismisses to onboarding even in a backgrounded tab. Physical-device-only:
-motion smoothness on low-end hardware, native→animated handoff seam,
-reduce-motion visual, haptics.
+Re-ran the PGlite harness: **34/34 green** (same-day double, one/two-day gaps,
+freeze bridging, at-risk, dead-streak, longest-survives, `freezes_used`, per-user
+isolation). Reviewer (`.claude/agents/reviewer.md`) on the diff: RLS
+(streak_state is stable + NOT security definer, so activity_log RLS protects the
+caller), program-scoping (user-level by the 2026-07-28 decision — correct),
+secrets, health-claims, and low-end perf all clean; fixed a slow-network flash of
+the invitation for returning streak-holders and moved the dynamic strings into
+the catalog. Typecheck green; lint at the 11-error baseline (new files add zero).
 
-Next action: **slice 4, streak** — wire the existing `streak_state` backend to
-the UI and replace the hardcoded diyas. **Uninterruptible** (server-side logic +
-test cases); needs 0012 (applied). Start on a fresh quota window.
+Verified in web preview: Home renders the StreakCard (8 diya SVGs = 1 header + 7
+week), guest invitation state, zero console errors. Physical-device / real-session
+only: the lit-diya active state, the RPC round-trip, and refresh-on-focus after a
+real activity logs.
+
+**Deferred (flagged):** the "guests bank a local streak, merged on sign-in"
+decision (2026-07-28) is recorded but NOT built — `activity.ts` still no-ops for
+guests, so the default signed-out user banks nothing and the streak stays an
+invitation until they sign in. Its own slice (AsyncStorage log + replay on
+`flushOnboarding` with the `client_event_id` dedup already in 0012).
+
+Next action: **slice 5, plan-ready ceremony** — safe to interrupt, reuses the
+splash system.
 
 ## Session start checklist
 
@@ -58,8 +68,8 @@ test cases); needs 0012 (applied). Start on a fresh quota window.
 | 1b | Settings screen | ✅ done | Verified in web preview. Language/Account/About. |
 | 2 | Feedback service | ✅ done | expo-haptics; Toggle; wired call sites; reviewed. |
 | 3 | Splash | ✅ done | reanimated+worklets+babel; ceremony palette; arch + gada SVG; reviewed. |
-| 4 | Streak | ⬜ next | **Uninterruptible.** Needs 0012. |
-| 5 | Plan-ready ceremony | ⬜ not started | Safe to interrupt. Reuses splash system. |
+| 4 | Streak | ✅ done | `useStreak()` + live `StreakCard`; 34/34 tests; reviewed. Guest local streak deferred. |
+| 5 | Plan-ready ceremony | ⬜ next | Safe to interrupt. Reuses splash system. |
 | 6 | Workout tracking + progress | ⬜ not started | Needs 0011 |
 | 7 | Push end-to-end | ⬜ not started | Blocked on FCM credentials |
 

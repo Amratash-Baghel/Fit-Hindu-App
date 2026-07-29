@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { Screen, Card, Chip, B, T, color, space } from "../../src/ui";
 import {
@@ -15,6 +15,7 @@ import {
 } from "../../src/ui/icons";
 import { useI18n } from "../../src/lib/i18n";
 import { getTodayDevotional, type DevotionalToday } from "../../src/lib/content";
+import { useStreak } from "../../src/lib/streak";
 
 /**
  * Daily Home — the habit surface (most polished screen in the app).
@@ -106,20 +107,7 @@ export default function Home() {
       </View>
 
       {/* sankalp / streak */}
-      <Card>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: space.md }}>
-          <DiyaIcon size={30} />
-          <View style={{ flex: 1 }}>
-            <B k="sankalp_start" variant="bodyBold" noSub />
-            <B k="sankalp_hint" variant="caption" tone="muted" noSub />
-          </View>
-          <View style={{ flexDirection: "row", gap: 4 }}>
-            <DiyaIcon size={22} dim />
-            <DiyaIcon size={22} dim />
-            <DiyaIcon size={22} dim />
-          </View>
-        </View>
-      </Card>
+      <StreakCard />
 
       {/* today's cards */}
       <TodayCard
@@ -155,6 +143,88 @@ export default function Home() {
         onPress={() => router.push("/(tabs)/sleep")}
       />
     </Screen>
+  );
+}
+
+/**
+ * Sankalp / streak card — live from streak_state() (migration 0012), which
+ * computes the streak server-side in IST with the one-freeze-per-week rule.
+ * Framing stays gentle: a broken streak reads as an invitation to begin again,
+ * never as loss (docs/specs/tracking-streaks.md — "no streak-loss guilt").
+ *
+ * Guests (streak === null) see the invitation, which is also the pitch to sign
+ * in. Diyas count the sankalp in the design's own metaphor; the row shows a
+ * week of seven, and the headline number carries the true count past seven.
+ */
+const WEEK_DIYAS = 7;
+
+function StreakCard() {
+  const { t } = useI18n();
+  const { streak, loading, refresh } = useStreak();
+
+  // An activity logged elsewhere (workout, meditation) should be reflected the
+  // moment the user lands back on Home — re-read on focus, not just on mount.
+  // A refresh keeps the previous streak visible (loading stays false), so only
+  // the very first signed-in read shows the resting state below.
+  useFocusEffect(
+    useCallback(() => {
+      refresh();
+    }, [refresh]),
+  );
+
+  const count = streak?.current_streak ?? 0;
+  const active = count > 0;
+  const lit = Math.min(count, WEEK_DIYAS);
+
+  // While a signed-in user's first read is in flight, streak is still null —
+  // show a neutral resting line, never the "start your sankalp" invitation, so
+  // an established streak-holder is not briefly told to begin again on a slow
+  // network (matches the no-streak-loss-guilt framing).
+  let title: string;
+  let sub: string | null;
+  if (loading) {
+    title = t("loading");
+    sub = null;
+  } else if (!active) {
+    title = t("sankalp_start");
+    sub = t("sankalp_hint");
+  } else {
+    title = t("sankalp_days").replace("{n}", String(count));
+    if (streak?.at_risk) sub = t("sankalp_at_risk");
+    else if ((streak?.freezes_used ?? 0) > 0) sub = t("sankalp_freeze_saved");
+    else sub = t("sankalp_longest").replace("{n}", String(streak?.longest_streak ?? count));
+  }
+
+  return (
+    <Card>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: space.md }}>
+        <DiyaIcon size={30} dim={!active} />
+        <View style={{ flex: 1 }}>
+          <T variant="bodyBold">{title}</T>
+          {sub ? (
+            <T variant="caption" tone="muted">
+              {sub}
+            </T>
+          ) : null}
+        </View>
+        {active ? (
+          <T variant="display" tone="gold" style={{ fontWeight: "800" }}>
+            {count}
+          </T>
+        ) : null}
+      </View>
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          marginTop: space.md,
+        }}
+      >
+        {Array.from({ length: WEEK_DIYAS }).map((_, i) => (
+          <DiyaIcon key={i} size={24} dim={i >= lit} />
+        ))}
+      </View>
+    </Card>
   );
 }
 

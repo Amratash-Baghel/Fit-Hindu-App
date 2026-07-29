@@ -217,6 +217,12 @@ export const strings = {
   todays_shloka: { hi: "आज का श्लोक", en: "Today's shloka" },
   sankalp_start: { hi: "संकल्प आज से शुरू करें", en: "Start your sankalp today" },
   sankalp_hint: { hi: "पहली गतिविधि पूरी करें और पहला दीया जलाएँ", en: "Complete your first activity to light the first diya" },
+  sankalp_at_risk: { hi: "आज पूरा करें और अपना दीया जलाए रखें", en: "Complete today to keep your diya lit" },
+  sankalp_freeze_saved: { hi: "एक क्षमा-दिवस ने आपका संकल्प बचाया", en: "A forgiveness day kept your sankalp" },
+  // {n} is replaced with the streak count at the call site — the frame stays in
+  // the catalog so all user-facing copy is reviewable in one place.
+  sankalp_days: { hi: "{n} दिन का संकल्प", en: "{n}-day sankalp" },
+  sankalp_longest: { hi: "सबसे लंबा: {n} दिन", en: "Longest: {n} days" },
   soon_badge: { hi: "जल्द", en: "Soon" },
 
   // workout structure
