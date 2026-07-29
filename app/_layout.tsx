@@ -7,6 +7,7 @@ import { I18nProvider } from "../src/lib/i18n";
 import { AuthProvider, useAuth } from "../src/lib/auth";
 import { hydrateFeedbackPrefs } from "../src/lib/settings";
 import { preloadFeedback } from "../src/lib/feedback";
+import { reconcile, watchForFlush } from "../src/lib/session";
 import { CeremonySplash, color } from "../src/ui";
 
 // Hold the native splash from the very first module evaluation so there is zero
@@ -32,6 +33,14 @@ export default function RootLayout() {
   useEffect(() => {
     void hydrateFeedbackPrefs();
     preloadFeedback();
+  }, []);
+
+  // Deliver anything the last run couldn't, and close out a session the user
+  // was killed out of (slice 6). Also retries on every return to the
+  // foreground, which is this app's stand-in for a connectivity listener.
+  useEffect(() => {
+    void reconcile();
+    return watchForFlush();
   }, []);
 
   // Last-resort safety: if the ceremony gate never mounts (e.g. a provider
