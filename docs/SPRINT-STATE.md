@@ -138,14 +138,45 @@ preview verifies layout, copy and state, never motion. Also untested from here:
 the real Supabase round-trip through all four stages, and the haptic/chirp on
 outcome.
 
-**Deferred (flagged, unchanged):** the "guests bank a local streak, merged on
-sign-in" decision (2026-07-28) is recorded but NOT built — `activity.ts` still
-no-ops for guests. Its own slice (AsyncStorage log + replay on `flushOnboarding`
-with the `client_event_id` dedup already in 0012).
+Slice 5's deferred item is now much cheaper — see "Next up" at the top of this
+file.
 
-Next action: **slice 6, workout tracking + the three progress bars** — needs 0011
-(applied). This one is a multi-file refactor of `app/workout/session.tsx`; it is
-also where the 11 lint errors get cleaned rather than in a drive-by.
+## Next up (read this first on a cold start)
+
+**1 · Owner actions, both blocking.** Run migration **0013**. Upload the **FCM v1
+service-account JSON** to EAS and confirm a **dev build is installed on a
+physical Android device** — slice 7 cannot start or be tested without both.
+
+**2 · Recommended engineering: the guest-merge slice.** It is no longer a whole
+slice, and this is the single most valuable thing left that is not blocked.
+
+The problem is unchanged and it undercuts everything shipped: onboarding is
+deliberately guest-first with skippable sign-in, but `activity.ts` and
+`startSession` both no-op without a user. The **default** new user completes a
+workout and banks nothing — no streak, no session, no progress. The retention
+engine does not run for the audience it was built for. (Recorded as an owner
+decision 2026-07-28; flagged in the Phase 1 audit as the blocker the sprint
+prompt did not anticipate.)
+
+What changed in slice 6: the machinery now exists. The queue already holds ops
+when there is no user, stamps `user_id` at **send** time rather than enqueue time
+(`src/lib/session.ts:276`), flushes on sign-in (`src/lib/auth.tsx`
+`onAuthStateChange`), and dedupes via `client_event_id` / the exercise_logs PK.
+That IS the guest-merge design. The only thing blocking it is one line:
+
+    src/lib/session.ts:342   if (!user) return null;
+
+So the work is: let guests open a local session, require auth only at flush, and
+give `activity.ts` the same treatment so meditation and jap bank too.
+
+**Settle before building:** a guest who never signs in grows the queue without
+limit. It needs a cap or a TTL — decide which rather than letting storage grow
+unbounded.
+
+**3 · Also open:** 2 lint errors remain (`(tabs)/workout.tsx`,
+`workout/template/[id].tsx`) — setState-in-effect; fixing them needs a UX call on
+whether a tab switch flashes a spinner or shows stale content. And the
+physical-device verification backlog listed under each slice above.
 
 ## Session start checklist
 
