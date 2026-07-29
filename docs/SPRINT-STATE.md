@@ -143,6 +143,37 @@ file.
 
 ## Next up (read this first on a cold start)
 
+**0 · DO THIS FIRST: merge `origin/main` into this branch.** Before any new
+feature work. The branch is 14 ahead / 3 behind and main has moved with the diet
+section (incl. the owner-approved AI custom-plan), admin Meals/Mantras, the Bunny
+video-upload fix, and the legal package — 49 files.
+
+    git fetch origin && git merge origin/main
+
+**Nine files are touched on both sides.** The two onboarding ones are the real
+work; the rest are mostly append-vs-append:
+
+| File | Collision |
+|---|---|
+| `app/onboarding/index.tsx` | main edited the questionnaire; this branch rewrote it as v2 |
+| `app/(tabs)/index.tsx` | main added a diet card; this branch added StreakCard + the `/progress` link |
+| `src/lib/onboarding.ts`, `src/lib/i18n.tsx`, `src/types/db.ts`, `src/ui/index.ts` | both sides appended |
+| `docs/decisions.md`, `docs/progress.md` | **guaranteed conflict** — both prepend new entries at the top |
+| `docs/specs/onboarding-questionnaire.md` | both edited |
+
+`CLAUDE.md` is NOT among them — this branch never touched it, so main's
+owner override on AI diet plans (2026-07-16) survives the merge untouched. Do
+not resurrect the older no-AI wording from anything on this branch.
+
+After merging, check the tab bar at 360dp: main added a **sixth tab**
+(`app/(tabs)/diet.tsx` + `_layout.tsx`). Slice 6 deliberately put Progress on a
+stack route because five tabs already crowded Hindi labels — that still holds,
+but the crowding is now real rather than hypothetical.
+
+It only gets worse the longer this branch runs. Do not start it right before a
+device switch — it is exactly the kind of multi-file work that must not be left
+half-done.
+
 **1 · Owner actions, both blocking.** Run migration **0013**. Upload the **FCM v1
 service-account JSON** to EAS and confirm a **dev build is installed on a
 physical Android device** — slice 7 cannot start or be tested without both.
