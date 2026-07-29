@@ -3,6 +3,36 @@
 Running build log — one entry per shipped item, newest on top. This is the
 standup doc for the owner and the resume-from-home lifeline.
 
+- **2026-07-29** — **Feature sprint slice 6: workout tracking + progress bars.**
+  The player held every set in a `useRef` and wrote one `activity_log` row at
+  the end — kill the app at set 9 of 10 and the whole session was gone. New
+  `src/lib/session.ts` is the local-first write path: AsyncStorage mirror →
+  durable queue → try to send, with the database owning dedup
+  (`workout_sessions.id` client-generated, `exercise_logs` PK
+  `(session_id, item_position, set_no)`, so every replay is
+  `on conflict do nothing`). `reconcile()` on launch closes out a session the
+  user was killed out of. Migration **0013** adds three aggregate RPCs
+  (`progress_summary`, `body_area_progress`, `plan_progress`), all `stable` and
+  NOT security definer so RLS applies — PGlite **51/51 green** (was 34), and the
+  harness now asserts `prosecdef = false` rather than leaving it to review. It
+  also fixes a latent ordering bug in that harness: it applied migrations with a
+  `!startsWith("0012")` filter, which would sort 0013+ into the first pass and
+  apply them *before* 0012. New `src/ui/ProgressBar.tsx` (deliberately
+  unanimated — these move on discrete events) drives all three bars: in-session
+  sets, plan days, per body area. New Progress screen behind the Home sankalp
+  card with streak, this-week vs all-time, a 30-day strip hand-rolled from 30
+  Views, and empty states that encourage rather than show zeros. Lint 11 → 2
+  errors (all 9 in `session.tsx` cleared by the rewrite). **The reviewer caught
+  four real data-loss bugs**, all fixed: the finish op was enqueued *after* the
+  mirror was marked finished (a kill in that window orphaned the session as
+  'active' forever and hid every already-flushed set from all aggregates); the
+  streak row bypassed the queue entirely so an offline finish lost it silently;
+  `enqueue`/mirror writes were unsynchronised read-modify-write; and one
+  permanently-failing op wedged the whole FIFO. Also added set-write batching
+  (the spec's own 2G mitigation), a `finishSet` double-tap guard, and removed a
+  side effect from inside a `setState` updater that StrictMode would have
+  double-fired on every timed set. ⚠️ **USER MUST RUN migration 0013 in
+  Supabase.**
 - **2026-07-29** — **Feature sprint slice 5: plan-ready ceremony.** The single
   most important write in the app — a guest's answers becoming a profile, a
   questionnaire row and an assigned plan — was running invisibly inside the OTP

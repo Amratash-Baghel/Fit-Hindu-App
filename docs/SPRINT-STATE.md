@@ -8,13 +8,82 @@
 >
 > Contract: `docs/specs/feature-sprint.md`. Source prompt: `prompts/feature-sprint.md`.
 
-**Last updated:** 2026-07-29 · slice 5 built + reviewed + verified, committing.
+**Last updated:** 2026-07-29 · slice 6 built + reviewed + verified, committed.
+**Migration 0013 is written and validated but NOT yet applied in Supabase.**
 
 ---
 
 ## Where we are
 
-**Slice 5 — plan-ready ceremony. Built, reviewed, verified.**
+**Slice 6 — workout tracking + progress bars. Built, reviewed, verified.**
+
+⚠️ **USER MUST RUN migration 0013 in Supabase.** The Progress screen and the
+plan / body-area bars read three RPCs that do not exist in the database yet.
+Until it runs, those reads error and the screen falls back to its empty state.
+Everything else in the slice (session tracking, the in-session bar) works
+without it.
+
+Four commits: `34df88b` migration 0013, `bc1e61c` the session write path,
+`1296731` the player rewrite + ProgressBar, and the progress screen + reviewer
+fixes.
+
+The core change: the player held every set in a `useRef` and wrote one
+`activity_log` row at the very end, so an app kill at set 9 of 10 lost the lot.
+`src/lib/session.ts` is now local-first — AsyncStorage mirror → durable queue →
+try to send — and the database owns dedup, so every replay is
+`on conflict do nothing` and the queue never has to reason about what landed.
+`reconcile()` at launch closes out a session the user was killed out of:
+completed if any set was logged, abandoned if none.
+
+Migration 0013 adds `progress_summary`, `body_area_progress`, `plan_progress` —
+all `stable`, none `security definer`, so RLS applies. **PGlite 51/51 green**
+(was 34). The harness also had a latent ordering bug (a `!startsWith("0012")`
+filter would apply 0013+ *before* 0012); fixed.
+
+Progress screen sits behind the Home sankalp card — not a sixth tab, five is
+full and Hindi labels are wide at 360dp. Empty states are load-bearing: a guest
+sees why there is nothing plus a sign-in; a new signed-in user sees an
+invitation. Neither ever sees a wall of zeros.
+
+**Lint is now 2 errors, down from the 11-error baseline** — all 9 in
+`session.tsx` were cleared by the rewrite. The remaining 2 (`(tabs)/workout.tsx`,
+`workout/template/[id].tsx`) are setState-in-effect in screens this slice does
+not otherwise touch; fixing them needs a UX call on loading states, so they were
+left rather than done as a drive-by.
+
+**The reviewer caught four real data-loss bugs**, all fixed before commit:
+1. `finishSession` marked the mirror finished *before* enqueueing the finish op.
+   A kill in that window left `finished: true` with nothing queued → reconcile
+   skipped it forever → the row stayed `active` → every already-flushed set was
+   excluded from all progress aggregates.
+2. The streak's `activity_log` row bypassed the queue (a direct write, no
+   retry), so an offline finish recorded the session and its sets but silently
+   lost the row the streak reads. Now queued, with `client_event_id` so a retry
+   can't double-credit a day in an append-only table.
+3. `enqueue`/mirror updates were unsynchronised read-modify-write — two
+   overlapping taps and the second clobbered the first.
+4. One permanently-failing op wedged the entire FIFO, stalling every future
+   workout.
+
+Plus: set-write batching (the spec's own 2G mitigation), a `finishSet`
+double-tap guard, and a side effect removed from inside a `setState` updater
+that StrictMode would have double-fired on every timed set.
+
+Verified in preview: session player against seeded data (14 sets across 5
+exercises, countdown ticking once per second, a timed set completing exactly
+once, 0/14 → 1/14 → Rest), ProgressBar at 0 / half / full / overflow-clamped /
+max-0 and both tones, a 30-day strip with today rightmost and gaps filled, the
+guest progress state, and Home → Progress navigation. Zero console errors.
+
+**Physical-device / real-session only:** the offline queue actually draining on
+reconnect, reconcile after a real app kill, the RPCs returning real numbers
+(needs 0013 applied plus a signed-in user with history), and haptics.
+
+---
+
+## Slice 5 (previous)
+
+**Plan-ready ceremony. Built, reviewed, verified.**
 
 The guest→user bridge (`flushOnboarding`) was running invisibly inside
 `app/auth/verify.tsx` behind a disabled button, and its one interesting outcome —
@@ -97,8 +166,8 @@ also where the 11 lint errors get cleaned rather than in a drive-by.
 | 3 | Splash | ✅ done | reanimated+worklets+babel; ceremony palette; arch + gada SVG; reviewed. |
 | 4 | Streak | ✅ done | `useStreak()` + live `StreakCard`; 34/34 tests; reviewed. Guest local streak deferred. |
 | 5 | Plan-ready ceremony | ✅ done | `CeremonyLoader` + `/plan/ready`; real staged awaits; 3 outcomes; reviewed. |
-| 6 | Workout tracking + progress | ⬜ next | Needs 0011 (applied). Multi-file refactor — not safe to interrupt. Clean the 11 lint errors here. |
-| 7 | Push end-to-end | ⬜ not started | Blocked on FCM credentials |
+| 6 | Workout tracking + progress | ✅ done | Local-first session queue; 3 bars; Progress screen. **0013 NOT applied.** 51/51 PGlite. |
+| 7 | Push end-to-end | ⬜ next | Blocked on FCM credentials + a dev build on a physical device |
 
 Ordering rationale: schema first because four slices depend on it. Slices 1 and
 4 must not be interrupted — start them on a fresh quota window. Slices 3 and 5
@@ -123,13 +192,18 @@ Install at the slice that needs each, not up front.
 | 0001-0010 | ✅ | ✅ (per `docs/progress.md`) |
 | 0011 sessions + push | ✅ | ✅ (owner ran 2026-07-28) |
 | 0012 activity_log + streak | ✅ | ✅ (owner ran 2026-07-28) |
+| 0013 progress aggregates | ✅ | ❌ **NOT APPLIED — owner must run** |
 
 **Never assume a migration has been applied.** Never leave one partially
 applied — either it runs clean and is committed, or it is not started.
 
 Re-run the schema checks any time with:
-`npx --yes -p @electric-sql/pglite node supabase/tests/validate.mjs`
-(34 checks; PGlite is not a package.json dependency by design.)
+`node supabase/tests/validate.mjs`
+(51 checks. PGlite is not a package.json dependency by design — install it for
+the run with `npm install --no-save @electric-sql/pglite`, which leaves
+package.json and the lockfile untouched. The previously documented
+`npx --yes -p @electric-sql/pglite node …` form does not put the package on
+Node's resolution path on Windows and fails with ERR_MODULE_NOT_FOUND.)
 
 **What that harness does NOT prove:** RLS enforcement. PGlite runs as table
 owner and owners bypass RLS, so a green run says the policies exist and are
@@ -138,6 +212,10 @@ Supabase with a real anon session before launch.
 
 ## Open items on the owner
 
+- ⚠️ **RUN MIGRATION 0013** (`supabase/migrations/0013_progress_aggregates.sql`)
+  in Supabase. Additive only — three read functions, no table or policy touched,
+  and reverting is a `drop function`. Until it runs, the Progress screen's reads
+  error and it shows its empty state.
 - **FCM v1 service-account JSON** uploaded to EAS — blocks slice 7.
 - **APNs key** — iOS, later.
 - **Confirm a dev build is installed on a physical Android device.** Everything

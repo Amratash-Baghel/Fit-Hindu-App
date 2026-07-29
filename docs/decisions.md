@@ -2,6 +2,49 @@
 
 One dated line per decision, with the why. Newest on top.
 
+- **2026-07-29 (session writes are local-first, and the queue owns delivery)** —
+  Every set goes to an AsyncStorage mirror and a durable queue *before* any
+  network call, and the queue may fail forever without losing a set. Dedup is
+  the database's job: `workout_sessions.id` is client-generated and
+  `exercise_logs`' PK is `(session_id, item_position, set_no)`, so every replay
+  is `on conflict do nothing` and the queue never reasons about what landed.
+  The streak's `activity_log` row goes through the same queue carrying a
+  `client_event_id` — writing it directly meant finishing a workout offline
+  recorded the session and its sets but silently dropped the one row the streak
+  reads. One shared FIFO drains in order (exercise_logs FKs the session), so a
+  permanently-failing op is dropped after 8 attempts rather than wedging every
+  future workout behind it.
+- **2026-07-29 (an interrupted workout is `completed`, not `abandoned`)** —
+  A session killed mid-way with at least one logged set is closed as completed
+  on the next launch; only a session with no sets is abandoned. Why: progress
+  aggregates count completed sessions only, so marking a real half-workout
+  abandoned would erase training the user actually did — the exact data loss
+  this slice exists to stop. Its `activity_log` row is written **only if the
+  session began today in IST**: crediting an earlier day would be retroactive
+  completion, which the streak rules forbid. So an overnight kill keeps its sets
+  and minutes but does not resurrect a broken streak — sets are history, the
+  streak is a promise about days.
+- **2026-07-29 (no connectivity listener; flush on write, launch, foreground and
+  sign-in)** — `@react-native-community/netinfo` is not a dependency and adding
+  one needs approval, so the queue retries on every write, at launch, on
+  `AppState` returning to active, and when auth resolves. The last of those is
+  not optional: the launch flush can run before the stored session is restored,
+  and on a cold start that never returns to the foreground nothing else would
+  retry.
+- **2026-07-29 (progress aggregates are Postgres functions, user-scoped by RLS)**
+  — `progress_summary`, `body_area_progress` and `plan_progress` (migration
+  0013) are `stable` and NOT `security definer`, the same contract as
+  `streak_state`, so the caller's RLS applies and asking for another uid returns
+  zeroes. They exist because the body-area breakdown joins a user's whole
+  exercise-log history against `exercises` and unnests an array — shipping that
+  to a mid-range Android over 2G to count it on-device is what the
+  "aggregate via views or RPCs" rule exists to prevent. A set counts toward
+  every area its exercise trains, so per-area totals deliberately sum to more
+  than `sets_total`; they are never shares of one pie. Body-area bars scale
+  against the user's own best area rather than a target, because there is no
+  correct number of sets for a body part and inventing one would be a health
+  claim.
+
 - **2026-07-29 (staged progress is driven by real awaits, never by timers)** —
   The plan-ready ceremony's four stages map 1:1 onto the four network round-trips
   inside `flushOnboarding` (profile upsert → questionnaire insert → rule query →
