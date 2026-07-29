@@ -8,24 +8,24 @@
 >
 > Contract: `docs/specs/feature-sprint.md`. Source prompt: `prompts/feature-sprint.md`.
 
-**Last updated:** 2026-07-28 · slice 1b built + verified, not yet committed.
+**Last updated:** 2026-07-28 · slice 2 built + reviewed + verified, committing.
 
 ---
 
 ## Where we are
 
-**Slice 1b — settings screen. Built, verified in web preview.** Owner confirmed
-migrations 0011 + 0012 applied clean in Supabase.
+**Slice 2 — feedback service (haptics + sound). Built, reviewed, verified.**
 
-Settings ships as a stack route (`app/settings/index.tsx`) behind a Home header
-gear, with three real sections: Language (changeable post-onboarding for the
-first time; persists to `profiles.language_mode` when signed in), Account
-(guest → sign in / user → inline sign-out confirm), and About (privacy link when
-live, wellness disclaimer, version). Slices 2 and 7 add their toggle sections.
+`src/lib/feedback.ts` (tap/success/complete/error), `src/lib/settings.ts` (the
+two device-local toggles, default on), a `Toggle` primitive, the Feedback
+section in Settings, and wired call sites. Reviewer found two issues (unhandled
+`seekTo` rejection; a misleading audio-mode comment) — both fixed. `expo-haptics`
+installed. Four placeholder SFX in `assets/sfx/` await the sound designer.
 
-Next action: **slice 2, feedback service** (haptics + sound). Needs
-`expo-haptics` installed and builds the Switch/Toggle primitive + wires the
-Haptics/Sound toggles into the settings screen.
+Next action: **slice 3, splash / launch screen** — the ceremony palette, the
+arch + gada SVG, Reanimated motion, `preventAutoHideAsync`. Safe to interrupt.
+Needs `react-native-reanimated` installed (approved). The owner reference image
+is in hand.
 
 ## Session start checklist
 
@@ -42,8 +42,8 @@ Haptics/Sound toggles into the settings screen.
 | 0 | Audit + spec | ✅ done | Spec approved 2026-07-28 |
 | 1 | Migrations 0011 + 0012 | ✅ applied | 34/34 PGlite checks. Owner ran both in Supabase. |
 | 1b | Settings screen | ✅ done | Verified in web preview. Language/Account/About. |
-| 2 | Feedback service | ⬜ next | Install expo-haptics; add Toggle; wire settings section |
-| 3 | Splash | ⬜ not started | Safe to interrupt |
+| 2 | Feedback service | ✅ done | expo-haptics; Toggle; wired call sites; reviewed. |
+| 3 | Splash | ⬜ next | Install reanimated; ceremony palette; arch + gada SVG |
 | 4 | Streak | ⬜ not started | **Uninterruptible.** Needs 0012. |
 | 5 | Plan-ready ceremony | ⬜ not started | Safe to interrupt. Reuses splash system. |
 | 6 | Workout tracking + progress | ⬜ not started | Needs 0011 |
@@ -54,11 +54,13 @@ Ordering rationale: schema first because four slices depend on it. Slices 1 and
 are the safest to cut off: iterative, visual, and they lose nothing on a cold
 restart.
 
-## Dependencies not yet installed
+## Dependencies
 
-`expo-haptics`, `expo-notifications`, `react-native-reanimated` — all approved
-by owner 2026-07-28, none installed yet. Install at the slice that needs each,
-not up front.
+- `expo-haptics` ~57.0.1 — **installed** (slice 2).
+- `react-native-reanimated` — approved, install in slice 3.
+- `expo-notifications` — approved, install in slice 7.
+
+Install at the slice that needs each, not up front.
 
 ## Migration ledger
 

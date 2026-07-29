@@ -5,6 +5,7 @@ import { useKeepAwake } from "expo-keep-awake";
 import { Screen, Button, FooterAction, B, T, DiyaIcon, color, space } from "../../src/ui";
 import { pauseAudio, resumeAudio, stopAudio } from "../../src/lib/audio";
 import { logActivity } from "../../src/lib/activity";
+import { feedback } from "../../src/lib/feedback";
 
 /**
  * Step 3 — the session: pulsing ॐ, ticking countdown, sound looping from the
@@ -60,7 +61,11 @@ export default function MeditationSession() {
     if (logged.current) return;
     logged.current = true;
     setFinished(true);
-    stopAudio();
+    stopAudio(); // ends the ambient loop; its (async) mode reset governs LATER chirps
+    // The reward chime rides whatever audio mode is active this instant — after a
+    // sounded meditation that's still the ambient mode, which is fine (the user
+    // was already hearing audio); after a silent one the mode never left default.
+    feedback.complete();
     logActivity(
       "meditation",
       {

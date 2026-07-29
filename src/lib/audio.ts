@@ -63,4 +63,10 @@ export function stopAudio() {
   } catch {}
   player = null;
   currentUrl = null;
+  // Reset the GLOBAL audio mode. ensureMode() above set playsInSilentMode:true
+  // for this ambient session; left in place it would leak into the UI sound
+  // effects (src/lib/feedback.ts), which must respect the iOS silent switch.
+  // Clearing modeSet lets the next playLoop re-establish the ambient mode.
+  modeSet = false;
+  void setAudioModeAsync({ playsInSilentMode: false, shouldPlayInBackground: false }).catch(() => {});
 }

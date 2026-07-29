@@ -17,6 +17,7 @@ import {
 import { useI18n } from "../../src/lib/i18n";
 import { loadSession, type SessionSource, type TemplateItem } from "../../src/lib/content";
 import { logActivity } from "../../src/lib/activity";
+import { feedback } from "../../src/lib/feedback";
 
 /**
  * Guided session player (workout spec v2 — F&B structure, Leap execution):
@@ -95,6 +96,7 @@ export default function WorkoutSession() {
 
   const finishSet = useCallback(() => {
     if (!source || !item || !eff) return;
+    feedback.tap(); // each set completed — the lightest acknowledgement
     const entry: SetLogEntry = { exercise_id: item.exercise.id, set_no: target.setNo };
     if (eff.duration) entry.seconds = eff.duration;
     else if (eff.reps) entry.reps = eff.reps;
@@ -129,6 +131,7 @@ export default function WorkoutSession() {
   function complete() {
     if (completed.current || !source) return;
     completed.current = true;
+    feedback.complete(); // workout finished — the reward chime
     setPhase("done");
     const minutes = Math.max(1, Math.round((Date.now() - startedAt.current) / 60000));
     logActivity(

@@ -273,6 +273,9 @@ export const strings = {
   settings_language: { hi: "भाषा", en: "Language" },
   settings_account: { hi: "खाता", en: "Account" },
   settings_about: { hi: "ऐप के बारे में", en: "About" },
+  settings_feedback: { hi: "कंपन और ध्वनि", en: "Haptics & sound" },
+  settings_haptics: { hi: "कंपन", en: "Vibration" },
+  settings_sound: { hi: "ध्वनि", en: "Sound" },
   settings_guest: { hi: "अतिथि", en: "Guest" },
   settings_guest_hint: {
     hi: "अपनी प्रगति और दीये सुरक्षित रखने के लिए साइन-इन करें।",

@@ -3,6 +3,21 @@
 Running build log — one entry per shipped item, newest on top. This is the
 standup doc for the owner and the resume-from-home lifeline.
 
+- **2026-07-28** — **Feature sprint slice 2: haptics + sound feedback.** The app
+  had zero tactile/audio feedback (not broken — never built). Added
+  `src/lib/feedback.ts` — one service, `tap/success/complete/error`, each a
+  haptic paired with a short chime, gated by two settings toggles (Vibration,
+  Sound; local, default on) that persist to AsyncStorage. Players preloaded
+  once at startup, never per tap. Four placeholder SFX synthesised into
+  `assets/sfx/` (~49 KB total) for the sound designer to replace. Wired into:
+  every set completed, workout complete, meditation complete, plan assigned, and
+  the destructive sign-out confirm. Fixed the audio-mode leak the spec flagged —
+  ambient meditation's `playsInSilentMode:true` no longer bleeds into UI chirps.
+  Added `expo-haptics`, a `Toggle` UI primitive, and the Feedback section in
+  Settings. Reviewer (`.claude/agents/reviewer.md`) caught an unhandled
+  `seekTo` rejection and a misleading comment — both fixed. Verified in web
+  preview (toggles persist, sound path fires clean); haptics + silent-switch
+  are physical-device-only.
 - **2026-07-28** — **Feature sprint slices 1 + 1b.** Migrations 0011 (workout
   sessions, exercise logs, push tokens, notification prefs + a security_invoker
   session_summary view) and 0012 (activity_log gets program_id + client_event_id,

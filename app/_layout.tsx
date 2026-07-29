@@ -1,12 +1,21 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { I18nProvider } from "../src/lib/i18n";
 import { AuthProvider } from "../src/lib/auth";
+import { hydrateFeedbackPrefs } from "../src/lib/settings";
+import { preloadFeedback } from "../src/lib/feedback";
 import { color } from "../src/ui";
 
 export default function RootLayout() {
+  // Load the haptics/sound choice and warm the SFX players once, so the first
+  // tap is neither silent-by-default-race nor stuttering on player creation.
+  useEffect(() => {
+    void hydrateFeedbackPrefs();
+    preloadFeedback();
+  }, []);
+
   return (
     <SafeAreaProvider>
       {/* AuthProvider sits inside I18nProvider: on sign-in it reads the

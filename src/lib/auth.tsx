@@ -19,6 +19,7 @@ import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "./supabase";
 import { useI18n } from "./i18n";
 import { assignPlan } from "./plan";
+import { feedback } from "./feedback";
 import {
   QUESTIONNAIRE_VERSION, answersToProfile, clearProgress, loadProgress, markOnboarded,
 } from "./onboarding";
@@ -92,6 +93,7 @@ export async function flushOnboarding(): Promise<void> {
 
   // No matching rule is survivable (see plan.ts) — don't fail the flush over it.
   await assignPlan(saved.answers);
+  feedback.success(); // the plan is assigned — a small "yes" (slice 5 owns the full ceremony)
 
   // Marker first, then drop the answers: if the app died between these two, a
   // spare marker is harmless, whereas cleared answers with no marker would

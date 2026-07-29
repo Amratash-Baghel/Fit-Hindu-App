@@ -2,6 +2,27 @@
 
 One dated line per decision, with the why. Newest on top.
 
+- **2026-07-28 (feedback = one service, haptics + sound paired)** — All tactile/
+  audio feedback goes through `src/lib/feedback.ts` (tap/success/complete/error);
+  no component calls `Haptics.*` or a UI audio player directly. Why: the two
+  settings toggles (haptics, sound — local to the device, default on) stay
+  honest with a single gate, and the buzz+chime mapping lives in one file.
+  Players are preloaded once at startup, never per tap (low-end Android).
+- **2026-07-28 (UI SFX audio mode is the expo-audio default; ambient owns the
+  override)** — Feedback never calls `setAudioModeAsync`; the default respects
+  the iOS silent switch, which is what UI chirps want. The ambient player
+  (`audio.ts`) sets `playsInSilentMode:true` while it plays and resets on
+  `stopAudio()`, so that choice never leaks into later chirps. The one chirp
+  that rides the ambient mode is the meditation-complete chime (the reset is
+  async and fires just before it) — deliberately fine: the user was already
+  hearing audio, or chose silent and the mode never left default.
+- **2026-07-28 (SFX ship as generated placeholders)** — `assets/sfx/*.wav` are
+  synthesised sine chirps so the service is functional now; the sound designer
+  replaces them with polished ≤30 KB assets under the same filenames, no code
+  change (`assets/sfx/README.md`). Why: unblocks the feature without waiting on
+  audio production, same "content fills the shell later" pattern as the rest of
+  the app.
+
 - **2026-07-28 (streak exposes `freezes_used`)** — `streak_state()` returns the
   count of forgiveness days spent in the *current* run, not just the streak
   number. Why: the 2026-07-28 freeze rule promises gentle recovery framing, and

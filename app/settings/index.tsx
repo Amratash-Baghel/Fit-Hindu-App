@@ -14,11 +14,13 @@ import { Linking, Pressable, View } from "react-native";
 import { Stack, useRouter } from "expo-router";
 import Constants from "expo-constants";
 import {
-  Screen, Card, Button, OptionRow, T, B, ChevronLeft, color, space,
+  Screen, Card, Button, OptionRow, Toggle, T, B, ChevronLeft, color, space,
 } from "../../src/ui";
-import { useI18n } from "../../src/lib/i18n";
+import { useI18n, type StringKey } from "../../src/lib/i18n";
 import { useAuth } from "../../src/lib/auth";
 import { supabase } from "../../src/lib/supabase";
+import { feedback } from "../../src/lib/feedback";
+import { useFeedbackPrefs, setFeedbackPref } from "../../src/lib/settings";
 import { PRIVACY_POLICY_URL } from "../../src/lib/config";
 import type { LanguageMode } from "../../src/types/db";
 
@@ -51,6 +53,7 @@ export default function Settings() {
       </View>
 
       <LanguageSection />
+      <FeedbackSection />
       <AccountSection />
       <AboutSection />
     </Screen>
@@ -58,7 +61,7 @@ export default function Settings() {
 }
 
 /** Section shell — a labelled group. Local to settings; built from tokens only. */
-function Section({ titleKey, children }: { titleKey: "settings_language" | "settings_account" | "settings_about"; children: React.ReactNode }) {
+function Section({ titleKey, children }: { titleKey: StringKey; children: React.ReactNode }) {
   const { t } = useI18n();
   return (
     <View style={{ gap: space.sm, marginTop: space.md }}>
@@ -104,6 +107,45 @@ function LanguageSection() {
   );
 }
 
+/** Haptics + sound, two independent toggles, both default on (slice 2). */
+function FeedbackSection() {
+  const { t } = useI18n();
+  const prefs = useFeedbackPrefs();
+
+  return (
+    <Section titleKey="settings_feedback">
+      <Card style={{ gap: space.md }}>
+        <ToggleRow
+          label={t("settings_haptics")}
+          value={prefs.haptics}
+          onChange={(v) => {
+            void setFeedbackPref("haptics", v);
+            if (v) feedback.tap(); // let it be felt the moment it's turned on
+          }}
+        />
+        <View style={{ height: 1, backgroundColor: color.line }} />
+        <ToggleRow
+          label={t("settings_sound")}
+          value={prefs.sound}
+          onChange={(v) => {
+            void setFeedbackPref("sound", v);
+            if (v) feedback.tap(); // let it be heard the moment it's turned on
+          }}
+        />
+      </Card>
+    </Section>
+  );
+}
+
+function ToggleRow({ label, value, onChange }: { label: string; value: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+      <T variant="bodyBold">{label}</T>
+      <Toggle value={value} onValueChange={onChange} accessibilityLabel={label} />
+    </View>
+  );
+}
+
 /** The one section that changes with a session. Guest → sign in; user → sign out. */
 function AccountSection() {
   const { session, signOut } = useAuth();
@@ -135,7 +177,7 @@ function AccountSection() {
                 <View style={{ flex: 1 }}>
                   {/* Leaves the user on this screen; the section re-renders to
                       the guest state, which is the confirmation that it worked. */}
-                  <Button k="sign_out" kind="ghost" onPress={() => { setConfirming(false); void signOut(); }} />
+                  <Button k="sign_out" kind="ghost" onPress={() => { feedback.error(); setConfirming(false); void signOut(); }} />
                 </View>
               </View>
             </View>
