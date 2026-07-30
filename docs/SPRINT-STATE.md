@@ -10,7 +10,9 @@
 
 **Last updated:** 2026-07-30 · slice 7 built + reviewed + committed, plus one
 post-slice fix.
-**Migrations 0013 AND 0014 are written and validated but NOT yet applied in Supabase.**
+**Migrations 0013 AND 0014 — owner confirmed both run in Supabase 2026-07-30.**
+Not independently verified from this session (no Supabase access from here) —
+taken on the owner's word, per the two-device handoff protocol.
 
 ---
 
@@ -32,11 +34,10 @@ system nav bar. Commit `25f63f7`.
 
 ## Where we are
 
-**Slice 7 — push notifications. Code complete, reviewed. Delivery unverified
-(and cannot be verified from a dev machine — see the owner list below).**
-
-⚠️ **USER MUST RUN migration 0014 in Supabase.** Until it does, every
-`send-push` invocation returns `claim failed`. 0013 is still outstanding too.
+**Slice 7 — push notifications. Code complete, reviewed. Migrations 0013 and
+0014 applied (owner-confirmed 2026-07-30). Delivery still unverified** — that
+needs the FCM upload, the deployed Edge Function, and a physical device; see
+the owner action list below, now down to four items.
 
 Six commits: `30bedde` migration 0014, `e6dfce9` the install + app.json,
 `318a126` the client service, `808c9e4` the Settings section, `05f9055` the
@@ -276,25 +277,22 @@ It only gets worse the longer this branch runs. Do not start it right before a
 device switch — it is exactly the kind of multi-file work that must not be left
 half-done.
 
-**1 · Owner actions. Slice 7's code is written; none of it can run until these
-are done.** In order:
+**1 · Owner actions remaining.** Migrations 0013 and 0014 are done (owner
+confirmed 2026-07-30) and `eas init` has run (project `@amratashs-team/fit-hindu`,
+`extra.eas.projectId` written to `app.json`). In order, what's left:
 
-1. Run migration **0013**, then **0014** in Supabase.
-2. `eas init` — writes `extra.eas.projectId` into `app.json`. **Missing today.**
-   Without it the app never obtains a push token, so `push_tokens` stays empty
-   and every fan-out finds nobody. `src/lib/push.ts` degrades to a documented
-   no-op rather than throwing, which means this failure is silent — check for
-   the field before wondering why nothing arrives.
-3. Upload the **FCM v1 service-account JSON** to EAS (`eas credentials`).
-4. `supabase functions deploy send-push --no-verify-jwt`, then
+1. Upload the **FCM v1 service-account JSON** to EAS (`eas credentials`).
+2. `supabase functions deploy send-push --no-verify-jwt`, then
    `supabase secrets set CRON_SECRET=…`.
-5. Create the three pg_cron jobs — the `cron.schedule` calls are written out at
+3. Create the three pg_cron jobs — the `cron.schedule` calls are written out at
    the bottom of `supabase/migrations/0014_push_fanout.sql` and are deliberately
    not run by the migration (they embed the project ref and the secret). The
    receipts job is not optional: skip it and `push_tokens` accumulates
    uninstalled devices forever.
-6. Install a **dev build on a physical Android device**. Remote push does not
-   work in Expo Go on Android from SDK 53 onward and we are on 57.
+4. Install a **dev build on a physical Android device**. Remote push does not
+   work in Expo Go on Android from SDK 53 onward and we are on 57. This build
+   also needs to be a NEW one — `eas init` and `expo-notifications` both changed
+   native config since the last dev build was installed.
 
 `supabase/functions/send-push/README.md` has the exact commands and a smoke
 test, including how to force yourself into the audience.
@@ -349,8 +347,8 @@ physical-device verification backlog listed under each slice above.
 | 3 | Splash | ✅ done | reanimated+worklets+babel; ceremony palette; arch + gada SVG; reviewed. |
 | 4 | Streak | ✅ done | `useStreak()` + live `StreakCard`; 34/34 tests; reviewed. Guest local streak deferred. |
 | 5 | Plan-ready ceremony | ✅ done | `CeremonyLoader` + `/plan/ready`; real staged awaits; 3 outcomes; reviewed. |
-| 6 | Workout tracking + progress | ✅ done | Local-first session queue; 3 bars; Progress screen. **0013 NOT applied.** 51/51 PGlite. |
-| 7 | Push end-to-end | ✅ code done | 0014 + `send-push` Edge Function + client + Settings; reviewed. 79/79 PGlite. **0014 NOT applied; delivery untested — six owner actions above.** |
+| 6 | Workout tracking + progress | ✅ done | Local-first session queue; 3 bars; Progress screen. 0013 applied. 51/51 PGlite. |
+| 7 | Push end-to-end | ✅ code done | 0014 + `send-push` Edge Function + client + Settings; reviewed. 79/79 PGlite. 0014 applied; `eas init` done. **Delivery untested — four owner actions above.** |
 
 **All seven slices of the sprint are now built.** What remains is not
 engineering: it is the owner action list above, the `origin/main` merge, and the
@@ -368,9 +366,11 @@ restart.
   **installed + declared** (slice 3). Needs `babel.config.js` (added) +
   New Architecture (Expo SDK 57 default). Reanimated 4 required the worklets
   peer + its babel plugin.
-- `expo-notifications` ~57.0.8 — **installed** (slice 7). Needs
-  `extra.eas.projectId` in `app.json` (still missing) and a dev/EAS build;
-  remote push does not work in Expo Go on Android from SDK 53 onward.
+- `expo-notifications` ~57.0.8 — **installed** (slice 7). `extra.eas.projectId`
+  now present (`eas init`, project `@amratashs-team/fit-hindu`). Still needs a
+  fresh dev/EAS build — remote push does not work in Expo Go on Android from
+  SDK 53 onward, and neither `expo-notifications` nor the projectId were in the
+  last build that shipped to the test device.
 
 Install at the slice that needs each, not up front.
 
@@ -383,6 +383,15 @@ re-add it without asking.
 `npm uninstall` prunes it, so re-run `npm install --no-save @electric-sql/pglite`
 before the schema checks if they fail with `ERR_MODULE_NOT_FOUND`.
 
+`eas init` (2026-07-30) resolved the native config for the first time since
+`expo-audio` was added, and synced three Android permissions into `app.json`
+that were implied but never written: `MODIFY_AUDIO_SETTINGS`,
+`FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_MEDIA_PLAYBACK` — all from
+`expo-audio`'s own config plugin (meditation/sleep background audio), not a new
+capability being requested. Confirmed against `node_modules/expo-audio/plugin/src/withAudio.ts`.
+Worth knowing before the next store listing, since it changes the permission
+list shown there.
+
 ## Migration ledger
 
 | Migration | Written | **Applied in Supabase** |
@@ -390,11 +399,12 @@ before the schema checks if they fail with `ERR_MODULE_NOT_FOUND`.
 | 0001-0010 | ✅ | ✅ (per `docs/progress.md`) |
 | 0011 sessions + push | ✅ | ✅ (owner ran 2026-07-28) |
 | 0012 activity_log + streak | ✅ | ✅ (owner ran 2026-07-28) |
-| 0013 progress aggregates | ✅ | ❌ **NOT APPLIED — owner must run** |
-| 0014 push fan-out | ✅ | ❌ **NOT APPLIED — owner must run** |
+| 0013 progress aggregates | ✅ | ✅ (owner ran 2026-07-30) |
+| 0014 push fan-out | ✅ | ✅ (owner ran 2026-07-30) |
 
-Apply 0013 before 0014; nothing in 0014 depends on it, but running them out of
-order makes the ledger harder to reason about later.
+Not independently re-verified from this session — no direct Supabase access
+here. If the Progress screen or `send-push` behave as if either migration is
+missing, that is the first thing to check, not the second.
 
 **Never assume a migration has been applied.** Never leave one partially
 applied — either it runs clean and is committed, or it is not started.
@@ -414,19 +424,12 @@ Supabase with a real anon session before launch.
 
 ## Open items on the owner
 
-- ⚠️ **RUN MIGRATION 0013** (`supabase/migrations/0013_progress_aggregates.sql`)
-  in Supabase. Additive only — three read functions, no table or policy touched,
-  and reverting is a `drop function`. Until it runs, the Progress screen's reads
-  error and it shows its empty state.
-- ⚠️ **RUN MIGRATION 0014** (`supabase/migrations/0014_push_fanout.sql`) in
-  Supabase. One enum, two service-role-only tables, two functions, and a
-  `create or replace` of `handle_new_user()` (it now also creates the
-  `notification_prefs` row; existing users are backfilled in the same file).
-  Reverting is a `drop table` / `drop function` plus restoring 0002's version of
-  the trigger function. Until it runs, every `send-push` call answers
-  `claim failed`.
-- **`eas init`** — writes `extra.eas.projectId` into `app.json`. **Missing.**
-  Without it the app never gets a push token and the feature is silently inert.
+- ✅ Migration **0013** — owner ran 2026-07-30.
+- ✅ Migration **0014** — owner ran 2026-07-30.
+- ✅ **`eas init`** — done 2026-07-30. Project `@amratashs-team/fit-hindu`,
+  `extra.eas.projectId` in `app.json`. Also synced three Android permissions
+  from `expo-audio` into `app.json` that were implied but never written before
+  — see the Dependencies section above.
 - **FCM v1 service-account JSON** uploaded to EAS (`eas credentials`).
 - **Deploy the Edge Function** and set its secret:
   `supabase functions deploy send-push --no-verify-jwt`, then

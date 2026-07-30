@@ -16,7 +16,12 @@
         "monochromeImage": "./assets/android-icon-monochrome.png",
         "backgroundColor": "#0F0B07"
       },
-      "permissions": ["POST_NOTIFICATIONS"]
+      "permissions": [
+        "POST_NOTIFICATIONS",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -46,6 +51,13 @@
           "color": "#F0761E"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "af7c293b-e153-48bd-8b60-a6c6a2810982"
+      }
+    },
+    "owner": "amratashs-team"
   }
 }
