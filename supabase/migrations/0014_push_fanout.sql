@@ -160,8 +160,18 @@ as $$
 
     -- kind-specific eligibility
     and (
-      p_kind = 'plan_ready'
-      or (
+      case p_kind when 'plan_ready' then
+        -- The message says "your plan is ready", so there had better be one.
+        -- Without this the app could ask for a plan-ready push at any moment
+        -- (requestPlanReadyPush is reachable from a signed-in client) and the
+        -- user would be told about a plan the rules engine never assigned —
+        -- and for a meaningful share of users it never does, by design
+        -- (plan.ts returns null when nothing matches).
+        exists (
+          select 1 from user_plans up
+          where up.user_id = t.user_id and up.status = 'active'
+        )
+      else (
         -- Never nudge someone who already showed up today. The spec states this
         -- for streak_at_risk ("only when today is incomplete"); it is applied to
         -- the daily reminder too, because "time to train!" sent to a user who
@@ -175,15 +185,32 @@ as $$
         )
         and case p_kind
               when 'daily_reminder' then
-                -- Their chosen wall-clock time has passed in IST, and by less
-                -- than two hours. The upper bound matters: the ledger stops
+                -- Their chosen time has passed TODAY in IST, and by less than
+                -- two hours. The upper bound matters: the ledger stops
                 -- duplicates but not LATENESS, and without it a cron outage
                 -- from 19:00 to 23:00 would deliver a stack of "time to train"
                 -- pushes at eleven at night. Two hours also means a schedule
                 -- coarser than hourly still catches everyone.
-                np.reminder_time <= coalesce(p_now, (now() at time zone 'Asia/Kolkata')::time)
-                and coalesce(p_now, (now() at time zone 'Asia/Kolkata')::time) - np.reminder_time
-                      < interval '2 hours'
+                --
+                -- Compared as INSTANTS (date + time), not as bare `time`
+                -- values. Subtracting two times yields a negative interval
+                -- across midnight — 00:00 minus 23:30 is -23:30, which is
+                -- "less than two hours" and would have made a 23:30 reminder
+                -- fire at midnight every night.
+                --
+                -- KNOWN LIMIT, and it is inherent rather than an oversight: a
+                -- reminder set in the last two hours before midnight gets no
+                -- catch-up if its own tick is missed, because by the next tick
+                -- ist_today() has rolled and that slot belongs to a day the
+                -- ledger has closed. Extending the window across the boundary
+                -- would double-notify everyone else (they would qualify again
+                -- under the new date), which is strictly worse. With the
+                -- half-hourly schedule the tick exists; only an outage in that
+                -- exact window loses the day. Tested below.
+                (ist_today() + np.reminder_time)
+                    <= coalesce(ist_today() + p_now, now() at time zone 'Asia/Kolkata')
+                and coalesce(ist_today() + p_now, now() at time zone 'Asia/Kolkata')
+                      - (ist_today() + np.reminder_time) < interval '2 hours'
               when 'streak_at_risk' then
                 -- Activity yesterday and none today — which is exactly what
                 -- streak_state().at_risk reports (0012: `days[1] = today - 1`),
@@ -200,6 +227,7 @@ as $$
                 )
             end
       )
+      end
     );
 $$;
 

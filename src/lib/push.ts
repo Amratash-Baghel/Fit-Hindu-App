@@ -71,6 +71,9 @@ const ROUTE_FOR: Record<NotificationKind, string> = {
 const isKind = (v: unknown): v is NotificationKind =>
   v === "daily_reminder" || v === "streak_at_risk" || v === "plan_ready";
 
+/** See `watchNotificationTaps` — the launch response is a one-shot, not a queue. */
+let coldStartHandled = false;
+
 /**
  * A notification that arrives while the app is open.
  *
@@ -339,13 +342,24 @@ export function routeForNotification(data: unknown): string | null {
 export function watchNotificationTaps(navigate: (route: string) => void): () => void {
   let alive = true;
 
-  void Notifications.getLastNotificationResponseAsync()
-    .then((response) => {
-      if (!alive || !response) return;
-      const route = routeForNotification(response.notification.request.content.data);
-      if (route) navigate(route);
-    })
-    .catch(() => {});
+  // The cold-start response is read at most ONCE per JS runtime.
+  //
+  // `getLastNotificationResponseAsync` keeps returning the same response for
+  // the life of the process — it is a "what launched me", not a queue. So any
+  // remount of the root layout (Fast Refresh in development, a provider swap,
+  // a future error-boundary reset) would replay the navigation and yank the
+  // user back to a screen they had already left. Module scope, not a ref,
+  // because the guard has to outlive the component.
+  if (!coldStartHandled) {
+    coldStartHandled = true;
+    void Notifications.getLastNotificationResponseAsync()
+      .then((response) => {
+        if (!alive || !response) return;
+        const route = routeForNotification(response.notification.request.content.data);
+        if (route) navigate(route);
+      })
+      .catch(() => {});
+  }
 
   const sub = Notifications.addNotificationResponseReceivedListener((response) => {
     const route = routeForNotification(response.notification.request.content.data);

@@ -365,6 +365,13 @@ await db.exec(`
   insert into activity_log (user_id, activity_type, ist_date) values
     ('${N2}', 'workout', ist_today()),      -- showed up today
     ('${N4}', 'workout', ist_today() - 1);  -- showed up yesterday, not today
+
+  -- plan_ready is only truthful for someone who HAS a plan. N2 and N5 get one;
+  -- N1 deliberately does not, which is the common real state (the rules engine
+  -- leaves unmatched users with no plan at all).
+  insert into user_plans (user_id, program_id, started_on, status) values
+    ('${N2}', '${PROG}', ist_today() - 1, 'active'),
+    ('${N5}', '${PROG}', ist_today() - 1, 'active');
 `);
 
 /** Distinct users in an audience, sorted, as short ids for readable failures. */
@@ -386,6 +393,18 @@ check("daily_reminder: not due more than 2 hours late",
   await audience("daily_reminder", { now: "'09:00'" }), []);
 check("daily_reminder: still due at the 2-hour edge",
   await audience("daily_reminder", { now: "'07:59'" }), ["1", "4", "5"]);
+
+// Midnight. Two bare `time` values subtract to a NEGATIVE interval across the
+// boundary (00:00 - 23:30 = -23:30), which reads as "less than two hours late"
+// and would fire a 23:30 reminder every single midnight. Comparing instants
+// instead is what stops that — and the second case documents the accepted
+// consequence: a late-night slot has no catch-up once the date has rolled.
+await db.exec(`update notification_prefs set reminder_time = '23:30' where user_id = '${N1}'`);
+check("daily_reminder: a 23:30 reminder is due at 23:45",
+  (await audience("daily_reminder", { now: "'23:45'" })).includes("1"), true);
+check("daily_reminder: a 23:30 reminder does NOT fire again after midnight",
+  (await audience("daily_reminder", { now: "'00:15'" })).includes("1"), false);
+await db.exec(`update notification_prefs set reminder_time = '06:00' where user_id = '${N1}'`);
 
 // --- opt-outs and "already showed up" ---
 // N2 and N3 are absent from every list above. Asserting it explicitly so the
@@ -432,6 +451,10 @@ check("plan_ready: a target reaches exactly that user",
 // plan_ready is event-driven, so it deliberately ignores "trained today".
 check("plan_ready: delivered even to a user who already trained",
   await audience("plan_ready", { target: `'${N2}'` }), ["2"]);
+// requestPlanReadyPush() is reachable from any signed-in client, so the claim
+// in the notification has to be checked here rather than trusted from the app.
+check("plan_ready: not sent to a user who has no plan",
+  await audience("plan_ready", { target: `'${N1}'` }), []);
 
 // --- the claim ledger (everything below MUTATES push_sends) ---
 const claim1 = await q(`select * from push_claim('daily_reminder', null, '07:00')`);
