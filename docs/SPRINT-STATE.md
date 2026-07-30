@@ -8,8 +8,21 @@
 >
 > Contract: `docs/specs/feature-sprint.md`. Source prompt: `prompts/feature-sprint.md`.
 
-**Last updated:** 2026-07-29 · slice 6 built + reviewed + verified, committed.
-**Migration 0013 is written and validated but NOT yet applied in Supabase.**
+**Last updated:** 2026-07-30 · slice 7 in progress.
+**Migrations 0013 AND 0014 are written and validated but NOT yet applied in Supabase.**
+
+---
+
+## Slice 7 — push (in progress)
+
+- ✅ **7a** migration 0014 (`push_sends` ledger, `push_audience()`,
+  `push_claim()`, prefs row for every user) + 25 new schema checks.
+  **76/76 PGlite green** (was 51). ⚠️ **NOT applied in Supabase.**
+- ⬜ 7b expo-notifications install + app.json
+- ⬜ 7c client push service + prefs
+- ⬜ 7d Settings section + i18n
+- ⬜ 7e `supabase/functions/send-push/`
+- ⬜ 7f verify, review, docs, commit
 
 ---
 

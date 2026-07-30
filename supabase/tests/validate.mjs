@@ -1,8 +1,13 @@
 /**
- * Validates migrations 0001-0012 against a real Postgres engine (PGlite), then
- * exercises the streak rules from docs/specs/feature-sprint.md.
+ * Validates migrations 0001-0014 against a real Postgres engine (PGlite), then
+ * exercises the streak rules, the progress aggregates and the push fan-out from
+ * docs/specs/feature-sprint.md.
  *
- * RUN:  npx --yes -p @electric-sql/pglite node supabase/tests/validate.mjs
+ * RUN:  npm install --no-save @electric-sql/pglite && node supabase/tests/validate.mjs
+ *
+ * (`--no-save` leaves package.json and the lockfile untouched. The previously
+ * documented `npx -p @electric-sql/pglite node …` form does not put the package
+ * on Node's resolution path on Windows and fails with ERR_MODULE_NOT_FOUND.)
  *
  * PGlite is deliberately NOT a package.json dependency — it is a validation
  * tool, not something that ships in the app bundle.
@@ -318,6 +323,147 @@ const prosec = await q(`select proname, prosecdef from pg_proc
 check("progress functions are not security definer",
   prosec.map(p => `${p.proname}:${p.prosecdef}`),
   ["body_area_progress:false", "plan_progress:false", "progress_summary:false"]);
+
+// ---------- 0014: push fan-out ----------
+// Fresh users throughout: every user above already carries activity_log history
+// from the streak cases, and "has this person trained today" is the single most
+// load-bearing condition in the audience query.
+const PU = "66666666-0000-4000-8000-00000000000";
+const N1 = `${PU}1`; // plain: no activity at all, one device
+const N2 = `${PU}2`; // trained today
+const N3 = `${PU}3`; // master switch off
+const N4 = `${PU}4`; // trained yesterday, not today -> the at-risk case
+const N5 = `${PU}5`; // two devices
+
+await db.exec(`insert into auth.users (id) values
+  ('${N1}'), ('${N2}'), ('${N3}'), ('${N4}'), ('${N5}')`);
+
+// The trigger 0014 replaces must create the prefs row alongside the profile,
+// or every one of these users drops out of the audience join silently.
+check("0014: new user gets a notification_prefs row",
+  (await q(`select count(*)::int c from notification_prefs
+            where user_id in ('${N1}','${N2}','${N3}','${N4}','${N5}')`))[0].c, 5);
+// U and U2 were created BEFORE 0014 applied — they exercise the backfill, not
+// the trigger.
+check("0014: backfill gave pre-existing users a prefs row",
+  (await q(`select count(*)::int c from notification_prefs where user_id in ('${U}','${U2}')`))[0].c, 2);
+
+await db.exec(`
+  insert into push_tokens (user_id, device_id, expo_push_token, platform) values
+    ('${N1}', 'd1', 'ExponentPushToken[n1]',  'android'),
+    ('${N2}', 'd1', 'ExponentPushToken[n2]',  'android'),
+    ('${N3}', 'd1', 'ExponentPushToken[n3]',  'android'),
+    ('${N4}', 'd1', 'ExponentPushToken[n4]',  'android'),
+    ('${N5}', 'd1', 'ExponentPushToken[n5a]', 'android'),
+    ('${N5}', 'd2', 'ExponentPushToken[n5b]', 'ios');
+
+  update notification_prefs set reminder_time = '06:00'
+    where user_id in ('${N1}','${N2}','${N3}','${N4}','${N5}');
+  update notification_prefs set enabled = false where user_id = '${N3}';
+  update profiles set language_mode = 'hindi' where id = '${N1}';
+
+  insert into activity_log (user_id, activity_type, ist_date) values
+    ('${N2}', 'workout', ist_today()),      -- showed up today
+    ('${N4}', 'workout', ist_today() - 1);  -- showed up yesterday, not today
+`);
+
+/** Distinct users in an audience, sorted, as short ids for readable failures. */
+const short = (id) => id.slice(-1);
+async function audience(kind, { target = "null", now = "null" } = {}) {
+  const rows = await q(`select distinct user_id from push_audience(
+    '${kind}'::notification_kind, ${target}, ${now}) order by user_id`);
+  return rows.map((r) => short(r.user_id));
+}
+
+// --- daily reminder: the time window ---
+// p_now pins the IST clock so these assertions do not depend on when the suite
+// is run. Production always passes null and reads the real clock.
+check("daily_reminder: due when the chosen time has just passed",
+  await audience("daily_reminder", { now: "'07:00'" }), ["1", "4", "5"]);
+check("daily_reminder: not due before the chosen time",
+  await audience("daily_reminder", { now: "'05:00'" }), []);
+check("daily_reminder: not due more than 2 hours late",
+  await audience("daily_reminder", { now: "'09:00'" }), []);
+check("daily_reminder: still due at the 2-hour edge",
+  await audience("daily_reminder", { now: "'07:59'" }), ["1", "4", "5"]);
+
+// --- opt-outs and "already showed up" ---
+// N2 and N3 are absent from every list above. Asserting it explicitly so the
+// reason a regression appears is legible.
+check("daily_reminder: a user who already trained today is never nudged",
+  (await audience("daily_reminder", { now: "'07:00'" })).includes("2"), false);
+check("daily_reminder: the master switch excludes every kind",
+  (await audience("daily_reminder", { now: "'07:00'" })).includes("3"), false);
+
+await db.exec(`update notification_prefs set daily_reminder = false where user_id = '${N1}'`);
+check("daily_reminder: per-type opt-out excludes only that kind",
+  await audience("daily_reminder", { now: "'07:00'" }), ["4", "5"]);
+await db.exec(`update notification_prefs set daily_reminder = true where user_id = '${N1}'`);
+
+// --- one row per device, and the language the copy is rendered in ---
+const devs = await q(`select expo_push_token, platform, language_mode
+                      from push_audience('daily_reminder', '${N5}', '07:00') order by device_id`);
+check("audience returns one row per device",
+  devs.map((d) => `${d.platform}:${d.expo_push_token}`),
+  ["android:ExponentPushToken[n5a]", "ios:ExponentPushToken[n5b]"]);
+check("audience carries the profile's language for the copy",
+  (await q(`select language_mode from push_audience('daily_reminder', '${N1}', '07:00')`))[0].language_mode,
+  "hindi");
+
+// --- streak at risk ---
+// Exactly the users streak_state() would call at_risk: activity yesterday, none
+// today. N1 and N5 have no history at all and must not be told a streak is in
+// danger when there is no streak.
+check("streak_at_risk: only a user who trained yesterday and not today",
+  await audience("streak_at_risk"), ["4"]);
+check("streak_at_risk: agrees with streak_state().at_risk",
+  (await q(`select at_risk from streak_state('${N4}')`))[0].at_risk, true);
+// A dead streak (nothing for two days) has nothing left to rescue.
+await db.exec(`insert into activity_log (user_id, activity_type, ist_date)
+               values ('${N1}', 'workout', ist_today() - 2)`);
+check("streak_at_risk: a streak already broken is not nudged",
+  await audience("streak_at_risk"), ["4"]);
+
+// --- plan_ready is targeted, never a fan-out ---
+check("plan_ready: a null target reaches nobody",
+  await audience("plan_ready"), []);
+check("plan_ready: a target reaches exactly that user",
+  await audience("plan_ready", { target: `'${N5}'` }), ["5"]);
+// plan_ready is event-driven, so it deliberately ignores "trained today".
+check("plan_ready: delivered even to a user who already trained",
+  await audience("plan_ready", { target: `'${N2}'` }), ["2"]);
+
+// --- the claim ledger (everything below MUTATES push_sends) ---
+const claim1 = await q(`select * from push_claim('daily_reminder', null, '07:00')`);
+check("push_claim: returns every due device the first time",
+  claim1.length, 4); // N1 + N4 + N5's two devices
+check("push_claim: records one ledger row per user, not per device",
+  (await q(`select count(*)::int c from push_sends
+            where kind = 'daily_reminder' and ist_date = ist_today()`))[0].c, 3);
+check("push_claim: a second run in the same day returns nothing",
+  (await q(`select count(*)::int c from push_claim('daily_reminder', null, '07:00')`))[0].c, 0);
+check("push_audience: a claimed user drops out of the audience",
+  await audience("daily_reminder", { now: "'07:00'" }), []);
+// The ledger is per (user, kind, day) — claiming the reminder must not silence
+// the evening nudge.
+check("push_claim: kinds are claimed independently",
+  (await q(`select count(*)::int c from push_claim('streak_at_risk')`))[0].c, 1);
+
+// --- security contract ---
+// push_sends is service_role-only: RLS on, and deliberately zero policies. If a
+// policy is ever added, a client could mark its own reminder sent and silence
+// itself, and push_claim() would stop being service_role-only.
+check("push_sends has RLS enabled",
+  (await q(`select relrowsecurity r from pg_class where relname = 'push_sends'`))[0].r, true);
+check("push_sends has no policies at all",
+  (await q(`select count(*)::int c from pg_policies where tablename = 'push_sends'`))[0].c, 0);
+// Same contract as streak_state / the 0013 aggregates: definer here would turn
+// push_audience into a readable roster of every user's push tokens.
+const pushsec = await q(`select proname, prosecdef from pg_proc
+  where proname in ('push_audience','push_claim') order by proname`);
+check("push functions are not security definer",
+  pushsec.map((p) => `${p.proname}:${p.prosecdef}`),
+  ["push_audience:false", "push_claim:false"]);
 
 console.log("\n" + results.join("\n"));
 console.log(`\n${pass} passed, ${fail} failed\n`);
