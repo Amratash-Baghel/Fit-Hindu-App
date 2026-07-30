@@ -20,6 +20,7 @@ import { supabase } from "./supabase";
 import { useI18n, type StringKey } from "./i18n";
 import { assignPlan } from "./plan";
 import { flushQueue } from "./session";
+import { registerPushToken, unregisterPushToken } from "./push";
 import {
   QUESTIONNAIRE_VERSION, answersToProfile, clearProgress, loadProgress, markOnboarded,
 } from "./onboarding";
@@ -170,7 +171,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // foreground, nothing else would retry. Flushing the moment a user
       // exists closes that window; the queue is idempotent, so an extra call
       // is free.
-      if (s) void flushQueue();
+      if (s) {
+        void flushQueue();
+        // The push token is fetched before any account exists (a guest can grant
+        // permission after their first workout), so this is the moment it gets
+        // an owner. Idempotent — the upsert is keyed on (user_id, device_id) —
+        // and a no-op when permission was never granted.
+        void registerPushToken();
+      }
     });
 
     return () => {
@@ -214,6 +222,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user: session?.user ?? null,
       loading,
       signOut: async () => {
+        // Drop this device's token BEFORE the session goes, while RLS still
+        // lets us delete our own row. Otherwise tonight's reminder for the
+        // account that just left lands on a phone somebody else is now using —
+        // shared handsets are normal in this audience.
+        const uid = session?.user.id;
+        if (uid) await unregisterPushToken(uid);
         await supabase.auth.signOut();
       },
     }),

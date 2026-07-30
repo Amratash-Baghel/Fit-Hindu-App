@@ -368,7 +368,8 @@ export interface PushToken {
 }
 
 /** Server-side, not local: the Edge Function cannot honour a preference it
- *  cannot read, and these must survive a reinstall. */
+ *  cannot read, and these must survive a reinstall. Every user has a row —
+ *  handle_new_user() creates it (0014), so the defaults live only in the table. */
 export interface NotificationPrefs {
   user_id: string;
   enabled: boolean;
@@ -378,6 +379,26 @@ export interface NotificationPrefs {
   streak_at_risk: boolean;
   plan_ready: boolean;
   updated_at: string;
+}
+
+// ---------- push fan-out (migration 0014) ----------
+
+/** The three v1 notification types. Mirrors the `notification_kind` enum; also
+ *  the tap payload's `kind` field, which the client maps to a route through a
+ *  closed allowlist (src/lib/push.ts) rather than trusting a route string. */
+export type NotificationKind = "daily_reminder" | "streak_at_risk" | "plan_ready";
+
+/** One row per device due for a notification — the return of push_audience()
+ *  and push_claim(). Read only by the Edge Function (service_role); the app
+ *  never calls either. */
+export interface PushAudienceRow {
+  user_id: string;
+  device_id: string;
+  expo_push_token: string;
+  platform: DevicePlatform;
+  /** The recipient's profile language, so the sender can render copy the user
+   *  can read. The app's i18n layer is not running when a cron composes a push. */
+  language_mode: LanguageMode;
 }
 
 // ---------- streak (migration 0012) ----------

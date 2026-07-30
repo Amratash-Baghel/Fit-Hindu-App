@@ -356,6 +356,48 @@ export const strings = {
   settings_privacy: { hi: "गोपनीयता नीति", en: "Privacy policy" },
   settings_version: { hi: "ऐप संस्करण", en: "App version" },
 
+  // notifications (slice 7)
+  //
+  // NOTE: the text of the notifications THEMSELVES is not here. It cannot be —
+  // a scheduled push is composed by supabase/functions/send-push at 19:00 IST
+  // with the app not running, so it renders from that function's own hi/en
+  // catalog against the recipient's profiles.language_mode. That file is the
+  // second place user-facing copy lives in this project, and the only one; it
+  // carries the same non-medical, behaviour-only rule as everything below.
+  //
+  // These strings are the app's side: the invitation, and the controls.
+  push_offer_title: { hi: "रोज़ याद दिला दें?", en: "Shall we remind you daily?" },
+  push_offer_body: {
+    hi: "एक छोटी सूचना, आपके चुने हुए समय पर — ताकि आपका संकल्प छूटे नहीं।",
+    en: "One small nudge at a time you choose, so your sankalp doesn't slip.",
+  },
+  push_offer_yes: { hi: "हाँ, याद दिलाएँ", en: "Yes, remind me" },
+
+  settings_notifications: { hi: "सूचनाएँ", en: "Notifications" },
+  notif_master: { hi: "सूचनाएँ चालू रखें", en: "Allow notifications" },
+  notif_daily: { hi: "रोज़ का अनुस्मारक", en: "Daily reminder" },
+  notif_time: { hi: "समय", en: "Time" },
+  notif_time_hint: { hi: "भारतीय समय (IST)", en: "India time (IST)" },
+  notif_streak: { hi: "संकल्प छूटने पर", en: "When your sankalp is at risk" },
+  notif_plan: { hi: "plan तैयार होने पर", en: "When your plan is ready" },
+  notif_guest_hint: {
+    hi: "अनुस्मारक सेट करने के लिए साइन-इन करें — ये आपके खाते के साथ सहेजे जाते हैं।",
+    en: "Sign in to set reminders — they're saved to your account, not this phone.",
+  },
+  // The OS switch is off. We cannot turn it on from here, so say so plainly and
+  // offer the one thing that does work.
+  notif_blocked: {
+    hi: "फ़ोन की सेटिंग्स में इस ऐप की सूचनाएँ बंद हैं।",
+    en: "Notifications for this app are turned off in your phone's settings.",
+  },
+  notif_enable_cta: { hi: "सूचनाएँ चालू करें", en: "Turn on notifications" },
+  notif_open_settings: { hi: "फ़ोन सेटिंग्स खोलें", en: "Open phone settings" },
+  notif_unavailable: {
+    hi: "इस बिल्ड में सूचनाएँ उपलब्ध नहीं हैं।",
+    en: "Notifications aren't available in this build.",
+  },
+  notif_save_failed: { hi: "बदलाव सहेजा नहीं जा सका", en: "Couldn't save that change" },
+
   // disclaimers (compliance — docs/research/compliance.md)
   wellness_disclaimer: {
     hi: "यह ऐप केवल सामान्य स्वास्थ्य जानकारी देता है — यह चिकित्सा सलाह नहीं है। कोई भी नया व्यायाम या आहार शुरू करने से पहले चिकित्सक से परामर्श करें।",

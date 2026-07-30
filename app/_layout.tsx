@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import * as SplashScreen from "expo-splash-screen";
@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from "../src/lib/auth";
 import { hydrateFeedbackPrefs } from "../src/lib/settings";
 import { preloadFeedback } from "../src/lib/feedback";
 import { reconcile, watchForFlush } from "../src/lib/session";
+import { watchNotificationTaps } from "../src/lib/push";
 import { CeremonySplash, color } from "../src/ui";
 
 // Hold the native splash from the very first module evaluation so there is zero
@@ -28,6 +29,8 @@ function SplashGate() {
 }
 
 export default function RootLayout() {
+  const router = useRouter();
+
   // Load the haptics/sound choice and warm the SFX players once, so the first
   // tap is neither silent-by-default-race nor stuttering on player creation.
   useEffect(() => {
@@ -42,6 +45,12 @@ export default function RootLayout() {
     void reconcile();
     return watchForFlush();
   }, []);
+
+  // A tapped notification opens the screen it is about (slice 7). Mounted here
+  // because a cold start launched BY a tap has no listener yet — push.ts also
+  // reads the response that was already waiting. The route comes from a closed
+  // map keyed on the payload's `kind`, never from the payload itself.
+  useEffect(() => watchNotificationTaps((route) => router.push(route)), [router]);
 
   // Last-resort safety: if the ceremony gate never mounts (e.g. a provider
   // never hydrates), the native splash must still come down so the user is

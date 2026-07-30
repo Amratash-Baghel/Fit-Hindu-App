@@ -36,6 +36,7 @@ import { useI18n } from "../../src/lib/i18n";
 import { loadSession, type SessionSource, type TemplateItem } from "../../src/lib/content";
 import { finishSession, logSet, startSession } from "../../src/lib/session";
 import { feedback } from "../../src/lib/feedback";
+import { markPushOffered, requestPushPermission, shouldOfferPush } from "../../src/lib/push";
 
 interface Target {
   itemIdx: number;
@@ -288,6 +289,10 @@ export default function WorkoutSession() {
             <Stat v={String(summary.sets)} label={t("sets_total_word")} />
             <Stat v={String(summary.minutes)} label={t("minutes_short")} />
           </View>
+
+          {/* The permission moment (spec slice 7). Shows itself only when it
+              has something to ask for. */}
+          <PushOptIn />
         </View>
         <FooterAction>
           <Button k="done" onPress={() => router.dismissTo("/(tabs)/workout")} />
@@ -437,6 +442,59 @@ export default function WorkoutSession() {
         />
       </FooterAction>
     </Screen>
+  );
+}
+
+/**
+ * The in-app invitation to turn on reminders — the pre-prompt for the system
+ * dialog, shown on the completion screen and nowhere else (spec slice 7:
+ * "after first completed workout, not on cold launch").
+ *
+ * Why a card and not just `requestPermissionsAsync()`: the OS prompt is one
+ * shot. Spending it on someone who has not been told what it is for converts
+ * badly and cannot be retried. Here the ask has just been earned — the diya is
+ * still on screen — and a "not now" never reaches the OS at all, so Settings
+ * can still offer it later. See src/lib/push.ts `shouldOfferPush`.
+ *
+ * Renders nothing at all when there is nothing to ask: permission already
+ * decided, already offered once, Expo Go, or web.
+ */
+function PushOptIn() {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    void shouldOfferPush().then((show) => {
+      if (alive) setVisible(show);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  if (!visible) return null;
+
+  // Both answers close the card and both are remembered — the difference is
+  // only whether the OS is asked.
+  const answer = (accept: boolean) => {
+    setVisible(false);
+    void markPushOffered();
+    if (accept) void requestPushPermission();
+  };
+
+  return (
+    <Card style={{ marginTop: space.xl, width: "100%", maxWidth: 420, gap: space.sm }}>
+      <B k="push_offer_title" variant="bodyBold" />
+      <B k="push_offer_body" variant="caption" tone="muted" />
+      <View style={{ flexDirection: "row", gap: space.sm, marginTop: space.xs }}>
+        <View style={{ flex: 1 }}>
+          <Button k="auth_skip" kind="ghost" onPress={() => answer(false)} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Button k="push_offer_yes" onPress={() => answer(true)} />
+        </View>
+      </View>
+    </Card>
   );
 }
 

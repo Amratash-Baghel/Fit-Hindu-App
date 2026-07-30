@@ -18,12 +18,13 @@
  *               this); offer retry, and a way in regardless
  */
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { BackHandler } from "react-native";
+import { AppState, BackHandler } from "react-native";
 import { useRouter } from "expo-router";
 import { Button, CeremonyLoader, type CeremonyStatus } from "../../src/ui";
 import { FLUSH_STAGES, flushOnboarding } from "../../src/lib/auth";
 import { markOnboarded } from "../../src/lib/onboarding";
 import { feedback } from "../../src/lib/feedback";
+import { requestPlanReadyPush } from "../../src/lib/push";
 
 /** Copy per outcome. Every status has a headline, a body and a way onward. */
 const COPY = {
@@ -74,6 +75,15 @@ export default function PlanReady() {
       // The reward chirp fires HERE, not in flushOnboarding — this is the
       // moment the user is actually looking at (slice 2's feedback service).
       feedback.complete();
+
+      // The plan-ready push (slice 7), and ONLY when the app is in the
+      // background. On a slow connection the flush outlives the user's
+      // patience and they switch away — that is the case this notification
+      // exists for. Buzzing a phone whose screen already says "your plan is
+      // ready" is the kind of push that teaches people to mute an app.
+      if (outcome === "assigned" && AppState.currentState !== "active") {
+        void requestPlanReadyPush();
+      }
     } catch {
       if (!alive.current) return;
       setStatus("error");

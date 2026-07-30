@@ -33,6 +33,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AppState } from "react-native";
 import { supabase } from "./supabase";
+import { uuidv4 } from "./ids";
 import type { SessionSource } from "./content";
 
 const SESSION_KEY = "fithindu.session.current";
@@ -116,35 +117,6 @@ function serial<T>(fn: () => Promise<T>): Promise<T> {
 }
 
 // ---------- ids ----------
-
-/**
- * RFC-4122 v4, without a dependency.
- *
- * Neither `crypto.randomUUID` nor `crypto.getRandomValues` exists in this
- * runtime (Hermes has no WebCrypto, Expo's winter polyfills do not add it, and
- * expo-crypto is not installed), so the `Math.random` path is the one that
- * actually runs today. That is acceptable *here specifically*: these are row
- * identifiers used for idempotent replay, never secrets, never anything an
- * attacker gains by predicting — and the uniqueness that matters is per user
- * per session, not global. The stronger sources are preferred if a future SDK
- * provides them.
- */
-function uuidv4(): string {
-  const c = (globalThis as { crypto?: { randomUUID?: () => string; getRandomValues?: (a: Uint8Array) => void } }).crypto;
-  if (typeof c?.randomUUID === "function") return c.randomUUID();
-
-  const b = new Uint8Array(16);
-  if (typeof c?.getRandomValues === "function") c.getRandomValues(b);
-  else for (let i = 0; i < 16; i++) b[i] = Math.floor(Math.random() * 256);
-
-  b[6] = (b[6] & 0x0f) | 0x40; // version 4
-  b[8] = (b[8] & 0x3f) | 0x80; // variant 10xx
-
-  const hex: string[] = [];
-  for (let i = 0; i < 16; i++) hex.push(b[i].toString(16).padStart(2, "0"));
-  const s = hex.join("");
-  return `${s.slice(0, 8)}-${s.slice(8, 12)}-${s.slice(12, 16)}-${s.slice(16, 20)}-${s.slice(20)}`;
-}
 
 /** Today's date in IST — the same boundary the server uses (`ist_today()`). */
 function istToday(): string {
