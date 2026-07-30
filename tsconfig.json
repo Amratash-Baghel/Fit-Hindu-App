@@ -3,5 +3,8 @@
   "compilerOptions": {
     "strict": true
   },
-  "exclude": ["node_modules", "admin"]
+  // supabase/functions is Deno, not React Native: `Deno.serve`, `jsr:` imports
+  // and the Deno globals are all unresolvable here, and Metro never bundles it.
+  // Type-check it with `deno check supabase/functions/**/*.ts` instead.
+  "exclude": ["node_modules", "admin", "supabase/functions"]
 }

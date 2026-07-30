@@ -453,10 +453,14 @@ check("push_claim: kinds are claimed independently",
 // push_sends is service_role-only: RLS on, and deliberately zero policies. If a
 // policy is ever added, a client could mark its own reminder sent and silence
 // itself, and push_claim() would stop being service_role-only.
-check("push_sends has RLS enabled",
-  (await q(`select relrowsecurity r from pg_class where relname = 'push_sends'`))[0].r, true);
-check("push_sends has no policies at all",
-  (await q(`select count(*)::int c from pg_policies where tablename = 'push_sends'`))[0].c, 0);
+const svcOnly = await q(`select relname, relrowsecurity from pg_class
+  where relname in ('push_sends','push_receipts') order by relname`);
+check("push_sends and push_receipts have RLS enabled",
+  svcOnly.map((r) => `${r.relname}:${r.relrowsecurity}`),
+  ["push_receipts:true", "push_sends:true"]);
+check("neither service-role table has any policy",
+  (await q(`select count(*)::int c from pg_policies
+            where tablename in ('push_sends','push_receipts')`))[0].c, 0);
 // Same contract as streak_state / the 0013 aggregates: definer here would turn
 // push_audience into a readable roster of every user's push tokens.
 const pushsec = await q(`select proname, prosecdef from pg_proc

@@ -252,6 +252,41 @@ as $$
   join claimed c on c.user_id = a.user_id;
 $$;
 
+-- ---------- delivery receipts ----------
+-- Expo's push API answers in two stages, and the second one is the only place
+-- some failures ever appear.
+--
+--   TICKET  — immediate, per message. Says Expo accepted it, or rejected it
+--             outright (a malformed or already-known-dead token).
+--   RECEIPT — available a few minutes later, keyed by ticket id. This is where
+--             FCM/APNs reports that the app was uninstalled between our send
+--             and the delivery attempt: `DeviceNotRegistered`.
+--
+-- Without the second stage, a token that dies after one successful send is
+-- never cleaned up and we push into the void for that device forever. The
+-- spec's "delete those rows" cannot be satisfied by tickets alone.
+--
+-- So the ticket ids are parked here and a second, later invocation of the same
+-- Edge Function collects the receipts. Rows are deleted as they are processed;
+-- this table is a work queue, not a log, and it stays near-empty.
+create table push_receipts (
+  ticket_id text primary key,
+  -- Kept alongside so a DeviceNotRegistered receipt can be resolved back to a
+  -- row without a second lookup. Not a foreign key: the token may already be
+  -- gone (sign-out, a reinstall that upserted a new value), and a dangling
+  -- ticket should be dropped quietly rather than block the insert.
+  expo_push_token text not null,
+  created_at timestamptz not null default now()
+);
+
+-- The collector asks for "tickets old enough to have a receipt" — Expo needs a
+-- few minutes — so this is the access path that matters.
+create index push_receipts_created_idx on push_receipts (created_at);
+
+alter table push_receipts enable row level security;
+-- Same reasoning as push_sends: no policies, service_role only. A client has
+-- no business reading which devices we sent to.
+
 -- ---------- scheduling (OWNER ACTION — not run here) ----------
 -- This migration does not create the cron jobs. pg_cron and pg_net must be
 -- enabled per-project in the Supabase dashboard, and the job body embeds a
@@ -276,11 +311,20 @@ $$;
 --     );
 --   $cron$);
 --
+--   select cron.schedule('push-receipts', '*/10 * * * *', $cron$
+--     select net.http_post(
+--       url     := 'https://<ref>.functions.supabase.co/send-push',
+--       headers := '{"Content-Type":"application/json","x-cron-secret":"<secret>"}'::jsonb,
+--       body    := '{"mode":"receipts"}'::jsonb
+--     );
+--   $cron$);
+--
 -- Note the schedules are UTC (pg_cron always is). 14:30 UTC = 20:00 IST, the
 -- evening slot the spec asks for. The half-hourly reminder job is what makes a
 -- user-chosen `reminder_time` meaningful at 30-minute resolution; the two-hour
 -- lateness bound in push_audience() is what keeps a missed run from becoming a
--- late-night pile-up.
+-- late-night pile-up. The receipts job is the one that prunes dead tokens; skip
+-- it and push_tokens grows uninstalled devices forever.
 --
 -- plan_ready has no cron. It is invoked by the app the moment an assignment
 -- lands, with the user taken from the caller's JWT — never from the request
