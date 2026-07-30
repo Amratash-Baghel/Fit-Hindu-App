@@ -14,9 +14,13 @@ interface Props {
 export function Screen({ children, night, scroll = true }: Props) {
   const insets = useSafeAreaInsets();
   const bg = night ? color.night : color.ink;
+  // Android renders edge-to-edge from Expo SDK 54 on — content sits BEHIND the
+  // system nav bar (gesture pill or 3-button bar) unless it explicitly reserves
+  // that space itself. insets.bottom is that space; omitting it is what left
+  // the bottom of every screen unclickable underneath the nav bar.
   const pad = {
     paddingTop: insets.top + space.sm,
-    paddingBottom: space.lg,
+    paddingBottom: insets.bottom + space.lg,
     paddingHorizontal: space.lg,
   };
   if (!scroll) {

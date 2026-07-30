@@ -1,11 +1,18 @@
 import React from "react";
 import { Tabs } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { color } from "../../src/ui";
 import { HomeIcon, DumbbellIcon, LotusIcon, OmGlyph, MoonIcon } from "../../src/ui/icons";
 import { useI18n } from "../../src/lib/i18n";
 
 export default function TabsLayout() {
   const { t } = useI18n();
+  // Android renders edge-to-edge from Expo SDK 54 on: the system nav bar
+  // (gesture pill or 3-button bar) floats OVER the app rather than reserving
+  // its own space. A fixed-height tab bar with no bottom inset sits partly
+  // underneath it — the icons still show, but the bottom slice of the tap
+  // target is covered and unclickable. insets.bottom is the height to add.
+  const insets = useSafeAreaInsets();
   return (
     <Tabs
       screenOptions={{
@@ -15,9 +22,9 @@ export default function TabsLayout() {
         tabBarStyle: {
           backgroundColor: "#120D08",
           borderTopColor: color.line,
-          height: 66,
+          height: 66 + insets.bottom,
           paddingTop: 6,
-          paddingBottom: 10,
+          paddingBottom: 10 + insets.bottom,
         },
         tabBarLabelStyle: { fontSize: 11, fontWeight: "600" },
       }}

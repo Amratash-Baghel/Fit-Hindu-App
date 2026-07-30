@@ -7,6 +7,7 @@
 import React from "react";
 import { Pressable, View, type ViewStyle, type StyleProp } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { color, radius, space, tapTarget, goldGradient } from "./tokens";
 import { T } from "./Text";
 import { useI18n, type StringKey } from "../lib/i18n";
@@ -92,7 +93,19 @@ export function Button({ k, onPress, kind = "gold", disabled, style }: Props) {
   );
 }
 
-/** Full-width footer slot for the screen's single primary action. */
+/**
+ * Full-width footer slot for the screen's single primary action.
+ *
+ * Used mostly on `scroll={false}` screens (the session player, the completion
+ * screen), which sit outside Screen's own scroll padding — so this needs its
+ * OWN bottom inset, or its button sits under the Android system nav bar,
+ * unclickable, exactly like the tab bar did before this fix.
+ */
 export function FooterAction({ children }: { children: React.ReactNode }) {
-  return <View style={{ padding: space.lg, gap: space.sm }}>{children}</View>;
+  const insets = useSafeAreaInsets();
+  return (
+    <View style={{ padding: space.lg, paddingBottom: insets.bottom + space.lg, gap: space.sm }}>
+      {children}
+    </View>
+  );
 }
