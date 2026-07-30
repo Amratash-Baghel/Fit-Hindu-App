@@ -8,8 +8,25 @@
 >
 > Contract: `docs/specs/feature-sprint.md`. Source prompt: `prompts/feature-sprint.md`.
 
-**Last updated:** 2026-07-30 · slice 7 built + reviewed + committed.
+**Last updated:** 2026-07-30 · slice 7 built + reviewed + committed, plus one
+post-slice fix.
 **Migrations 0013 AND 0014 are written and validated but NOT yet applied in Supabase.**
+
+---
+
+## Post-slice-7 fix: bottom safe-area insets
+
+Not part of the sprint's six workstreams — an unrelated bug reported after
+slice 7 shipped. Expo SDK 54+ renders edge-to-edge on Android: content sits
+BEHIND the system nav bar (gesture pill or 3-button bar) unless a screen
+reserves that space itself. `Screen.tsx`, `FooterAction` (`Button.tsx`), and
+the tab bar (`(tabs)/_layout.tsx`) never did, so their bottom row of
+buttons/tabs was partly unclickable — `CeremonyLoader.tsx` already had the
+right pattern (`insets.bottom + space.lg`) from slice 3, just never applied to
+the other three. Fixed, typecheck/lint clean, confirmed harmless in the web
+preview (insets.bottom is 0 there, so it degrades to the original numbers).
+**Needs a physical-device confirmation** — the web preview cannot simulate a
+system nav bar. Commit `25f63f7`.
 
 ---
 
