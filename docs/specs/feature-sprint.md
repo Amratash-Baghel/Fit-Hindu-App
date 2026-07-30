@@ -33,7 +33,7 @@ below.
 Expo SDK 57 (`expo ~57.0.4`, RN 0.86.0, React 19.2.3). Dev build, not Expo Go —
 `eas.json` carries a `developmentClient: true` profile and `app.json` has config
 plugins Expo Go cannot apply. **Unverified:** that a dev build is actually
-installed on a physical device. Push (slice 8) depends on it.
+installed on a physical device. Push (slice 7) depends on it.
 
 Three packages added for this sprint, all owner-approved 2026-07-28:
 `expo-haptics`, `expo-notifications`, `react-native-reanimated`.
@@ -191,7 +191,7 @@ reads `streak_state` once per foreground.
 already synced cannot double-log.
 
 **At-risk** is derived, not stored: `last_date = ist_today() - 1 AND current > 0`.
-Slice 8 reads the same RPC.
+Slice 7 reads the same RPC.
 
 **Test cases, run against PGlite, results shown:** same-day double completion,
 midnight-IST edge, 1-day gap, 2-day gap, freeze consumption, rest day, timezone
