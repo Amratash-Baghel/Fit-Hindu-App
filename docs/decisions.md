@@ -2,6 +2,55 @@
 
 One dated line per decision, with the why. Newest on top.
 
+- **2026-07-30 (notification eligibility lives in SQL, not in the sender)** —
+  `push_audience()` / `push_claim()` (migration 0014) answer opted-in,
+  already-trained-today and already-notified-today; the Edge Function only
+  renders copy and talks to Expo. Eligibility is the compliance surface of
+  push — "don't nag someone who already showed up", "once per day" — and those
+  rules rot fastest when they live in a deploy artefact nobody diffs. In
+  Postgres they are reviewable and tested against a real engine. Both functions
+  are `stable`/`volatile` but NOT `security definer`, the same contract as
+  `streak_state`: `service_role` sees the whole audience, any other caller is
+  cut to their own rows by the RLS already on `push_tokens` /
+  `notification_prefs`, so the function can never become a roster of everyone's
+  push tokens.
+- **2026-07-30 (claim before send, not send then mark)** — `push_claim()` writes
+  the `(user_id, kind, ist_date)` ledger row and returns only the devices whose
+  row it won. Both orders can fail once: this one loses a notification if the
+  Expo POST then dies, the other sends a duplicate if the ledger write dies. A
+  missed daily nudge is a non-event; a duplicate is why people turn
+  notifications off. The primary key also makes two racing cron invocations
+  split into one sender and one no-op instead of both sending.
+- **2026-07-30 (notification day boundary and the late-night limit)** — The
+  reminder window is evaluated as instants (`ist_today() + reminder_time`), not
+  bare `time` values, which subtract to a negative interval across midnight and
+  would have fired a 23:30 reminder every night. A reminder is due when its time
+  has passed *today in IST* by under two hours — the bound stops a cron outage
+  from delivering a stack of nudges at eleven at night. **Accepted limit:** a
+  slot in the last two hours before midnight gets no catch-up if its own tick is
+  missed, because by the next tick `ist_today()` has rolled and the ledger has
+  closed that day. Widening the window past midnight would re-qualify every
+  other user under the new date and double-notify them, which is worse.
+- **2026-07-30 (notification copy is server-side, and that is the one exception
+  to the i18n rule)** — A scheduled push is composed at 19:00 IST by a cron job
+  with the app not running on any device, so it cannot go through
+  `src/lib/i18n.tsx`. The strings live in the Edge Function and are rendered
+  against the recipient's `profiles.language_mode` (returned by
+  `push_audience()` for that purpose). `i18n.tsx` names the file so the second
+  location is documented rather than discovered. Same non-medical rule applies,
+  and it matters more there: those strings never appear in the app's UI code.
+- **2026-07-30 (the push permission is asked for twice — in-app first)** — The
+  OS prompt is one-shot on iOS and effectively so on Android 13+, so it is never
+  fired unannounced. A card on the workout completion screen asks in the app's
+  own words, at the one moment "remind me to do that again" is obvious, and only
+  a yes reaches the OS. A "not now" is remembered so the card never nags, but it
+  never touches the system prompt, so Settings keeps a permanent way in.
+- **2026-07-30 (reminder time steps in 30 minutes)** — No date-time picker is
+  installed and adding one needs approval, but the resolution is not a
+  compromise: the fan-out cron runs half-hourly, so half an hour is the finest
+  promise the server can keep. A wheel offering 19:07 would be a lie told by the
+  UI. Writes are debounced 700 ms and flushed on unmount — eight taps on 2G must
+  not be eight round-trips.
 - **2026-07-29 (session writes are local-first, and the queue owns delivery)** —
   Every set goes to an AsyncStorage mirror and a durable queue *before* any
   network call, and the queue may fail forever without losing a set. Dedup is

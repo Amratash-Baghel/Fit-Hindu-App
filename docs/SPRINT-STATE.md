@@ -8,27 +8,92 @@
 >
 > Contract: `docs/specs/feature-sprint.md`. Source prompt: `prompts/feature-sprint.md`.
 
-**Last updated:** 2026-07-30 · slice 7 in progress.
+**Last updated:** 2026-07-30 · slice 7 built + reviewed + committed.
 **Migrations 0013 AND 0014 are written and validated but NOT yet applied in Supabase.**
-
----
-
-## Slice 7 — push (in progress)
-
-- ✅ **7a** migration 0014 (`push_sends` ledger, `push_audience()`,
-  `push_claim()`, prefs row for every user) + 25 new schema checks.
-  **76/76 PGlite green** (was 51). ⚠️ **NOT applied in Supabase.**
-- ⬜ 7b expo-notifications install + app.json
-- ⬜ 7c client push service + prefs
-- ⬜ 7d Settings section + i18n
-- ⬜ 7e `supabase/functions/send-push/`
-- ⬜ 7f verify, review, docs, commit
 
 ---
 
 ## Where we are
 
-**Slice 6 — workout tracking + progress bars. Built, reviewed, verified.**
+**Slice 7 — push notifications. Code complete, reviewed. Delivery unverified
+(and cannot be verified from a dev machine — see the owner list below).**
+
+⚠️ **USER MUST RUN migration 0014 in Supabase.** Until it does, every
+`send-push` invocation returns `claim failed`. 0013 is still outstanding too.
+
+Six commits: `30bedde` migration 0014, `e6dfce9` the install + app.json,
+`318a126` the client service, `808c9e4` the Settings section, `05f9055` the
+Edge Function, `a463bf9` the reviewer fixes.
+
+**The shape of the slice: eligibility is SQL, the sender is dumb.**
+`push_audience()` answers "who is due for this kind right now" — master switch,
+per-type switch, not-already-sent-today, nothing-logged-today, and for the
+daily reminder, whether their chosen IST time has passed by under two hours.
+`push_claim()` writes the `(user, kind, ist_date)` ledger row *before* handing
+back the devices, so an at-least-once cron and two racing invocations both
+collapse into one send. The Edge Function renders copy and talks to Expo; it
+decides nothing. That split is the point — those rules are the compliance
+surface of the feature, and in Postgres they are reviewable and tested.
+
+`push_sends` and `push_receipts` have RLS on with **zero policies**:
+service_role only. A client that could write `push_sends` could mark itself
+already-notified and silence its own reminders.
+
+`supabase/functions/send-push/` is the first Edge Function in the repo. Four
+invocations — two cron fan-outs, an app-triggered plan-ready, and a receipts
+sweep. **Both halves of the delivery contract are implemented:** tickets catch
+tokens Expo already knows are dead; receipts, collected 15 minutes later
+through the `push_receipts` work queue, catch the app-uninstalled-after-send
+case that tickets never report. Skip the receipts cron and `push_tokens` grows
+dead devices forever.
+
+**The recipient is never read from the request body.** Cron authenticates with
+`CRON_SECRET` and may fan out; the app authenticates with the user's own JWT,
+may only ask for `plan_ready`, and gets itself as the target. Worst case for a
+malicious client is one notification to itself, once a day.
+
+Client side: one token row per install, registered on sign-in and deleted on
+sign-out (shared handsets are normal here). A tap maps through a **closed**
+kind→route table, so a payload can never steer navigation. The permission is
+asked twice — an in-app card on the workout completion screen, and only a yes
+reaches the one-shot OS prompt; a "not now" is remembered but never spends it,
+so Settings keeps a permanent way in.
+
+**PGlite 79/79 green** (was 51). Typecheck green. Lint held at the 2-error
+baseline — slice 7 adds zero.
+
+**The reviewer caught three real bugs**, all fixed before this was called done:
+1. The reminder window did bare `time` arithmetic. Across midnight two times
+   subtract to a negative interval — 00:00 − 23:30 = −23:30, which satisfies
+   "less than two hours late" — so a 23:30 reminder would have fired at every
+   midnight, and the stepper lets users pick 23:30. Now compared as instants.
+2. `plan_ready` trusted the caller that a plan existed. `requestPlanReadyPush()`
+   is reachable from any signed-in client, so a user the rules engine never
+   matched could be told "your plan is ready". Now requires an active
+   `user_plans` row.
+3. The cold-start notification response was re-read on every root-layout
+   remount, replaying the navigation and yanking the user back to a screen they
+   had already left. Consumed once per JS runtime now.
+
+No RLS, secret-exposure, health-claim or `program_id` defects found.
+
+**Verified in the web preview** (360dp, English and Hindi): all four shapes of
+the Settings section render — the three the web build can never reach were
+checked behind temporary stubs, since removed (`grep TEMP-VERIFY` is clean) —
+stepper 19:00 → 20:30, wrap 23:30 ↔ 00:00 both directions, master-off collapses
+the section, daily-off hides the stepper, no horizontal overflow, zero console
+errors.
+
+**Cannot be verified from here, at all:** actual push delivery, the FCM path,
+the Android channel, the OS permission prompt, tap-to-deep-link, and
+`deno check` on the Edge Function (Deno is not installed on this machine; the
+file is parse- and type-checked with `tsc`).
+
+---
+
+## Slice 6 (previous)
+
+**Workout tracking + progress bars. Built, reviewed, verified.**
 
 ⚠️ **USER MUST RUN migration 0013 in Supabase.** The Progress screen and the
 plan / body-area bars read three RPCs that do not exist in the database yet.
@@ -157,11 +222,18 @@ file.
 ## Next up (read this first on a cold start)
 
 **0 · DO THIS FIRST: merge `origin/main` into this branch.** Before any new
-feature work. The branch is 14 ahead / 3 behind and main has moved with the diet
-section (incl. the owner-approved AI custom-plan), admin Meals/Mantras, the Bunny
-video-upload fix, and the legal package — 49 files.
+feature work. The branch is now **21 ahead / 3 behind** and main has moved with
+the diet section (incl. the owner-approved AI custom-plan), admin Meals/Mantras,
+the Bunny video-upload fix, and the legal package — 49 files.
 
     git fetch origin && git merge origin/main
+
+This was already the top item before slice 7 and it was not done — slice 7 was
+run against an explicit "slice 7 only" instruction. The collision surface has
+grown accordingly: slice 7 appended to `src/lib/i18n.tsx`, `src/types/db.ts` and
+`docs/decisions.md` / `docs/progress.md`, all of which were already on the list.
+Nothing new was added to the list, but every one of those four is now a bigger
+hunk.
 
 **Nine files are touched on both sides.** The two onboarding ones are the real
 work; the rest are mostly append-vs-append:
@@ -187,9 +259,28 @@ It only gets worse the longer this branch runs. Do not start it right before a
 device switch — it is exactly the kind of multi-file work that must not be left
 half-done.
 
-**1 · Owner actions, both blocking.** Run migration **0013**. Upload the **FCM v1
-service-account JSON** to EAS and confirm a **dev build is installed on a
-physical Android device** — slice 7 cannot start or be tested without both.
+**1 · Owner actions. Slice 7's code is written; none of it can run until these
+are done.** In order:
+
+1. Run migration **0013**, then **0014** in Supabase.
+2. `eas init` — writes `extra.eas.projectId` into `app.json`. **Missing today.**
+   Without it the app never obtains a push token, so `push_tokens` stays empty
+   and every fan-out finds nobody. `src/lib/push.ts` degrades to a documented
+   no-op rather than throwing, which means this failure is silent — check for
+   the field before wondering why nothing arrives.
+3. Upload the **FCM v1 service-account JSON** to EAS (`eas credentials`).
+4. `supabase functions deploy send-push --no-verify-jwt`, then
+   `supabase secrets set CRON_SECRET=…`.
+5. Create the three pg_cron jobs — the `cron.schedule` calls are written out at
+   the bottom of `supabase/migrations/0014_push_fanout.sql` and are deliberately
+   not run by the migration (they embed the project ref and the secret). The
+   receipts job is not optional: skip it and `push_tokens` accumulates
+   uninstalled devices forever.
+6. Install a **dev build on a physical Android device**. Remote push does not
+   work in Expo Go on Android from SDK 53 onward and we are on 57.
+
+`supabase/functions/send-push/README.md` has the exact commands and a smoke
+test, including how to force yourself into the audience.
 
 **2 · Recommended engineering: the guest-merge slice.** It is no longer a whole
 slice, and this is the single most valuable thing left that is not blocked.
@@ -242,7 +333,11 @@ physical-device verification backlog listed under each slice above.
 | 4 | Streak | ✅ done | `useStreak()` + live `StreakCard`; 34/34 tests; reviewed. Guest local streak deferred. |
 | 5 | Plan-ready ceremony | ✅ done | `CeremonyLoader` + `/plan/ready`; real staged awaits; 3 outcomes; reviewed. |
 | 6 | Workout tracking + progress | ✅ done | Local-first session queue; 3 bars; Progress screen. **0013 NOT applied.** 51/51 PGlite. |
-| 7 | Push end-to-end | ⬜ next | Blocked on FCM credentials + a dev build on a physical device |
+| 7 | Push end-to-end | ✅ code done | 0014 + `send-push` Edge Function + client + Settings; reviewed. 79/79 PGlite. **0014 NOT applied; delivery untested — six owner actions above.** |
+
+**All seven slices of the sprint are now built.** What remains is not
+engineering: it is the owner action list above, the `origin/main` merge, and the
+physical-device verification backlog.
 
 Ordering rationale: schema first because four slices depend on it. Slices 1 and
 4 must not be interrupted — start them on a fresh quota window. Slices 3 and 5
@@ -256,9 +351,20 @@ restart.
   **installed + declared** (slice 3). Needs `babel.config.js` (added) +
   New Architecture (Expo SDK 57 default). Reanimated 4 required the worklets
   peer + its babel plugin.
-- `expo-notifications` — approved, install in slice 7.
+- `expo-notifications` ~57.0.8 — **installed** (slice 7). Needs
+  `extra.eas.projectId` in `app.json` (still missing) and a dev/EAS build;
+  remote push does not work in Expo Go on Android from SDK 53 onward.
 
 Install at the slice that needs each, not up front.
+
+`expo-device` was installed briefly during slice 7 and **removed** — it was not
+on the approved list, and the only thing it offered was `isDevice`, which
+`getExpoPushTokenAsync` already covers by throwing on a simulator. Do not
+re-add it without asking.
+
+`@electric-sql/pglite` is still deliberately not a dependency. Note that any
+`npm uninstall` prunes it, so re-run `npm install --no-save @electric-sql/pglite`
+before the schema checks if they fail with `ERR_MODULE_NOT_FOUND`.
 
 ## Migration ledger
 
@@ -268,13 +374,17 @@ Install at the slice that needs each, not up front.
 | 0011 sessions + push | ✅ | ✅ (owner ran 2026-07-28) |
 | 0012 activity_log + streak | ✅ | ✅ (owner ran 2026-07-28) |
 | 0013 progress aggregates | ✅ | ❌ **NOT APPLIED — owner must run** |
+| 0014 push fan-out | ✅ | ❌ **NOT APPLIED — owner must run** |
+
+Apply 0013 before 0014; nothing in 0014 depends on it, but running them out of
+order makes the ledger harder to reason about later.
 
 **Never assume a migration has been applied.** Never leave one partially
 applied — either it runs clean and is committed, or it is not started.
 
 Re-run the schema checks any time with:
 `node supabase/tests/validate.mjs`
-(51 checks. PGlite is not a package.json dependency by design — install it for
+(79 checks. PGlite is not a package.json dependency by design — install it for
 the run with `npm install --no-save @electric-sql/pglite`, which leaves
 package.json and the lockfile untouched. The previously documented
 `npx --yes -p @electric-sql/pglite node …` form does not put the package on
@@ -291,13 +401,30 @@ Supabase with a real anon session before launch.
   in Supabase. Additive only — three read functions, no table or policy touched,
   and reverting is a `drop function`. Until it runs, the Progress screen's reads
   error and it shows its empty state.
-- **FCM v1 service-account JSON** uploaded to EAS — blocks slice 7.
+- ⚠️ **RUN MIGRATION 0014** (`supabase/migrations/0014_push_fanout.sql`) in
+  Supabase. One enum, two service-role-only tables, two functions, and a
+  `create or replace` of `handle_new_user()` (it now also creates the
+  `notification_prefs` row; existing users are backfilled in the same file).
+  Reverting is a `drop table` / `drop function` plus restoring 0002's version of
+  the trigger function. Until it runs, every `send-push` call answers
+  `claim failed`.
+- **`eas init`** — writes `extra.eas.projectId` into `app.json`. **Missing.**
+  Without it the app never gets a push token and the feature is silently inert.
+- **FCM v1 service-account JSON** uploaded to EAS (`eas credentials`).
+- **Deploy the Edge Function** and set its secret:
+  `supabase functions deploy send-push --no-verify-jwt`, then
+  `supabase secrets set CRON_SECRET=…`. See
+  `supabase/functions/send-push/README.md`.
+- **Create the three pg_cron jobs** — SQL is written out at the bottom of
+  `0014_push_fanout.sql`, deliberately not run by the migration because it
+  embeds the project ref and the secret. The receipts job is not optional.
 - **APNs key** — iOS, later.
 - **Confirm a dev build is installed on a physical Android device.** Everything
   in slice 7 depends on it; remote push does not work in Expo Go on Android from
   SDK 53 onward, and we are on 57.
-- Physical-device testing of haptics, push delivery, silent-switch behaviour,
-  and animation smoothness. None of these can be verified from here.
+- Physical-device testing of haptics, push delivery, the Android channel, the
+  permission prompt, tap-to-deep-link, silent-switch behaviour, and animation
+  smoothness. None of these can be verified from here.
 
 ## Open questions
 
@@ -308,11 +435,20 @@ recorded in `docs/decisions.md`.
 
 None from this sprint.
 
-**Pre-existing, not ours:** `npm run lint` fails at HEAD with 11 errors and 5
-warnings — verified identical before and after slice 1, so it is a baseline, not
-a regression. Most of them are `react-hooks` errors in `app/workout/session.tsx`,
-which slice 6 rewrites anyway; clean them there rather than in a drive-by.
-`npm run typecheck` is green.
+**Pre-existing, not ours:** `npm run lint` is at **2 errors and 4 warnings**
+(down from an 11-error baseline; slice 6's rewrite cleared the nine in
+`app/workout/session.tsx`). The two survivors are setState-in-effect in
+`app/(tabs)/workout.tsx` and `app/workout/template/[id].tsx`; fixing them needs a
+UX call on whether a tab switch flashes a spinner or shows stale content.
+Slice 7 adds zero. `npm run typecheck` is green.
+
+`supabase/functions/**` is excluded from both tsconfig and eslint — it is Deno,
+not React Native, and Metro never bundles it. Type-check it with
+`deno check supabase/functions/**/*.ts`. **That was not run for slice 7:** Deno
+is not installed on this machine, so the Edge Function was parse- and
+type-checked with `tsc` instead (clean apart from the expected unresolvable
+`Deno` global and `jsr:` import). Run `deno check` on a machine that has it, or
+rely on `supabase functions deploy` to type-check at deploy time.
 
 ## Checkpoint discipline
 

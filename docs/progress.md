@@ -3,6 +3,43 @@
 Running build log — one entry per shipped item, newest on top. This is the
 standup doc for the owner and the resume-from-home lifeline.
 
+- **2026-07-30** — **Feature sprint slice 7: push notifications end-to-end.**
+  Migration **0014** puts the whole eligibility question in SQL: `push_audience()`
+  answers who is due for which kind right now, and `push_claim()` writes the
+  `(user, kind, IST day)` ledger row *before* returning the devices, so an
+  at-least-once cron and two racing invocations both collapse to one send.
+  `push_sends` and `push_receipts` have RLS on and deliberately **zero
+  policies** — service_role only; a client that could write `push_sends` could
+  silence its own reminders. `handle_new_user()` now creates the
+  `notification_prefs` row (existing users backfilled) so the opt-in defaults
+  live only in the table and nothing has to re-state them.
+  `supabase/functions/send-push/` is the **first Edge Function in the repo** and
+  the only send path: four invocations (two cron fan-outs, an app-triggered
+  plan-ready, a receipts sweep), bilingual copy rendered against the recipient's
+  `language_mode`, chunked at 100, and **both halves of the delivery contract** —
+  tickets catch tokens Expo already knows are dead, receipts 15 minutes later
+  catch the app-uninstalled-after-send case that tickets never report. The
+  recipient is never read from the request body: cron proves itself with
+  `CRON_SECRET`, the app with the user's own JWT, so a client can address nobody
+  but itself. Client side, `src/lib/push.ts` keeps one token row per install,
+  registers on sign-in and deletes on sign-out (shared handsets), and maps a tap
+  through a **closed** kind→route table so a payload can never steer navigation.
+  The permission is asked twice: an in-app card on the workout completion screen,
+  and only a yes reaches the one-shot OS prompt. Settings gains a notifications
+  section with four shapes (unavailable / guest / no OS permission / the real
+  controls) and a 30-minute reminder stepper, debounced, matching the cron's own
+  resolution. PGlite **79/79 green** (was 51); lint held at the 2-error baseline.
+  **The reviewer caught three real bugs**, all fixed: the reminder window used
+  bare `time` arithmetic, so 00:00 − 23:30 = −23:30 read as "less than two hours
+  late" and a 23:30 reminder would have fired every midnight; `plan_ready`
+  trusted the caller that a plan existed, so a signed-in client could be told
+  "your plan is ready" having never been assigned one; and the cold-start
+  notification response was re-read on every root-layout remount, replaying the
+  navigation and yanking the user back to a screen they had left.
+  ⚠️ **Migration 0014 not yet applied.** Delivery itself is untested from here —
+  it needs FCM credentials in EAS, `extra.eas.projectId`, and a dev build on a
+  physical Android device.
+
 - **2026-07-29** — **Feature sprint slice 6: workout tracking + progress bars.**
   The player held every set in a `useRef` and wrote one `activity_log` row at
   the end — kill the app at set 9 of 10 and the whole session was gone. New
