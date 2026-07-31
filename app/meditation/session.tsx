@@ -109,12 +109,23 @@ export default function MeditationSession() {
     <Screen scroll={false}>
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: space.xl }}>
         <Animated.Text
+          allowFontScaling={false}
           style={{
             fontSize: 110,
+            // Android clips the glyph AND its shadow to the text's line box:
+            // a 110px ॐ with a 30px glow needs a taller line and padding, or
+            // the top/bottom of the glow render as a hard-edged box. (Web
+            // doesn't clip, so this only shows on device.) The pulse scales to
+            // 1.15, so the headroom covers ~126px of glyph too.
+            lineHeight: 160,
+            textAlign: "center",
+            paddingHorizontal: space.xxl,
+            paddingVertical: space.lg,
             color: color.gold,
             transform: [{ scale: pulse }],
             textShadowColor: "rgba(217,164,65,0.45)",
             textShadowRadius: 30,
+            textShadowOffset: { width: 0, height: 0 },
           }}
         >
           ॐ

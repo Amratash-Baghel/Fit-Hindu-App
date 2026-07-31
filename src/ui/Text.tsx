@@ -4,9 +4,28 @@
  * hardcode font sizes or strings.
  */
 import React from "react";
-import { Text as RNText, View, type TextStyle, type StyleProp } from "react-native";
+import { Text as RNText, StyleSheet, View, type TextStyle, type StyleProp } from "react-native";
 import { color, type } from "./tokens";
 import { useI18n, type StringKey } from "../lib/i18n";
+
+/**
+ * Android clips a glyph to its line box: when a screen overrides `fontSize`
+ * larger than the variant's `lineHeight` (e.g. the 108 jap counter or a 56px
+ * timer over the display variant's 38px line), the top and bottom of the
+ * number get shaved. Web doesn't clip, so it only shows on device. Guarantee
+ * the line box is always taller than the glyph — the 1.35 headroom also keeps
+ * it clear at Android's 1.3x accessibility font scale (fontSize scales but a
+ * fixed lineHeight would not, so we size the headroom above that ratio).
+ */
+function withLineHeadroom(style: StyleProp<TextStyle>): TextStyle {
+  const flat = (StyleSheet.flatten(style) ?? {}) as TextStyle;
+  const fs = typeof flat.fontSize === "number" ? flat.fontSize : undefined;
+  const lh = typeof flat.lineHeight === "number" ? flat.lineHeight : undefined;
+  if (fs && (lh === undefined || lh < fs * 1.2)) {
+    return { ...flat, lineHeight: Math.round(fs * 1.35) };
+  }
+  return flat;
+}
 
 type Variant = keyof typeof type;
 
@@ -39,7 +58,7 @@ export function T({ variant = "body", tone = "cream", style, children, numberOfL
       numberOfLines={numberOfLines}
       onPress={onPress}
       accessibilityRole={onPress ? "link" : undefined}
-      style={[type[variant] as TextStyle, { color: tones[tone] }, style]}
+      style={[withLineHeadroom([type[variant] as TextStyle, style]), { color: tones[tone] }]}
     >
       {children}
     </RNText>

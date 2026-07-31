@@ -14,7 +14,7 @@ import { Linking, View } from "react-native";
 import { useRouter } from "expo-router";
 import {
   Screen, Button, FooterAction, OptionRow, ProgressDots, Checkbox, Chip,
-  B, T, space, color,
+  B, T, DiyaIcon, space, color,
 } from "../../src/ui";
 import { useI18n, type StringKey } from "../../src/lib/i18n";
 import { listDeities, type DeityOption } from "../../src/lib/content";
@@ -142,9 +142,10 @@ export default function Onboarding() {
 
         {step.kind === "ready" ? (
           <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: space.lg }}>
-            <T variant="h1" style={{ fontSize: 64 }}>
-              🪔
-            </T>
+            {/* The app's own diya SVG, not a 🪔 emoji — emoji violate the
+                no-emoji standing rule and get clipped to the Text line box on
+                Android (the top/bottom-shaved diya the owner reported). */}
+            <DiyaIcon size={64} />
             <B k="ready_body" variant="body" tone="soft" center />
           </View>
         ) : null}
