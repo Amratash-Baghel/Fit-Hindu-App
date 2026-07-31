@@ -237,6 +237,24 @@ export const strings = {
   jap_error: { hi: "मंत्र लोड नहीं हो सके", en: "Couldn't load the mantras" },
   sleep_error: { hi: "ध्वनियाँ लोड नहीं हो सकीं", en: "Couldn't load the sounds" },
 
+  // jap counter (mantra jap tab) — a mala is 108
+  jap_title: { hi: "मंत्र जप", en: "Mantra jap" },
+  jap_remaining: { hi: "शेष", en: "remaining" },
+  jap_complete: { hi: "एक माला पूरी 🙏", en: "One mala complete 🙏" },
+  jap_meaning: { hi: "अर्थ", en: "Meaning" },
+  jap_tap_hint: { hi: "हर जप पर दबाएँ", en: "Tap for each chant" },
+  jap_start_again: { hi: "फिर से", en: "Start again" },
+  jap_empty: { hi: "अभी कोई मंत्र नहीं", en: "No mantras yet" },
+
+  // sleep sounds tab
+  sleep_title: { hi: "नींद की ध्वनियाँ", en: "Sleep sounds" },
+  sleep_tagline: { hi: "धीरे-धीरे शांत हो जाएँ", en: "Drift off gently" },
+  sleep_timer: { hi: "अपने आप बंद", en: "Auto-stop" },
+  timer_off: { hi: "बंद नहीं", en: "Off" },
+  sleep_empty: { hi: "अभी कोई ध्वनि नहीं", en: "No sounds yet" },
+  sleep_playing: { hi: "बज रहा है", en: "Playing" },
+  sleep_stop: { hi: "रोकने के लिए दबाएँ", en: "Tap to stop" },
+
   // home (habit surface)
   todays_shloka: { hi: "आज का श्लोक", en: "Today's shloka" },
   sankalp_start: { hi: "संकल्प आज से शुरू करें", en: "Start your sankalp today" },
@@ -403,6 +421,51 @@ export const strings = {
     hi: "यह ऐप केवल सामान्य स्वास्थ्य जानकारी देता है — यह चिकित्सा सलाह नहीं है। कोई भी नया व्यायाम या आहार शुरू करने से पहले चिकित्सक से परामर्श करें।",
     en: "This app provides general wellness information only — it is not medical advice. Consult a physician before starting any new exercise or diet programme.",
   },
+
+  // diet tab + AI custom-plan (ported from origin/main; owner override 2026-07-16)
+  tab_diet: { hi: "आहार", en: "Diet" },
+  diet_templates_title: { hi: "आहार योजनाएँ", en: "Diet plans" },
+  diet_empty: { hi: "अभी कोई आहार योजना उपलब्ध नहीं", en: "No diet plans available yet" },
+  diet_error: { hi: "आहार योजनाएँ लोड नहीं हो सकीं", en: "Couldn't load diet plans" },
+  diet_generate_title: { hi: "अपना कस्टम डाइट प्लान बनाएं", en: "Generate your custom diet plan" },
+  diet_generate_sub: {
+    hi: "कुछ सवालों के जवाब दें — आपके लिए एक व्यक्तिगत योजना तैयार होगी।",
+    en: "Answer a few questions — we'll prepare a plan tailored to you.",
+  },
+  diet_generate_cta: { hi: "शुरू करें", en: "Get started" },
+  your_custom_plan: { hi: "आपका कस्टम प्लान", en: "Your custom plan" },
+  view_plan: { hi: "प्लान देखें", en: "View plan" },
+  diet_ai_disclaimer: {
+    hi: "यह योजना AI द्वारा बनाई गई सामान्य स्वास्थ्य जानकारी है — चिकित्सा सलाह नहीं। किसी भी नए आहार से पहले चिकित्सक से परामर्श करें।",
+    en: "This plan is AI-generated general wellness guidance — not medical advice. Consult a physician before any new diet.",
+  },
+  auth_required_note: {
+    hi: "यह सुविधा साइन-इन के साथ सक्रिय होगी।",
+    en: "This feature activates once sign-in is available.",
+  },
+  // diet questionnaire
+  dq_height: { hi: "आपकी लंबाई", en: "Your height" },
+  dq_weight: { hi: "आपका वज़न", en: "Your weight" },
+  dq_region: { hi: "आपका क्षेत्र", en: "Your region" },
+  dq_activity: { hi: "आपकी दिनचर्या कितनी सक्रिय है?", en: "How active are you?" },
+  dq_submit: { hi: "मेरा प्लान बनाएं", en: "Generate my plan" },
+  region_north: { hi: "उत्तर भारतीय", en: "North Indian" },
+  region_south: { hi: "दक्षिण भारतीय", en: "South Indian" },
+  region_east: { hi: "पूर्वी भारतीय", en: "East Indian" },
+  region_west: { hi: "पश्चिमी भारतीय", en: "West Indian" },
+  region_central: { hi: "मध्य भारतीय", en: "Central Indian" },
+  region_northeast: { hi: "पूर्वोत्तर भारतीय", en: "North-East Indian" },
+  activity_sedentary: { hi: "कम सक्रिय", en: "Mostly sitting" },
+  activity_moderate: { hi: "मध्यम सक्रिय", en: "Moderately active" },
+  activity_active: { hi: "बहुत सक्रिय", en: "Very active" },
+  // diet plan (AI generation status)
+  plan_preparing_title: { hi: "आपका प्लान तैयार हो रहा है…", en: "Preparing your plan…" },
+  plan_preparing_sub: {
+    hi: "इसमें कुछ पल लग सकते हैं। आप बाद में यहाँ वापस आ सकते हैं।",
+    en: "This can take a moment. You can come back here later.",
+  },
+  plan_failed: { hi: "प्लान तैयार नहीं हो सका", en: "Couldn't prepare your plan" },
+  plan_failed_retry: { hi: "फिर से कोशिश करें", en: "Try again" },
 } satisfies Record<string, Str>;
 
 export type StringKey = keyof typeof strings;

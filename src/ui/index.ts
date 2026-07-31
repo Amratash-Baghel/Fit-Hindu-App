@@ -2,6 +2,8 @@ export { color, space, radius, type, tapTarget, goldGradient, ceremony, progress
 export { T, B } from "./Text";
 export { Button, FooterAction } from "./Button";
 export { Card, Chip } from "./Card";
+export { SelectCard } from "./SelectCard";
+export { TextField, NumberField } from "./Field";
 export { OptionRow, ProgressDots, Checkbox } from "./Choice";
 export { ProgressBar } from "./ProgressBar";
 export { Toggle } from "./Toggle";

@@ -25,7 +25,7 @@ import { useStreak } from "../../src/lib/streak";
  */
 export default function Home() {
   const router = useRouter();
-  const { t, loc, locSub, mode } = useI18n();
+  const { t, loc, mode } = useI18n();
   const [dev, setDev] = useState<DevotionalToday | null>(null);
 
   useEffect(() => {
@@ -121,7 +121,7 @@ export default function Home() {
         gold
         titleHi="आज का आहार"
         titleEn="Today's diet"
-        soon={t("soon_badge")}
+        onPress={() => router.push("/(tabs)/diet")}
       />
       <TodayCard
         icon={<LotusIcon color={color.saffron} />}

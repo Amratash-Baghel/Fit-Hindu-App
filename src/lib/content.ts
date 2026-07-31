@@ -94,16 +94,28 @@ export async function listMeditationSounds(): Promise<SoundWithMedia[]> {
   return rows.sort((a, b) => (a.kind === b.kind ? 0 : a.kind === "chant" ? -1 : 1));
 }
 
+/** A sleep sound joined with its audio media AND its (optional) deity label —
+ *  the sleep screen shows a deity subtitle when the sound is deity-tagged. */
+export type SleepSound = SoundWithMedia & {
+  deity: Pick<Deity, "name_hi" | "name_en"> | null;
+};
+
+const SLEEP_SELECT = `
+  id, name_hi, name_en, kind, deity_id, audio_media_id, duration_seconds, status, created_at,
+  audio:media!sounds_audio_media_id_fkey ( playback_url, download_url ),
+  deity:deities!sounds_deity_id_fkey ( name_hi, name_en )
+`;
+
 /** Sleep sounds (docs/specs/sleep.md). Empty until the team publishes any. */
-export async function listSleepSounds(): Promise<SoundWithMedia[]> {
+export async function listSleepSounds(): Promise<SleepSound[]> {
   const { data, error } = await supabase
     .from("sounds")
-    .select(SOUND_SELECT)
+    .select(SLEEP_SELECT)
     .eq("status", "published")
     .eq("kind", "sleep")
     .order("name_en");
   if (error) throw error;
-  return (data ?? []) as unknown as SoundWithMedia[];
+  return (data ?? []) as unknown as SleepSound[];
 }
 
 /** A mantra with the deity it belongs to. */
