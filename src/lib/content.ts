@@ -126,9 +126,10 @@ export type MantraWithDeity = Mantra & {
 };
 
 /**
- * Mantras for the jap tab (docs/specs/jap.md), the user's chosen deity first.
- * `deityId` comes from profiles.deity_id (onboarding Q9) and may be null —
- * choosing a deity is optional, so the unpersonalised order is a real case.
+ * Mantras for the jap tab (docs/specs/jap.md), optionally a chosen deity first.
+ * The deity onboarding question was removed (2026-08-01, migration 0017), so
+ * jap calls this with no argument and the deity chips drive ordering in-screen;
+ * `deityId` is kept optional for any caller that wants a deity-first sort.
  */
 export async function listMantras(deityId?: string | null): Promise<MantraWithDeity[]> {
   const { data, error } = await supabase
