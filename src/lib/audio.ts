@@ -8,7 +8,9 @@
 import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from "expo-audio";
 
 let player: AudioPlayer | null = null;
-let currentUrl: string | null = null;
+/** Dedup key for the currently-loaded source. A URL is its own key; a bundled
+ *  asset (a Metro module id / number) is keyed by its stringified id. */
+let currentKey: string | null = null;
 let modeSet = false;
 
 async function ensureMode() {
@@ -22,11 +24,17 @@ async function ensureMode() {
   }
 }
 
-/** Start (or switch to) a looping sound. Same URL → keep playing untouched. */
-export async function playLoop(url: string) {
+/**
+ * Start (or switch to) a looping sound. Same source → keep playing untouched.
+ * `source` is a CDN URL (string) or a bundled asset (a require()'d module id,
+ * a number) — see src/lib/localAudio.ts. expo-audio takes a number directly
+ * and a URL as { uri }.
+ */
+export async function playLoop(source: string | number) {
   await ensureMode();
+  const key = String(source);
   try {
-    if (player && currentUrl === url) {
+    if (player && currentKey === key) {
       if (!player.playing) player.play();
       return;
     }
@@ -34,14 +42,37 @@ export async function playLoop(url: string) {
       player.remove();
       player = null;
     }
-    player = createAudioPlayer({ uri: url });
+    player = createAudioPlayer(typeof source === "number" ? source : { uri: source });
     player.loop = true;
+    player.volume = 1; // reset in case a prior fade left it low
     player.play();
-    currentUrl = url;
+    currentKey = key;
   } catch {
     // unreachable source — stay silent, never break the flow
-    currentUrl = url;
+    currentKey = key;
   }
+}
+
+/**
+ * Gentle fade to silence, then stop — for a graceful session end (B4 meditation
+ * bell rides on top of this) rather than the hard cut of stopAudio(). Bails if
+ * the player is swapped mid-fade, and always ends in a real stop + mode reset.
+ */
+export async function fadeOutStop(durationMs = 600) {
+  const p = player;
+  if (!p) return;
+  const steps = 8;
+  const stepMs = Math.max(20, Math.floor(durationMs / steps));
+  try {
+    for (let i = steps - 1; i >= 0; i--) {
+      if (player !== p) return; // superseded by another playLoop/stop
+      p.volume = i / steps;
+      await new Promise((r) => setTimeout(r, stepMs));
+    }
+  } catch {
+    // volume ramping unsupported — fall through to the hard stop
+  }
+  if (player === p) stopAudio();
 }
 
 export function pauseAudio() {
@@ -62,7 +93,7 @@ export function stopAudio() {
     player?.remove();
   } catch {}
   player = null;
-  currentUrl = null;
+  currentKey = null;
   // Reset the GLOBAL audio mode. ensureMode() above set playsInSilentMode:true
   // for this ambient session; left in place it would leak into the UI sound
   // effects (src/lib/feedback.ts), which must respect the iOS silent switch.

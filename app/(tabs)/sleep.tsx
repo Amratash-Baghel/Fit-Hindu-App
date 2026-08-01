@@ -4,6 +4,7 @@ import { Screen, Card, Chip, Button, B, T, MoonIcon, MuteIcon, color, radius, sp
 import { useI18n } from "../../src/lib/i18n";
 import { listSleepSounds, type SleepSound } from "../../src/lib/content";
 import { playLoop, stopAudio } from "../../src/lib/audio";
+import { audioSourceFor } from "../../src/lib/localAudio";
 import { logActivity } from "../../src/lib/activity";
 
 /** Auto-stop options in minutes. 0 = off (explicit user choice, never default). */
@@ -70,13 +71,13 @@ export default function Sleep() {
 
   const play = useCallback(
     (s: SleepSound) => {
-      const url = s.audio?.playback_url;
-      if (!url) return; // placeholder row — not tappable
+      const src = audioSourceFor(s.audio);
+      if (src == null) return; // placeholder row — not tappable
       if (playingId === s.id) {
         stop();
         return;
       }
-      void playLoop(url);
+      void playLoop(src);
       setPlayingId(s.id);
       // Mirror bumped synchronously for the same reason as pickTimer: switching
       // straight from a playing sound to another leaves the previous interval
@@ -201,8 +202,9 @@ function SoundRow({
   deityLabel: string | null;
 }) {
   const { t } = useI18n();
-  // No media yet = placeholder. Say so rather than render a dead tap target.
-  const placeholder = !sound.audio?.playback_url;
+  // No playable source (no media, or a local track with no bundled file) =
+  // placeholder. Say so rather than render a dead tap target.
+  const placeholder = audioSourceFor(sound.audio) == null;
 
   return (
     <Card

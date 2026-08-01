@@ -5,6 +5,7 @@ import { Screen, Card, Button, FooterAction, B, T, OmGlyph, BellIcon, MuteIcon, 
 import { useI18n } from "../../src/lib/i18n";
 import { listMeditationSounds, type SoundWithMedia } from "../../src/lib/content";
 import { playLoop, stopAudio } from "../../src/lib/audio";
+import { audioSourceFor } from "../../src/lib/localAudio";
 
 const SILENT = "silent";
 
@@ -29,7 +30,8 @@ export default function MeditationSounds() {
         const first = rows[0];
         if (first) {
           setSelected(first.id);
-          if (first.audio?.playback_url) playLoop(first.audio.playback_url);
+          const src = audioSourceFor(first.audio);
+          if (src != null) playLoop(src);
         } else {
           setSelected(SILENT);
         }
@@ -47,7 +49,8 @@ export default function MeditationSounds() {
       return;
     }
     setSelected(item.id);
-    if (item.audio?.playback_url) playLoop(item.audio.playback_url);
+    const src = audioSourceFor(item.audio);
+    if (src != null) playLoop(src);
     else stopAudio();
   }
 

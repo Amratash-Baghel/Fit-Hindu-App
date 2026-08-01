@@ -70,14 +70,16 @@ export async function listDeities(): Promise<DeityOption[]> {
   return (data ?? []) as DeityOption[];
 }
 
-/** A sound joined with its audio media row. */
+/** A sound joined with its audio media row. `provider`/`external_id` let the
+ *  app resolve a bundled (provider='local') track vs a CDN URL — see
+ *  src/lib/localAudio.ts. */
 export type SoundWithMedia = Sound & {
-  audio: Pick<Media, "playback_url" | "download_url"> | null;
+  audio: Pick<Media, "provider" | "external_id" | "playback_url" | "download_url"> | null;
 };
 
 const SOUND_SELECT = `
   id, name_hi, name_en, kind, deity_id, audio_media_id, duration_seconds, status, created_at,
-  audio:media!sounds_audio_media_id_fkey ( playback_url, download_url )
+  audio:media!sounds_audio_media_id_fkey ( provider, external_id, playback_url, download_url )
 `;
 
 /** Published sounds for the meditation flow (chants first, then ambient). */
@@ -102,7 +104,7 @@ export type SleepSound = SoundWithMedia & {
 
 const SLEEP_SELECT = `
   id, name_hi, name_en, kind, deity_id, audio_media_id, duration_seconds, status, created_at,
-  audio:media!sounds_audio_media_id_fkey ( playback_url, download_url ),
+  audio:media!sounds_audio_media_id_fkey ( provider, external_id, playback_url, download_url ),
   deity:deities!sounds_deity_id_fkey ( name_hi, name_en )
 `;
 
