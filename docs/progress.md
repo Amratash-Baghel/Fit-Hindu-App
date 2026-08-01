@@ -3,6 +3,31 @@
 Running build log — one entry per shipped item, newest on top. This is the
 standup doc for the owner and the resume-from-home lifeline.
 
+- **2026-08-01** — **Regression-fix + polish batch (B1–B7).** Diagnosed that the
+  jap counter, sleep timers and diet were never *regressions* — they were built
+  on two sibling branches (`origin/main`, `claude/sad-payne-d01fff`) that were
+  never merged here. **B1** surgically ported them onto this branch's APIs (jap
+  108-mala counter, sleep auto-stop timers + playback, diet AI/n8n custom-plan
+  restored; diet tab + home card rewired). **B2** fixed three Android-only
+  glyph/shadow/SVG clips the web preview can't show — a systemic `lineHeight`
+  headroom in `Text.tsx` for over-large numbers, the meditation ॐ glow, and the
+  onboarding diya (a 🪔 emoji → the app's `DiyaIcon`, also honouring the
+  no-emoji rule). **B5** bundled the Om chant + sleep flute as offline
+  content-library rows (`localAudio.ts` resolver, `playLoop` takes a bundled
+  source, `fadeOutStop`); Om plays in both meditation and sleep. **B4** added
+  haptics/sound cues through the one feedback service (jap tick + mala-complete,
+  a gentle meditation-end `chime`, selection taps). **B3** refined the ceremony
+  loader (creep past the 80% stall) and splash (de-bounced gada, de-collided
+  the mid-sequence, smoothed the shimmer exit) — four owner-approved polishes.
+  **B6** reworked onboarding to card-based, one-question-per-screen with
+  auto-advancing single-selects (<90s), and **removed the deity question** (the
+  engine never read it) — `profiles.deity_id` dropped, deity kept as content
+  metadata. **B7** added 8 widely-known mantras (flagged for team review in
+  `docs/mantra-review.md`). Migrations **0015–0018** all validated against real
+  Postgres (PGlite). ⚠ Owner must run 0015–0018 in Supabase. Verified in the
+  web preview where observable; Android-only fixes are the owner's on-device
+  check. See CHANGELOG.md for the full list.
+
 - **2026-07-30** — **Feature sprint slice 7: push notifications end-to-end.**
   Migration **0014** puts the whole eligibility question in SQL: `push_audience()`
   answers who is due for which kind right now, and `push_claim()` writes the

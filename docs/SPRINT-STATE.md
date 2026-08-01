@@ -8,11 +8,47 @@
 >
 > Contract: `docs/specs/feature-sprint.md`. Source prompt: `prompts/feature-sprint.md`.
 
-**Last updated:** 2026-07-30 · slice 7 built + reviewed + committed, plus one
-post-slice fix.
+**Last updated:** 2026-08-01 · regression-fix + polish batch (B1–B7) built +
+committed on branch `onboarding-auth-plan-engine`.
 **Migrations 0013 AND 0014 — owner confirmed both run in Supabase 2026-07-30.**
-Not independently verified from this session (no Supabase access from here) —
-taken on the owner's word, per the two-device handoff protocol.
+**⚠ Migrations 0015, 0016, 0017, 0018 — NOT YET RUN. Owner must apply them in
+Supabase** (0018 only after signing off `docs/mantra-review.md`). All four were
+validated against real Postgres (PGlite) and apply cleanly.
+
+---
+
+## Regression-fix + polish batch (B1–B7) — 2026-08-01
+
+Diagnosis first (Phase A): the jap counter, sleep timers and diet were **not
+regressions** — they were written on `origin/main` (diet) and
+`claude/sad-payne-d01fff` (jap/sleep) and never merged into this branch. Fixed
+by **surgical port** onto this branch's current APIs, not a branch merge.
+
+- **B1** `4b9150f` — restored jap counter, sleep timers/playback, diet (AI/n8n
+  custom plan). Diet tab + home card rewired. Migration **0015** (renumbered
+  from origin/main's colliding 0010; omits body_focus/days_per_week, already on
+  this branch).
+- **B2** `a42d45f` — Android glyph/shadow/SVG clipping: systemic `lineHeight`
+  headroom in `Text.tsx`, meditation ॐ glow, onboarding diya (🪔 emoji →
+  `DiyaIcon`). **Web can't show these — owner confirms on device at 1.3× font.**
+- **B5** `bede6bf` — bundled Om + sleep flute (offline), `localAudio.ts`
+  resolver, `fadeOutStop`. Migration **0016** seeds the media/sounds rows.
+- **B4** `4bc6f8c` — feedback cues (jap tick + mala, meditation `chime`,
+  selection taps). New `chime.wav` placeholder.
+- **B3** `3bfc3fb` — ceremony loader creep (no 80% stall) + splash polish
+  (gada bounce, mid-sequence stagger, shimmer exit). Native-only motion.
+- **B6** `6413923` — card-based auto-advancing onboarding (<90s); **deity
+  question removed** (engine never read it). Migration **0017** drops
+  `profiles.deity_id`. Deleted dead `src/lib/profile.ts`.
+- **B7** `97e10dd` — 8 new mantras. Migration **0018**, gated on
+  `docs/mantra-review.md` team sign-off.
+
+Deferred (task chip): the admin-panel Meals *authoring* pages (separate Next.js
+app; needs a small enum port). Not blocking the app.
+
+Typecheck green throughout; the batch added **zero** new lint problems (the 5
+that remain are pre-existing in `workout*`/`MediaTile`). Reviewer agent run at
+the end of the batch.
 
 ---
 
