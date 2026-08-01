@@ -43,6 +43,10 @@ export interface Profile {
   diet_type: DietType | null;
   workout_mode_pref: WorkoutMode | null;
   consent_at: string | null;
+  // added in migration 0015 (diet questionnaire)
+  height_cm: number | null;
+  weight_kg: number | null;
+  region: string | null;
   created_at: string;
   updated_at: string;
 }

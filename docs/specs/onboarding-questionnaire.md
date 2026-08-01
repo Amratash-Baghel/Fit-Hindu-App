@@ -44,6 +44,10 @@ profile columns. **Built 2026-07-15** — migration 0010 added `level`,
 `assignment_rules.conditions` jsonb accommodated the new keys with zero schema
 change, as predicted.
 
+> Note (2026-07-16): the **diet custom-plan** feature has its own separate,
+> AI-fed questionnaire (docs/specs/diet-custom-plan.md, owner override). THIS
+> onboarding questionnaire remains rule-based and unchanged by that override.
+
 ## Rules
 
 - Rule-based mapping only: answers → team-authored plan template (no AI).
