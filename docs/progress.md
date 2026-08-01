@@ -3,6 +3,31 @@
 Running build log — one entry per shipped item, newest on top. This is the
 standup doc for the owner and the resume-from-home lifeline.
 
+- **2026-08-01** — **Merged `origin/main` into `onboarding-auth-plan-engine`
+  for a boss demo.** Pulled in the 3 commits main had that this branch
+  lacked — admin Meals/Mantras CRUD, the legal/privacy-policy package, and
+  the Bunny TUS video-upload fix — keeping this branch's newer onboarding
+  (B6 card-based v2) and diet screens (B1-ported) wherever they collided
+  with main's older versions. Caught and fixed three merge-corruption bugs
+  before committing: a migration-number collision (main's old
+  `0010_diet_plans_profile_fields.sql` duplicated columns this branch's own
+  `0010_onboarding_v2.sql` already added, and was already superseded by
+  `0015_diet_plan_requests.sql` — deleted); duplicate `Diet*` types and
+  duplicate `Profile` fields in `src/types/db.ts` from git keeping both
+  sides' additions; and duplicate `Checkbox`/`ProgressDots` exports in
+  `src/ui/index.ts` pointing at orphaned files main added, superseded by
+  this branch's existing `Choice.tsx` (both orphans deleted). Also stripped
+  ~85 lines of dead onboarding-v1 translation keys duplicated in
+  `i18n.tsx`. Verified: mobile `tsc` clean, admin `tsc` + `next build`
+  clean, mobile lint unchanged at the 5-problem baseline, PGlite 79/79
+  green through the full 0001–0018 chain, onboarding + admin login
+  smoke-tested in the web preview with zero console errors. Pushed to
+  origin. Kicked off a fresh EAS `preview` (standalone APK) build against
+  the merge commit for a physical-device demo — see
+  `docs/SPRINT-STATE.md` "Demo build in flight" for the build id/link.
+  **Migrations 0015 and 0016 still need to run in Supabase before the demo**
+  or diet/audio will look broken even though the code is correct.
+
 - **2026-08-01** — **Regression-fix + polish batch (B1–B7).** Diagnosed that the
   jap counter, sleep timers and diet were never *regressions* — they were built
   on two sibling branches (`origin/main`, `claude/sad-payne-d01fff`) that were

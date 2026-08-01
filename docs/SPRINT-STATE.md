@@ -8,12 +8,49 @@
 >
 > Contract: `docs/specs/feature-sprint.md`. Source prompt: `prompts/feature-sprint.md`.
 
-**Last updated:** 2026-08-01 · regression-fix + polish batch (B1–B7) built +
-committed on branch `onboarding-auth-plan-engine`.
+**Last updated:** 2026-08-01 · `onboarding-auth-plan-engine` merged with
+`origin/main` (admin Meals/Mantras CRUD, legal/privacy package, Bunny TUS
+video-upload fix) and **pushed to origin**. A fresh `preview` EAS build is
+running against the merged commit for a boss demo on a physical device — see
+"Demo build in flight" below.
 **Migrations 0013 AND 0014 — owner confirmed both run in Supabase 2026-07-30.**
 **⚠ Migrations 0015, 0016, 0017, 0018 — NOT YET RUN. Owner must apply them in
 Supabase** (0018 only after signing off `docs/mantra-review.md`). All four were
-validated against real Postgres (PGlite) and apply cleanly.
+validated against real Postgres (PGlite) and apply cleanly. **0015 and 0016
+are load-bearing for the demo**: diet's custom-plan insert will error without
+0015 (`diet_plan_requests` doesn't exist), and meditation/sleep audio will
+show empty lists without 0016 (content is DB-authored, not hardcoded — the
+bundled Om/flute files exist in the APK but nothing in `sounds` points at them
+until the seed runs).
+
+---
+
+## Demo build in flight — 2026-08-01
+
+Branch merged with `origin/main` (3 commits it had that this branch lacked:
+`76a0168` admin Meals/Mantras CRUD + old onboarding/diet, `d89b24a` legal/
+privacy package, `1df1f41` Bunny TUS video-upload fix). Onboarding/diet
+conflicts resolved in favor of this branch's newer versions — see merge commit
+`1b92445` for the full list of what was dropped vs kept, including a real bug
+the auto-merge introduced (duplicate `Diet*` types and duplicate `Profile`
+fields in `src/types/db.ts`, a migration-number collision between main's old
+`0010_diet_plans_profile_fields.sql` and this branch's `0010_onboarding_v2.sql`
+— main's copy deleted, already superseded by `0015`). Verified post-merge:
+mobile `tsc` clean, admin `tsc` + `next build` clean, mobile lint unchanged at
+the 5-problem baseline, PGlite 79/79 green through the full 0001–0018 chain,
+onboarding + admin login smoke-tested in the web preview with zero console
+errors. Pushed to `origin/onboarding-auth-plan-engine`.
+
+EAS `preview` build (standalone APK, no dev client / Metro needed) kicked off
+against commit `1b92445` — build id `812d5c88-5c73-44cf-b4f1-a2e3519c0d33`,
+https://expo.dev/accounts/amratashs-team/projects/fit-hindu/builds/812d5c88-5c73-44cf-b4f1-a2e3519c0d33.
+The last two builds on this project took 3.5–4 hours each (free-tier EAS
+queue, not build time) — plan the demo timing accordingly. Once it finishes,
+install the APK on a physical Android device: everything in B1–B7 needs one
+(bundled Om/flute audio, haptics, ceremony motion, the glyph-clipping fixes
+all fail silently or don't render in the web preview). **Migrations 0015 and
+0016 must be run before the demo** or diet/audio will look broken/empty on
+the device even though the code is correct — see the warning above.
 
 ---
 
