@@ -35,6 +35,8 @@ export interface Profile {
   display_name: string | null;
   language_mode: LanguageMode;
   goal: Goal | null;
+  /** 0010 in code; only actually applied to the live DB via 0019 (2026-08-01
+   *  catch-up — see that migration's header). */
   level: Level | null;
   /** Empty array = skipped or nothing chosen; never null (0010). */
   body_focus: BodyArea[];
