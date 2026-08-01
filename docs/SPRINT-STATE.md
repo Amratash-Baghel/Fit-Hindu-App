@@ -14,14 +14,44 @@ video-upload fix) and **pushed to origin**. A fresh `preview` EAS build is
 running against the merged commit for a boss demo on a physical device — see
 "Demo build in flight" below.
 **Migrations 0013 AND 0014 — owner confirmed both run in Supabase 2026-07-30.**
-**⚠ Migrations 0015, 0016, 0017, 0018 — NOT YET RUN. Owner must apply them in
-Supabase** (0018 only after signing off `docs/mantra-review.md`). All four were
-validated against real Postgres (PGlite) and apply cleanly. **0015 and 0016
-are load-bearing for the demo**: diet's custom-plan insert will error without
-0015 (`diet_plan_requests` doesn't exist), and meditation/sleep audio will
-show empty lists without 0016 (content is DB-authored, not hardcoded — the
-bundled Om/flute files exist in the APK but nothing in `sounds` points at them
-until the seed runs).
+
+**⚠ Live-DB migration ledger drifted from the file ledger below — discovered
+2026-08-01 when the owner tried to run 0015 and got `column "height_cm" of
+relation "profiles" already exists`.** The shared Supabase project
+(`hkycmhzsubrccdhlcqsj`) had `origin/main`'s old
+`0010_diet_plans_profile_fields.sql` applied to it at some point (independent
+of which branch's files were on disk locally), not this branch's own
+`0010_onboarding_v2.sql`. Confirmed via a live introspection query:
+`profiles` already has `height_cm`, `weight_kg`, `region`, `body_focus`,
+`days_per_week`, `deity_id`; `diet_plan_requests` and `diet_request_status`
+already exist. **Only `profiles.level` was actually missing** — and
+onboarding flush writes `level` into every profile upsert
+(`src/lib/onboarding.ts:329` → `src/lib/auth.tsx:117`), so onboarding was
+hard-erroring for every user until this was caught.
+
+**Corrected owner action list, in order:**
+1. **Skip 0015 entirely** — everything it would create already exists on the
+   live DB (confirmed above). Do not run it; it will only error again.
+2. **⚠ Run 0019 first, before demoing anything** —
+   `supabase/migrations/0019_profiles_level_catchup.sql` adds the missing
+   `level` column (`if not exists`-guarded) plus the `days_per_week` check
+   constraint and `language_mode` default that main's applied 0010 skipped.
+   Onboarding is broken without this.
+3. **Run 0016** — seeds the Om/flute `sounds` rows the bundled audio needs.
+   Not yet run; status otherwise unknown. Load-bearing for the demo:
+   meditation/sleep audio shows empty lists without it (content is
+   DB-authored, not hardcoded — the files exist in the APK but nothing in
+   `sounds` points at them until this runs).
+4. **Run 0017** — drops the now-dead `profiles.deity_id` (confirmed still
+   present live). Safe cleanup, not demo-blocking.
+5. **0018 stays gated** on `docs/mantra-review.md` team sign-off — do not run
+   yet.
+
+**Before running 0016 or 0017, re-check what's actually live** the same way
+0015's drift was caught — this session only introspected `profiles` +
+`diet_plan_requests`/`media`/`sounds`/the diet enum, not the tables/columns
+0016 and 0017 touch. Don't assume the file ledger below matches reality;
+it didn't for 0010.
 
 ---
 
