@@ -33,7 +33,6 @@ import {
   View,
 } from "react-native";
 import Animated, {
-  cancelAnimation,
   Easing,
   interpolate,
   useAnimatedProps,
@@ -68,8 +67,9 @@ const noHit = { pointerEvents: "none" } as const;
 /** The whole ceremony must feel deliberate, never sluggish. */
 const MIN_BEAT_MS = 1200;
 const HARD_TIMEOUT_MS = 6000;
-/** Wall-clock length of the element motion (last beat: 1320ms delay + 360ms). */
-const MOTION_MS = 1700;
+/** Wall-clock length of the element motion (last beat: wordmark 1700ms + 360ms).
+ *  The sequence is staggered so marks resolve one at a time (see startMotion). */
+const MOTION_MS = 2060;
 /** Cross-fade duration to the home screen. */
 const FADE_MS = 360;
 const isWeb = Platform.OS === "web";
@@ -160,30 +160,38 @@ export function CeremonySplash({
 
     const easeOut = Easing.out(Easing.cubic);
 
-    panelL.value = withDelay(60, withTiming(1, { duration: 520, easing: easeOut }));
-    panelR.value = withDelay(60, withTiming(1, { duration: 520, easing: easeOut }));
+    // The beats are staggered so the marks resolve ONE AT A TIME — panels sweep
+    // in, the arch draws, the gada seats, a light sweep passes, the wordmark
+    // rises — never three elements colliding mid-air (the old ~1s pile-up). Each
+    // beat begins roughly as the previous one lands.
+    panelL.value = withDelay(60, withTiming(1, { duration: 500, easing: easeOut }));
+    panelR.value = withDelay(60, withTiming(1, { duration: 500, easing: easeOut }));
 
     if (!isWeb) {
       archDraw.value = withDelay(
-        320,
-        withTiming(0, { duration: 820, easing: Easing.inOut(Easing.quad) }),
+        300,
+        withTiming(0, { duration: 760, easing: Easing.inOut(Easing.quad) }),
       );
     }
-    archFade.value = withDelay(320, withTiming(1, { duration: isWeb ? 520 : 300 }));
+    archFade.value = withDelay(300, withTiming(1, { duration: isWeb ? 520 : 300 }));
 
+    // Gada blooms only AFTER the arch has finished drawing (~1060ms), and
+    // settles CLEANLY — a plain ease-out, no back-easing overshoot. The old
+    // back(1.3) bounce read as toy-like, wrong for a devotional emblem.
     gada.value = withDelay(
-      880,
-      withTiming(1, { duration: 440, easing: Easing.out(Easing.back(1.3)) }),
+      1080,
+      withTiming(1, { duration: 420, easing: easeOut }),
     );
 
+    // Light sweep once the gada has seated, not the instant the arch lands.
     spec.value = withDelay(
-      1140,
-      withTiming(1, { duration: 440, easing: Easing.inOut(Easing.quad) }),
+      1500,
+      withTiming(1, { duration: 420, easing: Easing.inOut(Easing.quad) }),
     );
 
     // wordmark is last. "Motion done" is timed on the wall clock, not on a
     // Reanimated callback, so completion never hinges on the frame loop running.
-    word.value = withDelay(1320, withTiming(1, { duration: 360, easing: easeOut }));
+    word.value = withDelay(1700, withTiming(1, { duration: 360, easing: easeOut }));
     later(() => setMotionDone(true), MOTION_MS);
   }, [reduceMotion, panelL, panelR, archDraw, archFade, gada, spec, word, later]);
 
@@ -196,7 +204,10 @@ export function CeremonySplash({
     if (finishing.current) return;
     finishing.current = true;
     revealFromNative(); // in case layout never fired (hard-timeout path)
-    cancelAnimation(shimmer);
+    // Ramp the idle shimmer DOWN to 0 rather than cancelAnimation() freezing it
+    // wherever the pulse happened to be — a freeze at a half-lit frame flashed
+    // gold under the cross-fade. Assigning a new timing also stops the repeat.
+    shimmer.value = withTiming(0, { duration: 220, easing: Easing.out(Easing.quad) });
     // Kick off the visual cross-fade…
     overlay.value = withTiming(0, { duration: FADE_MS, easing: Easing.out(Easing.quad) });
     // …but hand control back to the router on the wall clock, so a stalled frame

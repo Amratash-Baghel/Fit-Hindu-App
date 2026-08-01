@@ -14,12 +14,14 @@
  * an unbounded time on a slow connection and a looping composition would be
  * both distracting and a battery cost.
  *
- * Honesty contract (the reason the progress model looks odd):
+ * Honesty contract (the reason the progress model looks the way it does):
  *  - `stageIndex` moves only when a real await starts. There are no timers here.
- *  - While working, the bar fills to (stageIndex + 1) / (stages.length + 1), so
- *    with four stages it reaches 0.8 and STOPS. It can only reach 1 when the
- *    caller reports a terminal status — the final stage cannot claim completion
- *    before the data has actually landed.
+ *  - While working, the bar snaps up to each stage's honest floor
+ *    (stageIndex + 1) / (stages.length + 1), then creeps slowly toward a soft
+ *    ceiling just below the next stage — so it always looks alive, but can
+ *    never reach 1: completion is a status, never a stage count or a timer.
+ *  - It only completes to 1 when the caller reports a terminal status — the
+ *    final stage cannot claim completion before the data has actually landed.
  *  - On `error` the bar freezes where it got to. It never rewinds and never
  *    completes.
  *
@@ -146,10 +148,26 @@ export function CeremonyLoader({
       cancelAnimation(fill); // freeze exactly where it stopped
       return;
     }
-    fill.value = instant
-      ? target
-      : withTiming(target, { duration: 420, easing: Easing.out(Easing.cubic) });
-  }, [target, status, instant, fill]);
+    if (instant) {
+      fill.value = target; // web / reduce-motion: land on the honest value, no tween
+      return;
+    }
+    if (done) {
+      fill.value = withTiming(1, { duration: 420, easing: Easing.out(Easing.cubic) });
+      return;
+    }
+    // Working: snap up to the stage's honest floor, then keep CREEPING slowly
+    // toward a soft ceiling so the bar never sits frozen at 0.8 on a slow
+    // connection (the old "stalled" feel). The creep is a long ease-out that
+    // asymptotes below the next stage — it can never reach 1; only a terminal
+    // status may complete the bar.
+    const floor = stepped;
+    const ceiling = Math.min(0.92, floor + 0.12);
+    fill.value = withSequence(
+      withTiming(floor, { duration: 420, easing: Easing.out(Easing.cubic) }),
+      withTiming(ceiling, { duration: 6000, easing: Easing.out(Easing.quad) }),
+    );
+  }, [status, instant, done, stepped, target, fill]);
 
   // --- the slow gold breath, only while there is genuinely work in flight ---
   useEffect(() => {
