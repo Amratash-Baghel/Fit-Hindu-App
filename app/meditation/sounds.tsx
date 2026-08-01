@@ -6,6 +6,7 @@ import { useI18n } from "../../src/lib/i18n";
 import { listMeditationSounds, type SoundWithMedia } from "../../src/lib/content";
 import { playLoop, stopAudio } from "../../src/lib/audio";
 import { audioSourceFor } from "../../src/lib/localAudio";
+import { feedback } from "../../src/lib/feedback";
 
 const SILENT = "silent";
 
@@ -43,6 +44,7 @@ export default function MeditationSounds() {
   }, []);
 
   function choose(item: SoundWithMedia | typeof SILENT) {
+    feedback.tap(); // light ack on selecting a sound (or silence)
     if (item === SILENT) {
       setSelected(SILENT);
       stopAudio();

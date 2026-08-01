@@ -17,6 +17,7 @@ import {
 import { useI18n } from "../../src/lib/i18n";
 import { listMantras, getTodayDevotional, type MantraWithDeity } from "../../src/lib/content";
 import { logActivity } from "../../src/lib/activity";
+import { feedback } from "../../src/lib/feedback";
 
 /** One mala. Fixed in v1 — see docs/specs/jap.md. */
 const MALA = 108;
@@ -94,17 +95,20 @@ export default function Jap() {
 
   const tap = useCallback(() => {
     if (countRef.current === 0) {
+      feedback.tap(); // tapping the lit diya to start a fresh mala
       resetMala();
       return;
     }
     const next = countRef.current - 1;
     countRef.current = next;
     setLeft(next);
-    // B4: light-tick haptic per count fires here; the mala-completion cue fires
-    // on the `next === 0` branch below. Wired via the feedback service in B4.
-    if (next === 0 && mantra) {
+    if (next === 0) {
+      // Mala complete (108) — a distinct "yes", not just another tick.
+      feedback.success();
       // Only a COMPLETED mala is logged (spec) — partial malas aren't persisted in v1.
-      logActivity("jap", { deity_id: mantra.deity_id, count: MALA }, mantra.id);
+      if (mantra) logActivity("jap", { deity_id: mantra.deity_id, count: MALA }, mantra.id);
+    } else {
+      feedback.tap(); // the light per-count tick
     }
   }, [mantra, resetMala]);
 

@@ -4,9 +4,10 @@ Four short chirps played by `src/lib/feedback.ts` alongside haptics:
 
 | File | Fired by | Feel |
 |------|----------|------|
-| `tap.wav` | `feedback.tap()` — per set completed | soft, high, very short tick |
-| `success.wav` | `feedback.success()` — plan assigned | two rising notes |
-| `complete.wav` | `feedback.complete()` — workout / meditation done | warm rising triad (the reward) |
+| `tap.wav` | `feedback.tap()` — per set / per jap count | soft, high, very short tick |
+| `success.wav` | `feedback.success()` — plan assigned / mala done (108) | two rising notes |
+| `complete.wav` | `feedback.complete()` — workout done | warm rising triad (the reward) |
+| `chime.wav` | `feedback.chime()` — meditation session ended | soft single bell, gentler than complete |
 | `error.wav` | `feedback.error()` — destructive confirm | low, gentle two-tone (never harsh) |
 
 ## These are PLACEHOLDERS

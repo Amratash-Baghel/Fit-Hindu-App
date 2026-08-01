@@ -23,7 +23,7 @@ import * as Haptics from "expo-haptics";
 import { createAudioPlayer, type AudioPlayer } from "expo-audio";
 import { getFeedbackPrefs } from "./settings";
 
-type Sfx = "tap" | "success" | "complete" | "error";
+type Sfx = "tap" | "success" | "complete" | "error" | "chime";
 
 // require() sources are resolved by Metro at build time — bundled assets, not
 // runtime URLs, so there is no network and no failure path beyond a missing file.
@@ -32,6 +32,7 @@ const SOURCES: Record<Sfx, number> = {
   success: require("../../assets/sfx/success.wav"),
   complete: require("../../assets/sfx/complete.wav"),
   error: require("../../assets/sfx/error.wav"),
+  chime: require("../../assets/sfx/chime.wav"),
 };
 
 const players: Partial<Record<Sfx, AudioPlayer>> = {};
@@ -84,9 +85,10 @@ function haptic(kind: Buzz): void {
 
 /**
  * The vocabulary. Each pairs a haptic with its chime:
- *   tap      — a set completed; the lightest ack
- *   success  — plan assigned; a small "yes"
- *   complete — a workout or meditation finished; the reward
+ *   tap      — a set completed, or a jap count; the lightest ack
+ *   success  — plan assigned, or a mala completed (108); a small "yes"
+ *   complete — a workout finished; the reward
+ *   chime    — a meditation session ended; a soft bell, gentler than complete
  *   error    — a destructive action confirmed; a soft warning
  */
 export const feedback = {
@@ -101,6 +103,12 @@ export const feedback = {
   complete() {
     haptic("success");
     playSfx("complete");
+  },
+  /** The quiet end of a meditation — a light haptic + soft bell, deliberately
+   *  gentler than the shared `complete` reward (the "timer sound"). */
+  chime() {
+    haptic("light");
+    playSfx("chime");
   },
   error() {
     haptic("warning");

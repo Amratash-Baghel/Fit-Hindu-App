@@ -3,7 +3,7 @@ import { Animated, Easing, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useKeepAwake } from "expo-keep-awake";
 import { Screen, Button, FooterAction, B, T, DiyaIcon, color, space } from "../../src/ui";
-import { pauseAudio, resumeAudio, stopAudio } from "../../src/lib/audio";
+import { pauseAudio, resumeAudio, stopAudio, fadeOutStop } from "../../src/lib/audio";
 import { logActivity } from "../../src/lib/activity";
 import { feedback } from "../../src/lib/feedback";
 
@@ -61,11 +61,12 @@ export default function MeditationSession() {
     if (logged.current) return;
     logged.current = true;
     setFinished(true);
-    stopAudio(); // ends the ambient loop; its (async) mode reset governs LATER chirps
-    // The reward chime rides whatever audio mode is active this instant — after a
-    // sounded meditation that's still the ambient mode, which is fine (the user
-    // was already hearing audio); after a silent one the mode never left default.
-    feedback.complete();
+    // Gentle end: fade the ambient loop out (rather than a hard cut) and let a
+    // soft bell ring over the fade — the "timer sound", deliberately quieter
+    // than the shared reward chime. fadeOutStop still ends in a real stop +
+    // audio-mode reset, so it never leaks into later UI chirps.
+    void fadeOutStop();
+    feedback.chime();
     logActivity(
       "meditation",
       {
