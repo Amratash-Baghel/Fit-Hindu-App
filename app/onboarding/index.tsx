@@ -1,23 +1,30 @@
 /**
- * Onboarding v2 — the 11-step questionnaire.
+ * Onboarding v2 — the card-based questionnaire (target: under 90 seconds).
  * Spec: docs/specs/onboarding-questionnaire.md (question set v2, 2026-07-15).
  *
- * One route, not eleven: progress dots, Back, and resume-at-last-answered all
+ * One route, not many: progress dots, Back, and resume-at-last-answered all
  * read one state machine, and the browser/hardware back button never strands
  * the user half-way through a stack of pushed screens.
  *
  * Questions are DATA (src/lib/onboarding.ts). This file renders them and owns
  * navigation; it decides nothing about the question set itself.
+ *
+ * Interaction: one question per screen, large tappable cards, and single-select
+ * answers AUTO-ADVANCE on tap — the biggest lever on completion time. Continue
+ * stays as the explicit/accessible path (and the way forward when resuming a
+ * step that already has an answer). The deity question was removed (owner
+ * decision 2026-08-01) — see docs/decisions.md; deity stays as content metadata
+ * on the jap/devotional layer, it just isn't asked here.
  */
-import React, { useCallback, useEffect, useState } from "react";
-import { Linking, View } from "react-native";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { Linking, Platform, View } from "react-native";
+import Animated, { SlideInRight } from "react-native-reanimated";
 import { useRouter } from "expo-router";
 import {
-  Screen, Button, FooterAction, OptionRow, ProgressDots, Checkbox, Chip,
+  Screen, Button, FooterAction, SelectCard, ProgressDots, Checkbox, Chip,
   B, T, DiyaIcon, space, color,
 } from "../../src/ui";
 import { useI18n, type StringKey } from "../../src/lib/i18n";
-import { listDeities, type DeityOption } from "../../src/lib/content";
 import { PRIVACY_POLICY_URL } from "../../src/lib/config";
 import {
   STEPS, canAdvance, emptyAnswers, loadProgress, saveProgress,
@@ -32,6 +39,32 @@ export default function Onboarding() {
   const [answers, setAnswers] = useState<Answers>(emptyAnswers);
   const [index, setIndex] = useState(0);
   const [restored, setRestored] = useState(false);
+
+  // A tapped single-select advances itself after a beat (long enough to see the
+  // selection land). Held in a ref so a manual Back / unmount can cancel it.
+  const advanceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const clearAdvance = useCallback(() => {
+    if (advanceRef.current) {
+      clearTimeout(advanceRef.current);
+      advanceRef.current = null;
+    }
+  }, []);
+
+  const next = useCallback(() => {
+    clearAdvance();
+    setIndex((i) => Math.min(i + 1, STEPS.length - 1));
+  }, [clearAdvance]);
+  const back = useCallback(() => {
+    clearAdvance();
+    setIndex((i) => Math.max(i - 1, 0));
+  }, [clearAdvance]);
+  const autoAdvance = useCallback(() => {
+    clearAdvance();
+    advanceRef.current = setTimeout(
+      () => setIndex((i) => Math.min(i + 1, STEPS.length - 1)),
+      200,
+    );
+  }, [clearAdvance]);
 
   // Resume where they left off (spec :58). Until this lands we render nothing,
   // so a resuming user never sees question 1 flash before their real step.
@@ -56,11 +89,11 @@ export default function Onboarding() {
     if (restored) void saveProgress(answers, index);
   }, [answers, index, restored]);
 
+  // Never leave a pending auto-advance running against an unmounted screen.
+  useEffect(() => clearAdvance, [clearAdvance]);
+
   const step = STEPS[index];
   const isLast = index === STEPS.length - 1;
-
-  const next = useCallback(() => setIndex((i) => Math.min(i + 1, STEPS.length - 1)), []);
-  const back = useCallback(() => setIndex((i) => Math.max(i - 1, 0)), []);
 
   if (!restored) return null;
 
@@ -85,75 +118,82 @@ export default function Onboarding() {
 
   return (
     <Screen scroll={false}>
-      <View style={{ gap: space.lg, paddingTop: space.sm }}>
+      <View style={{ paddingTop: space.sm }}>
         <ProgressDots total={STEPS.length} index={index} />
+      </View>
+
+      {/* Keyed by step so each question slides in — one at a time, cheap and on
+          the UI thread. Native only: Reanimated layout animations don't settle
+          under react-native-web here (they'd leave the view off-screen), so web
+          renders the question statically, same precedent as the ceremony. */}
+      <Animated.View
+        key={index}
+        entering={Platform.OS === "web" ? undefined : SlideInRight.duration(220)}
+        style={{ flex: 1, paddingTop: space.lg }}
+      >
         <B k={step.qk} variant="h1" center />
-      </View>
 
-      <View style={{ flex: 1, paddingTop: space.xl }}>
-        {step.kind === "single" ? (
-          <View style={{ gap: space.md }}>
-            {step.options.map((o) => (
-              <OptionRow
-                key={o.value}
-                label={t(o.k)}
-                sub={tSub(o.k)}
-                selected={step.get(answers) === o.value}
-                onPress={() => {
-                  const updated = step.set(answers, o.value);
-                  setAnswers(updated);
-                  // Q1 applies instantly — the rest of the flow is already in
-                  // their language (spec :23).
-                  if (step.id === "language") setMode(updated.language_mode);
-                }}
-              />
-            ))}
-          </View>
-        ) : null}
+        <View style={{ flex: 1, paddingTop: space.xl }}>
+          {step.kind === "single" ? (
+            <View style={{ gap: space.md }}>
+              {step.options.map((o) => (
+                <SelectCard
+                  key={o.value}
+                  title={t(o.k)}
+                  sub={tSub(o.k)}
+                  selected={step.get(answers) === o.value}
+                  onPress={() => {
+                    const updated = step.set(answers, o.value);
+                    setAnswers(updated);
+                    // Q1 applies instantly — the rest of the flow is already in
+                    // their language (spec :23).
+                    if (step.id === "language") setMode(updated.language_mode);
+                    // Picking under-18 opens the age gate; everything else moves on.
+                    if (updated.under_18) clearAdvance();
+                    else autoAdvance();
+                  }}
+                />
+              ))}
+            </View>
+          ) : null}
 
-        {step.kind === "multi" ? (
-          <MultiSelect
-            options={step.options}
-            selected={answers.body_focus}
-            onToggle={(v) =>
-              setAnswers((a) => ({
-                ...a,
-                body_focus: a.body_focus.includes(v as BodyArea)
-                  ? a.body_focus.filter((x) => x !== v)
-                  : [...a.body_focus, v as BodyArea],
-              }))
-            }
-          />
-        ) : null}
+          {step.kind === "multi" ? (
+            <MultiSelect
+              options={step.options}
+              selected={answers.body_focus}
+              onToggle={(v) =>
+                setAnswers((a) => ({
+                  ...a,
+                  body_focus: a.body_focus.includes(v as BodyArea)
+                    ? a.body_focus.filter((x) => x !== v)
+                    : [...a.body_focus, v as BodyArea],
+                }))
+              }
+            />
+          ) : null}
 
-        {step.kind === "deity" ? (
-          <DeityPicker
-            selected={answers.deity_id}
-            onPick={(id) => setAnswers((a) => ({ ...a, deity_id: id }))}
-          />
-        ) : null}
+          {step.kind === "consent" ? (
+            <ConsentNotice
+              checked={answers.consent}
+              onToggle={() => setAnswers((a) => ({ ...a, consent: !a.consent }))}
+            />
+          ) : null}
 
-        {step.kind === "consent" ? (
-          <ConsentNotice
-            checked={answers.consent}
-            onToggle={() => setAnswers((a) => ({ ...a, consent: !a.consent }))}
-          />
-        ) : null}
-
-        {step.kind === "ready" ? (
-          <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: space.lg }}>
-            {/* The app's own diya SVG, not a 🪔 emoji — emoji violate the
-                no-emoji standing rule and get clipped to the Text line box on
-                Android (the top/bottom-shaved diya the owner reported). */}
-            <DiyaIcon size={64} />
-            <B k="ready_body" variant="body" tone="soft" center />
-          </View>
-        ) : null}
-      </View>
+          {step.kind === "ready" ? (
+            <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: space.lg }}>
+              {/* The app's own diya SVG, not a 🪔 emoji — emoji violate the
+                  no-emoji standing rule and get clipped to the Text line box on
+                  Android (the top/bottom-shaved diya the owner reported). */}
+              <DiyaIcon size={64} />
+              <B k="ready_body" variant="body" tone="soft" center />
+            </View>
+          ) : null}
+        </View>
+      </Animated.View>
 
       <FooterAction>
         <Button
-          k={isLast ? "ready_cta" : "continue"}
+          k={isLast ? "ready_cta" : step.kind === "multi" && answers.body_focus.length === 0 ? "skip" : "continue"}
           disabled={!canAdvance(step, answers)}
           onPress={() => {
             if (isLast) router.replace("/auth");
@@ -194,50 +234,7 @@ function MultiSelect({
   );
 }
 
-/** Q9 — deities are content, so this list is whatever the team has published. */
-function DeityPicker({
-  selected,
-  onPick,
-}: {
-  selected: string | null | undefined;
-  onPick: (id: string | null) => void;
-}) {
-  const { t, loc, locSub } = useI18n();
-  const [deities, setDeities] = useState<DeityOption[] | null>(null);
-  const [failed, setFailed] = useState(false);
-
-  useEffect(() => {
-    let alive = true;
-    listDeities()
-      .then((d) => alive && setDeities(d))
-      .catch(() => alive && setFailed(true));
-    return () => {
-      alive = false;
-    };
-  }, []);
-
-  if (failed) return <B k="deity_error" variant="body" tone="muted" center />;
-  if (!deities) return <B k="loading" variant="body" tone="muted" center />;
-
-  return (
-    <View style={{ gap: space.md }}>
-      <B k="q_deity_hint" variant="caption" tone="muted" center />
-      {deities.map((d) => (
-        <OptionRow
-          key={d.id}
-          label={loc(d.name_hi, d.name_en)}
-          sub={locSub(d.name_hi, d.name_en)}
-          selected={selected === d.id}
-          onPress={() => onPick(d.id)}
-        />
-      ))}
-      {/* null = explicitly skipped, which is a real answer — worship is never required. */}
-      <OptionRow label={t("skip")} selected={selected === null} onPress={() => onPick(null)} />
-    </View>
-  );
-}
-
-/** Q10 — DPDP: itemised, plain-language, unticked by default (spec :35-37). */
+/** DPDP: itemised, plain-language, unticked by default (spec :35-37). */
 function ConsentNotice({ checked, onToggle }: { checked: boolean; onToggle: () => void }) {
   const { t } = useI18n();
   return (

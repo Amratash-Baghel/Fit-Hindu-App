@@ -42,7 +42,6 @@ export interface Profile {
   age_band: AgeBand | null;
   diet_type: DietType | null;
   workout_mode_pref: WorkoutMode | null;
-  deity_id: string | null;
   consent_at: string | null;
   created_at: string;
   updated_at: string;

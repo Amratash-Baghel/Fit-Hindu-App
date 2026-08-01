@@ -35,8 +35,6 @@ export interface Answers {
   diet_type?: DietType;
   /** "later" = the explicit "decide later" choice; undefined = unanswered. Both map to null in the DB (workout_mode has no such member, by design). */
   workout_mode_pref?: WorkoutMode | "later";
-  /** null = explicitly skipped; undefined = unanswered. Never required (standing rule). */
-  deity_id?: string | null;
   /** DPDP. Starts false and must be ticked by hand (spec :35-37). */
   consent: boolean;
 }
@@ -54,7 +52,7 @@ interface Opt {
 
 export type StepId =
   | "language" | "goal" | "body_focus" | "level" | "days_per_week"
-  | "age_band" | "diet_type" | "workout_mode" | "deity" | "consent" | "ready";
+  | "age_band" | "diet_type" | "workout_mode" | "consent" | "ready";
 
 interface BaseStep {
   id: StepId;
@@ -84,7 +82,6 @@ export interface MultiStep extends BaseStep {
 export type Step =
   | SingleStep
   | MultiStep
-  | ({ kind: "deity" } & BaseStep)
   | ({ kind: "consent" } & BaseStep)
   | ({ kind: "ready" } & BaseStep);
 
@@ -204,11 +201,9 @@ export const STEPS: readonly Step[] = [
     set: (a, v) => ({ ...a, workout_mode_pref: v as WorkoutMode | "later" }),
     get: (a) => a.workout_mode_pref,
   },
-  // 9 — optional, from the deities table; never required (standing rule).
-  { id: "deity", kind: "deity", qk: "q_deity" },
-  // 10 — DPDP consent.
+  // 9 — DPDP consent.
   { id: "consent", kind: "consent", qk: "q_consent" },
-  // 11 — the gift moment.
+  // 10 — the gift moment.
   { id: "ready", kind: "ready", qk: "ready_title" },
 ];
 
@@ -219,8 +214,6 @@ export function canAdvance(step: Step, a: Answers): boolean {
       return step.optional === true || step.get(a) !== undefined;
     case "multi":
       return step.optional === true || a.body_focus.length > 0;
-    case "deity":
-      return a.deity_id !== undefined; // null (skipped) counts as answered
     case "consent":
       return a.consent;
     case "ready":
@@ -325,8 +318,8 @@ export async function isFlushPending(): Promise<boolean> {
 // ---------- DB shapes ----------
 
 /**
- * The typed-column half of the write. "later" and a skipped deity both become
- * null — the columns are nullable for exactly these two cases.
+ * The typed-column half of the write. "later" workout mode becomes null — the
+ * column is nullable for exactly that case.
  */
 export function answersToProfile(a: Answers) {
   return {
@@ -338,7 +331,6 @@ export function answersToProfile(a: Answers) {
     age_band: a.age_band ?? null,
     diet_type: a.diet_type ?? null,
     workout_mode_pref: a.workout_mode_pref === "later" ? null : a.workout_mode_pref ?? null,
-    deity_id: a.deity_id ?? null,
     consent_at: a.consent ? new Date().toISOString() : null,
   };
 }

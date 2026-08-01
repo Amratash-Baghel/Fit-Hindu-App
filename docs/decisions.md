@@ -2,6 +2,19 @@
 
 One dated line per decision, with the why. Newest on top.
 
+- **2026-08-01 (deity question removed from onboarding)** — the onboarding
+  questionnaire no longer asks for a deity, and `profiles.deity_id` is dropped
+  (migration 0017). Why: it was never read by the rule-based matching engine
+  (`factsOf` in `src/lib/planRules.ts` has no deity key), so it cost the user a
+  question and bought the plan nothing — and the onboarding target is under 90
+  seconds. Deity stays first-class as CONTENT metadata: `mantras.deity_id`,
+  `sounds.deity_id`, and the devotional calendar are untouched, and the jap
+  screen still groups mantras by their own deity (defaulting to the
+  deity-of-the-day, not a stored profile choice). Only the per-profile answer
+  and its dead reader (`src/lib/profile.ts` `useProfileDeity`) were removed.
+  Same pass reworked onboarding to card-based, one-question-per-screen with
+  single-selects that auto-advance on tap (the <90s lever).
+
 - **2026-07-30 (notification eligibility lives in SQL, not in the sender)** —
   `push_audience()` / `push_claim()` (migration 0014) answer opted-in,
   already-trained-today and already-notified-today; the Edge Function only
