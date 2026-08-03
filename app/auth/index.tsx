@@ -14,10 +14,36 @@ import { AUTH_CHANNEL, sendOtp } from "../../src/lib/auth";
 
 const isPhone = AUTH_CHANNEL === "phone";
 
-/** Deliberately loose: the provider is the real validator, this only catches typos. */
+/** India dials +91; the field holds only the 10-digit local number. */
+const DIAL_CODE = "+91";
+
+/**
+ * For phone, the field carries only the 10 local digits. A paste/autofill of the
+ * full E.164 form (`+919109386355` → 12 digits beginning `91`) has its country
+ * code dropped; anything else is capped to the first 10. This runs on every
+ * `onChangeText`, so the field NEVER holds more than 10 — which is why the input
+ * carries no `maxLength` (a native `maxLength` truncates a paste to its first 10
+ * RAW chars *before* this runs, turning `919109386355` into the wrong-but-valid
+ * `9191093863`). For email we pass the raw text through.
+ */
+function normalizeLocal(v: string): string {
+  const digits = v.replace(/\D/g, "");
+  const local = digits.length === 12 && digits.startsWith("91") ? digits.slice(2) : digits;
+  return local.slice(0, 10);
+}
+
+/**
+ * Deliberately loose: the provider is the real validator, this only catches
+ * typos. Indian mobiles are 10 digits starting 6–9.
+ */
 function looksValid(v: string): boolean {
   const s = v.trim();
-  return isPhone ? /^\+?[0-9]{10,15}$/.test(s) : /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(s);
+  return isPhone ? /^[6-9][0-9]{9}$/.test(normalizeLocal(s)) : /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(s);
+}
+
+/** What we hand Supabase: E.164 (`+91…`) for phone, the trimmed email otherwise. */
+function toIdentifier(v: string): string {
+  return isPhone ? `${DIAL_CODE}${normalizeLocal(v)}` : v.trim();
 }
 
 export default function AuthStart() {
@@ -28,13 +54,12 @@ export default function AuthStart() {
   const [sending, setSending] = useState(false);
 
   const submit = async () => {
-    const id = value.trim();
-    if (!looksValid(id)) return setError("invalid");
+    if (!looksValid(value)) return setError("invalid");
     setError(null);
     setSending(true);
     try {
-      await sendOtp(id);
-      // No params: sendOtp holds the identifier, so it never reaches the URL.
+      // sendOtp holds the identifier in module state, so it never reaches the URL.
+      await sendOtp(toIdentifier(value));
       router.push("/auth/verify");
     } catch {
       setError("send");
@@ -51,31 +76,55 @@ export default function AuthStart() {
 
         <View style={{ gap: space.sm, paddingTop: space.lg }}>
           <B k={isPhone ? "auth_phone_label" : "auth_email_label"} variant="caption" tone="muted" />
-          <TextInput
-            value={value}
-            onChangeText={(v) => {
-              setValue(v);
-              setError(null);
-            }}
-            autoFocus
-            autoCapitalize="none"
-            autoCorrect={false}
-            keyboardType={isPhone ? "phone-pad" : "email-address"}
-            textContentType={isPhone ? "telephoneNumber" : "emailAddress"}
-            placeholder={isPhone ? "+91" : "you@example.com"}
-            placeholderTextColor={color.muted}
-            onSubmitEditing={() => void submit()}
-            style={{
-              minHeight: tapTarget,
-              borderWidth: 1,
-              borderColor: error ? color.danger : color.line,
-              borderRadius: radius.button,
-              backgroundColor: color.surface,
-              paddingHorizontal: space.lg,
-              color: color.cream,
-              fontSize: 18,
-            }}
-          />
+          <View style={{ flexDirection: "row", gap: space.sm }}>
+            {isPhone ? (
+              // Fixed, non-editable country code so the number in the field is
+              // unambiguous — the user types only their 10 local digits.
+              <View
+                style={{
+                  minHeight: tapTarget,
+                  justifyContent: "center",
+                  paddingHorizontal: space.lg,
+                  borderWidth: 1,
+                  borderColor: color.line,
+                  borderRadius: radius.button,
+                  backgroundColor: color.surface2,
+                }}
+              >
+                <T variant="body" tone="cream" style={{ fontSize: 18 }}>
+                  {DIAL_CODE}
+                </T>
+              </View>
+            ) : null}
+            <TextInput
+              value={value}
+              onChangeText={(v) => {
+                // For phone, hold only the normalized local digits so the field
+                // and validation never disagree; email passes through.
+                setValue(isPhone ? normalizeLocal(v) : v);
+                setError(null);
+              }}
+              autoFocus
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType={isPhone ? "phone-pad" : "email-address"}
+              textContentType={isPhone ? "telephoneNumber" : "emailAddress"}
+              placeholder={isPhone ? "9109386355" : "you@example.com"}
+              placeholderTextColor={color.muted}
+              onSubmitEditing={() => void submit()}
+              style={{
+                flex: 1,
+                minHeight: tapTarget,
+                borderWidth: 1,
+                borderColor: error ? color.danger : color.line,
+                borderRadius: radius.button,
+                backgroundColor: color.surface,
+                paddingHorizontal: space.lg,
+                color: color.cream,
+                fontSize: 18,
+              }}
+            />
+          </View>
           {error ? (
             <T variant="caption" tone="danger">
               {t(error === "invalid" ? "auth_invalid_identifier" : "auth_send_failed")}

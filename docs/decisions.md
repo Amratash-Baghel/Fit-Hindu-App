@@ -2,6 +2,19 @@
 
 One dated line per decision, with the why. Newest on top.
 
+- **2026-08-03 (phone OTP is v1 auth; app stays guest-first, no hard gate)** —
+  `AUTH_CHANNEL` flipped to `"phone"` (`src/lib/auth.tsx`); sign-in is phone +
+  OTP via Supabase. The Sprint 2 pack said "gate the app on a session," but that
+  is **overruled** by the guest-first owner decision (2026-07-15) and the
+  never-gate-core-worship rule: sign-in stays offered-but-skippable, guests keep
+  full access, and their answers flush to a real account on later sign-in. Why
+  phone: Hindi-first Indian audience. No `profiles.phone` column — the verified
+  number lives in `auth.users.phone`. Prod SMS goes through a Send SMS Hook →
+  MSG91 Edge Function (Supabase's built-in provider list has no MSG91 entry),
+  **deferred** until DLT registration/template approval lands; dev + demo run on
+  Supabase test numbers, which bypass the provider entirely. Spec:
+  `docs/specs/auth-phone-otp.md`.
+
 - **2026-08-03 (`T` treats `tone` as a default, `style.color` always wins)** —
   the `T`/`B` text primitive (`src/ui/Text.tsx`) applies `{ color: tones[tone] }`
   FIRST in its style array so an explicit `color` passed via `style` overrides

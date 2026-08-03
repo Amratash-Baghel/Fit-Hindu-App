@@ -3,6 +3,41 @@
 Running build log — one entry per shipped item, newest on top. This is the
 standup doc for the owner and the resume-from-home lifeline.
 
+- **2026-08-03** — **Slice 3: phone + OTP auth, live end-to-end.** Turned on
+  phone sign-in for the Hindi-first audience. Auth stays Supabase (RLS/JWT
+  unchanged). Mostly wiring — a channel-agnostic OTP flow already existed from
+  the onboarding work, developed against email. Changes: flipped
+  `AUTH_CHANNEL` `"email"→"phone"` (`src/lib/auth.tsx`); added a fixed `+91`
+  prefix + E.164 normalization on the entry screen (`app/auth/index.tsx`,
+  `normalizeLocal`/`toIdentifier` — a 10-digit local becomes `+91…`); added a
+  **60s resend cooldown** with a live countdown on the verify screen
+  (`app/auth/verify.tsx`, new `auth_resend_in` i18n key). Kept **guest-first**
+  (skippable sign-in) per the 2026-07-15 owner decision — explicitly did NOT
+  hard-gate the app as the sprint pack's wording suggested. No migration: the
+  verified phone lives in `auth.users.phone`, not a new `profiles` column. Spec:
+  `docs/specs/auth-phone-otp.md` (CONFIRMED).
+  **Verified live against the Supabase project** (test number
+  `919109386355`/`123456`, web preview): entry → `signInWithOtp` 200 → verify
+  screen shows `+919109386355` + the 60s countdown → `verifyOtp('123456')` →
+  **authenticated session** (role `authenticated`, phone attached) → the session
+  authorizes a real `activity_log` insert (201) with server-side IST date and an
+  own-row read (200, RLS-scoped); test row cleaned up (204). This proves the
+  slice's core promise: **auth lights up all the existing `logActivity` call
+  sites.** `tsc` + web export green; lint at the pre-existing 2-error/3-warning
+  baseline (zero added). Reviewer found two real issues, both fixed +
+  re-verified: (1) native `maxLength={10}` truncated a pasted/autofilled full
+  number to its *first* 10 raw chars *before* normalization, silently producing
+  a wrong-but-valid number — removed `maxLength`, `normalizeLocal` now strips the
+  `91` country code from a 12-digit paste (confirmed live: `919109386355` →
+  `9109386355`); (2) a failed resend still locked the button 60s — now rolls the
+  cooldown back to 0 on error.
+  **Owner actions (prod SMS only — dev/demo run on test numbers, no SMS):**
+  MSG91 + DLT registration is **not started** — start it today, it's the
+  multi-day long pole. The MSG91 **Send SMS Hook** Edge Function is deferred
+  until the DLT template is approved (Supabase's provider dropdown has no MSG91
+  option by design; MSG91 plugs in via Authentication → Hooks → Send SMS Hook).
+  **No migration to run.**
+
 - **2026-08-03** — **Slice 2: fixed the white-text-on-gold-button color
   regression.** The owner reported that text inside gold buttons rendered white
   instead of the mockup's ink `#241503`. It was NOT a token edit or per-screen

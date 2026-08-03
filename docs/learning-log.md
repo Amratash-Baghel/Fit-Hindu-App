@@ -10,6 +10,29 @@ Format:
 
 <!-- entries added at each /ship, newest on top -->
 
+- **2026-08-03 — `maxLength` truncates BEFORE your onChange normalizer runs** (phone auth)
+  Our phone field normalizes whatever the user enters down to 10 local digits:
+  paste `+919109386355`, and `normalizeLocal` is supposed to strip the `91`
+  country code and keep `9109386355`. It didn't — because the `<TextInput>` also
+  had `maxLength={10}`. On both native RN and react-native-web, `maxLength` is
+  enforced on the raw text buffer by the platform *before* your `onChangeText`
+  handler ever sees the string. So a 12-char paste was chopped to its **first**
+  10 raw characters (`9191093863`) and only *then* handed to our normalizer,
+  which saw an already-10-digit string, did nothing, and — worst part — it passed
+  the `/^[6-9][0-9]{9}$/` typo-check, so the app silently tried to sign in a
+  **wrong but plausible** number with no error shown. The lesson: a length cap
+  and a transform on the same input fight each other; if you normalize in
+  `onChangeText`, the normalizer must be the *only* gate, and the field's own
+  value (already normalized, so never >10) enforces the cap. Fix removed
+  `maxLength` and taught `normalizeLocal` to drop a leading `91` from a 12-digit
+  string. Live in [app/auth/index.tsx](../app/auth/index.tsx) (`normalizeLocal`
+  + the `maxLength`-free `TextInput`). Same class of bug as trimming a string in
+  a controlled input while `maxLength` also clips it — two clamps, silent
+  disagreement.
+  *Check yourself:* a user pastes `98765 43210` (with a space) into the field.
+  Walk through what `normalizeLocal` returns and whether it's accepted — and say
+  why the space doesn't break it.
+
 - **2026-08-03 — RN style arrays merge left-to-right (last wins)** (color fix)
   In React Native, `style={[a, b, c]}` is resolved by flattening the array in
   order, so keys in `c` overwrite the same keys in `a` and `b`. This is exactly

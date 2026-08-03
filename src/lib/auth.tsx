@@ -27,10 +27,14 @@ import {
 import type { LanguageMode } from "../types/db";
 
 /**
- * The OTP channel. Flip to "phone" the day the SMS provider is live in
- * Supabase (Auth → Providers → Phone). Nothing else changes.
+ * The OTP channel. Phone is the v1 target for a Hindi-first audience (Sprint 2
+ * Slice 3, owner-confirmed 2026-08-03). Dev verifies against Supabase test
+ * numbers (Auth → Providers → Phone → Test OTP), which bypass any SMS provider;
+ * prod delivery is a Send SMS Hook → MSG91 Edge Function (deferred until DLT
+ * approval). Email remains a valid value if we ever need a fallback — the whole
+ * flow branches on this one constant.
  */
-export const AUTH_CHANNEL: "email" | "phone" = "email";
+export const AUTH_CHANNEL: "email" | "phone" = "phone";
 
 /**
  * The identifier awaiting verification, held in module state rather than passed

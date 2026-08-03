@@ -223,6 +223,8 @@ export const strings = {
   auth_code_sent: { hi: "हमने 6 अंकों का कोड भेजा है", en: "We sent you a 6-digit code" },
   auth_verify: { hi: "पुष्टि करें", en: "Verify" },
   auth_resend: { hi: "कोड दोबारा भेजें", en: "Resend code" },
+  // {n} → seconds left; substituted at the call site (see StreakCard pattern).
+  auth_resend_in: { hi: "नया कोड {n}s में", en: "New code in {n}s" },
   auth_resent: { hi: "नया कोड भेज दिया ✓", en: "New code sent ✓" },
   auth_invalid_identifier: { hi: "सही जानकारी डालें", en: "Enter a valid value" },
   auth_invalid_code: { hi: "कोड ग़लत है — दोबारा कोशिश करें", en: "That code isn't right — try again" },
