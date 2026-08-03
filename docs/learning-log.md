@@ -10,6 +10,27 @@ Format:
 
 <!-- entries added at each /ship, newest on top -->
 
+- **2026-08-03 — RN style arrays merge left-to-right (last wins)** (color fix)
+  In React Native, `style={[a, b, c]}` is resolved by flattening the array in
+  order, so keys in `c` overwrite the same keys in `a` and `b`. This is exactly
+  CSS's "later declaration wins" but positional: whoever is *further right in the
+  array* takes precedence, no specificity involved. Our `T` component builds
+  `[type[variant], style, { color: tones[tone] }]`-style arrays, and one refactor
+  (B2, `a42d45f`) quietly moved the default `{ color: tones[tone] }` to the last
+  slot. From then on, a screen that said `<T style={{ color: "#241503" }}>` was
+  overruled by the default `tone="cream"` sitting to its right — every gold
+  button's text went white, on device only (the same color path, but nobody
+  noticed until a device screenshot). The fix flips the order so the default sits
+  FIRST and the caller's `style` (carrying its color) sits last and wins. Live in
+  [src/ui/Text.tsx](../src/ui/Text.tsx) line ~65 — the `style={[{ color:
+  tones[tone] }, withLineHeadroom([type[variant], style])]}` array. The trap to
+  remember: folding a caller's `style` *inside* a helper call doesn't change its
+  position relative to a sibling object placed after that helper — the sibling
+  still wins.
+  *Check yourself:* given `style={[{ color: "red" }, { color: "blue" }, someVar]}`
+  where `someVar` is `undefined`, what color renders, and why doesn't the
+  `undefined` blank it out?
+
 - **2026-08-03 — Generation counter (cancelling stale async work)** (audio fix)
   When an `async` function `await`s partway through, the world can change
   underneath it — another call may start, or the user may hit "stop" — and when

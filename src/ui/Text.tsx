@@ -58,7 +58,11 @@ export function T({ variant = "body", tone = "cream", style, children, numberOfL
       numberOfLines={numberOfLines}
       onPress={onPress}
       accessibilityRole={onPress ? "link" : undefined}
-      style={[withLineHeadroom([type[variant] as TextStyle, style]), { color: tones[tone] }]}
+      // `tone` is the DEFAULT color (first), so an explicit `color` in `style`
+      // still wins — e.g. the ink-on-gold (#241503) button/jap glyph text.
+      // B2's withLineHeadroom refactor (a42d45f) once put tone LAST, which
+      // silently overrode caller colors to cream. Order matters here.
+      style={[{ color: tones[tone] }, withLineHeadroom([type[variant] as TextStyle, style])]}
     >
       {children}
     </RNText>

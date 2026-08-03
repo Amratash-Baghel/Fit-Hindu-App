@@ -2,6 +2,16 @@
 
 One dated line per decision, with the why. Newest on top.
 
+- **2026-08-03 (`T` treats `tone` as a default, `style.color` always wins)** —
+  the `T`/`B` text primitive (`src/ui/Text.tsx`) applies `{ color: tones[tone] }`
+  FIRST in its style array so an explicit `color` passed via `style` overrides
+  it. Why: callers that need ink-on-gold (`#241503` on the primary button, the
+  jap `ॐ`) set the color through `style`, not `tone`; a regression (commit
+  `a42d45f`) had put the tone color last and silently repainted all of them
+  cream. Rule going forward: never move `{ color: tones[tone] }` after the
+  caller's `style` in that array, and don't fold caller `style` into a helper
+  (e.g. `withLineHeadroom`) whose result then loses to a later default.
+
 - **2026-08-03 (background audio playback scoped to sleep only)** — the shared
   audio service (`src/lib/audio.ts`) no longer sets `shouldPlayInBackground: true`
   globally; only the sleep tab passes `{ background: true }` to `playLoop`.

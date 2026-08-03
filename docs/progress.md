@@ -3,6 +3,27 @@
 Running build log — one entry per shipped item, newest on top. This is the
 standup doc for the owner and the resume-from-home lifeline.
 
+- **2026-08-03** — **Slice 2: fixed the white-text-on-gold-button color
+  regression.** The owner reported that text inside gold buttons rendered white
+  instead of the mockup's ink `#241503`. It was NOT a token edit or per-screen
+  misuse — `src/ui/tokens.ts` was untouched. Root cause: commit `a42d45f` (B2,
+  "Android glyph clipping fix", 2026-07-31) refactored `T`'s style array to wrap
+  the variant+`style` in `withLineHeadroom(...)` and, in doing so, moved
+  `{ color: tones[tone] }` to the END of the array. RN merges left-to-right, so
+  the default `tone="cream"` then overrode any explicit `color` a caller passed
+  through `style` — the gold `Button` label (`#241503`, `src/ui/Button.tsx:30`),
+  the jap `ॐ`/"Start again" (`app/(tabs)/jap.tsx:296,301`), and the home shloka
+  (`goldHi`, `app/(tabs)/index.tsx:86`) all silently went cream/white. The
+  original scaffold ordering had `style` last (caller wins); B2 flipped it with
+  no mention of color in its message — hence "unexplained". Fix: one line in
+  `src/ui/Text.tsx` — put `{ color: tones[tone] }` FIRST as the default, and the
+  flattened variant+`style` (which may carry the caller's color) LAST, so an
+  explicit `style.color` wins again while the `withLineHeadroom` clip fix is
+  preserved. Verified in web preview: "Start Meditation" button text computes to
+  `rgb(36,21,3)` = `#241503`; default headings still cream `#F6EDDD`; no console
+  errors. `tsc` + web export green; lint unchanged at the 5-problem pre-existing
+  baseline; reviewer found nothing. No migration. **No USER MUST RUN steps.**
+
 - **2026-08-03** — **Slice 1: fixed audio overlap / won't-stop.** The looping
   audio singleton (`src/lib/audio.ts`) could orphan a player and keep it looping
   past a stop. Root cause: `playLoop` is async and `await`s `ensureMode()` before
