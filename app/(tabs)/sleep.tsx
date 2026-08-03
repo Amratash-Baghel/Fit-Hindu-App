@@ -3,7 +3,7 @@ import { ActivityIndicator, ScrollView, View } from "react-native";
 import { Screen, Card, Chip, Button, B, T, MoonIcon, MuteIcon, color, radius, space } from "../../src/ui";
 import { useI18n } from "../../src/lib/i18n";
 import { listSleepSounds, type SleepSound } from "../../src/lib/content";
-import { playLoop, stopAudio } from "../../src/lib/audio";
+import { isPlaying, playLoop, stopAudio, subscribeAudio } from "../../src/lib/audio";
 import { audioSourceFor } from "../../src/lib/localAudio";
 import { logActivity } from "../../src/lib/activity";
 
@@ -48,6 +48,20 @@ export default function Sleep() {
   // control — the screen owns the player it started.
   useEffect(() => stop, [stop]);
 
+  // Stay in sync with an external stop (the global AudioStopPill hard-stops the
+  // singleton): reset this screen's row/timer state so it never shows "playing"
+  // over silence.
+  useEffect(
+    () =>
+      subscribeAudio(() => {
+        if (!isPlaying()) {
+          setPlayingId(null);
+          setSecLeft(null);
+        }
+      }),
+    [],
+  );
+
   // Latest-value mirror so the 1s tick reads current state and can end
   // playback without the interval being torn down every second.
   const latest = useRef({ secLeft, stop });
@@ -77,7 +91,7 @@ export default function Sleep() {
         stop();
         return;
       }
-      void playLoop(src);
+      void playLoop(src, { background: true });
       setPlayingId(s.id);
       // Mirror bumped synchronously for the same reason as pickTimer: switching
       // straight from a playing sound to another leaves the previous interval

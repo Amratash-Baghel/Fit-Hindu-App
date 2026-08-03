@@ -3,6 +3,31 @@
 Running build log — one entry per shipped item, newest on top. This is the
 standup doc for the owner and the resume-from-home lifeline.
 
+- **2026-08-03** — **Slice 1: fixed audio overlap / won't-stop.** The looping
+  audio singleton (`src/lib/audio.ts`) could orphan a player and keep it looping
+  past a stop. Root cause: `playLoop` is async and `await`s `ensureMode()` before
+  it touches the module player, so two overlapping calls — or a call racing an
+  explicit `stopAudio` — could each create a player, leaking the first. Fix: a
+  monotonic generation counter (`gen`) that `playLoop` captures at entry and
+  re-checks after the await; `stopAudio`/`pauseAudio` also bump `gen`, so any
+  stale in-flight call bails before creating a player. Also scoped
+  `shouldPlayInBackground` per surface (only sleep passes `{ background: true }`;
+  meditation/jap now auto-pause on background), added a flow-boundary
+  `stopAudio` via a new nested `app/meditation/_layout.tsx` `useFocusEffect`
+  (stops on leaving the flow, never on internal sounds→setup→session nav), and a
+  global "Stop sound" pill (`src/ui/AudioStopPill.tsx`, `useSyncExternalStore`
+  over the service) mounted in the root layout so every screen has a stop while
+  audio plays. Sleep subscribes to the service so an external stop resets its row
+  state (no desync). New i18n key `stop_sound`. Verified in web preview: rapid
+  sound-switching never stacks (no console errors), the pill appears/stops/hides,
+  audio persists across internal nav but stops on leaving the flow, `dismissTo`
+  after a completed session correctly returns to the meditation tab through the
+  new nested navigator, and the sleep row re-syncs when stopped via the pill.
+  `tsc` clean; lint unchanged at the 5-problem pre-existing baseline (all in
+  untouched `app/workout/*`). No migration. Code-reviewed: one HIGH finding
+  (stop-vs-playLoop race) fixed; a LOW "OS background-pause not mirrored to the
+  JS flag" spun off as a follow-up task. **No USER MUST RUN steps.**
+
 - **2026-08-01** — **Merged `origin/main` into `onboarding-auth-plan-engine`
   for a boss demo.** Pulled in the 3 commits main had that this branch
   lacked — admin Meals/Mantras CRUD, the legal/privacy-policy package, and

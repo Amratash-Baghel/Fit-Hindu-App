@@ -2,6 +2,17 @@
 
 One dated line per decision, with the why. Newest on top.
 
+- **2026-08-03 (background audio playback scoped to sleep only)** — the shared
+  audio service (`src/lib/audio.ts`) no longer sets `shouldPlayInBackground: true`
+  globally; only the sleep tab passes `{ background: true }` to `playLoop`.
+  Meditation and jap get `false`, so the OS pauses them when the app leaves the
+  foreground, and the meditation flow additionally hard-stops at its navigator
+  boundary. Why: a single global background flag meant meditation audio kept
+  playing after the user left the flow or backgrounded the app — sleep is the
+  only surface whose whole purpose is to keep playing unattended (with its own
+  auto-off timer). Overlapping `playLoop` calls are now serialized with a
+  generation counter so a stop can never be outrun by an in-flight start.
+
 - **2026-08-01 (deity question removed from onboarding)** — the onboarding
   questionnaire no longer asks for a deity, and `profiles.deity_id` is dropped
   (migration 0017). Why: it was never read by the rule-based matching engine

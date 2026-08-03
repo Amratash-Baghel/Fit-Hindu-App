@@ -334,6 +334,7 @@ export const strings = {
   choose_sound: { hi: "ध्वनि चुनें", en: "Choose a sound" },
   sound_playing_hint: { hi: "ध्वनि बदलने के लिए टैप करें — अभी बज रही है", en: "Tap to switch — playing now" },
   silent_mode: { hi: "मौन", en: "Silent" },
+  stop_sound: { hi: "ध्वनि रोकें", en: "Stop sound" },
   next: { hi: "आगे", en: "Next" },
   how_to_meditate: { hi: "कैसे करें", en: "How to meditate" },
   med_instructions: {

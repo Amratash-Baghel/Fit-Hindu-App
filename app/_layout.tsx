@@ -9,7 +9,7 @@ import { hydrateFeedbackPrefs } from "../src/lib/settings";
 import { preloadFeedback } from "../src/lib/feedback";
 import { reconcile, watchForFlush } from "../src/lib/session";
 import { watchNotificationTaps } from "../src/lib/push";
-import { CeremonySplash, color } from "../src/ui";
+import { AudioStopPill, CeremonySplash, color } from "../src/ui";
 
 // Hold the native splash from the very first module evaluation so there is zero
 // flash of white before the animated ceremony paints (slice 3). The animated
@@ -85,6 +85,9 @@ export default function RootLayout() {
             <Stack.Screen name="settings/index" />
             <Stack.Screen name="progress/index" />
           </Stack>
+          {/* Global stop-sound affordance — floats over every screen while the
+              shared audio service is playing. */}
+          <AudioStopPill />
           <SplashGate />
         </AuthProvider>
       </I18nProvider>

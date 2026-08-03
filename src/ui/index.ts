@@ -9,6 +9,7 @@ export { ProgressBar } from "./ProgressBar";
 export { Toggle } from "./Toggle";
 export { Screen } from "./Screen";
 export { CeremonySplash } from "./CeremonySplash";
+export { AudioStopPill } from "./AudioStopPill";
 export { CeremonyLoader, type CeremonyStatus } from "./CeremonyLoader";
 export * from "./icons";
 export { AvatarTile } from "./MediaTile";

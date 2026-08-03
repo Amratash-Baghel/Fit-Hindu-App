@@ -10,6 +10,24 @@ Format:
 
 <!-- entries added at each /ship, newest on top -->
 
+- **2026-08-03 — Generation counter (cancelling stale async work)** (audio fix)
+  When an `async` function `await`s partway through, the world can change
+  underneath it — another call may start, or the user may hit "stop" — and when
+  it resumes it happily finishes work that is now wrong. Our `playLoop` awaited
+  the audio-mode switch *before* creating the player, so a second tap (or a
+  `stopAudio`) landing during that await could leave the resumed first call
+  creating a player that nobody can reach: it loops forever, past the stop. The
+  fix is a monotonic counter: each call does `const myGen = ++gen` on entry, and
+  after every await checks `if (myGen !== gen) return`. Anything that should
+  cancel in-flight work — a newer `playLoop`, `stopAudio`, `pauseAudio` — just
+  bumps `gen`, and the stale call detects it's been superseded and bails before
+  touching shared state. Live in
+  [src/lib/audio.ts](../src/lib/audio.ts) (`gen`, the guard in `playLoop`, the
+  bumps in `stopAudio`/`pauseAudio`). Same idea as an AbortController, or the
+  "ignore" flag people put in `useEffect` cleanups to drop a stale fetch.
+  *Check yourself:* if `stopAudio` did NOT bump `gen`, describe the exact
+  sequence of taps that leaves a sound looping after the user pressed stop.
+
 - **2026-07-15 — State machine** (workout session player)
   A state machine is code organized around "which mode am I in, and what
   moves me to the next mode" instead of a pile of if-statements. Our player
