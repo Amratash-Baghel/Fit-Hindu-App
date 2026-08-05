@@ -92,15 +92,28 @@ untouched.
 not program-scoped (0012), and a milestone is a bonus on that streak. A
 `program_id` there would be a false affordance the read path could never honour.
 
-## Known limitation (v1)
+## Sleep run recovery (`src/lib/sleepRun.ts`)
 
-A sleep run is banked only when a JS stop path runs (user stop, timer complete,
-tab blur, global stop pill). If Android kills the app process while it is
-backgrounded — the phone-locked-and-asleep case — a qualifying run is lost, with
-no recovery. The robust fix is a launch-reconcile like `session.ts` (persist
-run-start, log on next open if elapsed ≥ 5 min); deferred as its own task.
-Logging at play-start instead would restore durability but reintroduces the
-tap-farm the ≥5-min rule exists to close, so it is not an option.
+A sleep run is banked live only when a JS stop path runs (user stop, timer
+complete, tab blur, global stop pill). If Android kills the app process while
+backgrounded, none of those fire. So a run is also mirrored to AsyncStorage at
+play-start and reconciled on the next launch (`reconcileSleepRun`, wired into
+`app/_layout.tsx` beside the session reconcile). The live log and the reconcile
+share one `client_event_id`, so 0012's unique `(user_id, client_event_id)`
+collapses any double-write to one row.
+
+**Honesty over recovery.** The reconcile claims only minutes it can prove. JS
+does not run while backgrounded, so `actual_min` is `lastAliveMs − startedAtMs`
+(a heartbeat bumped every 30 s while the screen ticks), capped at the chosen
+timer — never wall-clock-since-start, which would count the whole killed night
+as listening and mint points. Logging at play-start instead would restore
+durability but reopens the tap-farm the ≥5-min rule closes, so it is not used.
+
+**Residual gap (native-only, out of v1 scope):** the pure
+lock-immediately-and-sleep case, where JS suspends within seconds, cannot be
+measured from JS at all — the heartbeat never advances, so the run reconciles to
+< 5 min and is dropped. Measuring true background playback needs a native
+audio-session tracker.
 
 ## Schema (migration 0020)
 

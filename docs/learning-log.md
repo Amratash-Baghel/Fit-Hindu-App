@@ -10,6 +10,30 @@ Format:
 
 <!-- entries added at each /ship, newest on top -->
 
+- **2026-08-05 — a timestamp you can trust vs. one you can't: heartbeat, not
+  wall-clock** (sleep-run recovery)
+  We want to recover a sleep-listening session that Android killed before the
+  app could write it. The mirror stores `startedAtMs`. The tempting reconcile is
+  `actual_min = (Date.now() − startedAtMs)` on next launch — but "now" at launch
+  might be 8 hours after the user locked their phone, and the audio stopped when
+  the process died, not when they reopened the app. That formula would credit an
+  8-hour "listen" and mint points for a killed app. The fix is a **heartbeat**:
+  while the screen ticks, we bump a `lastAliveMs` stamp every 30 s; at reconcile
+  `actual_min = lastAliveMs − startedAtMs`, capped at the chosen timer. That span
+  is the last moment we can *prove* JS was alive and playing — a real lower
+  bound, not a guess. The deeper lesson: JS does not run in the background, so
+  any duration you compute from a foreground clock at an arbitrary later moment
+  is fiction; only a value you persisted *while you were actually running*
+  measures anything. The residual cost is honest — if the user locks the phone
+  the instant playback starts, the heartbeat never advances and the run
+  reconciles to ~0 and is dropped; measuring true background playback needs a
+  native audio-session module, which we don't have. Live in
+  [src/lib/sleepRun.ts](../src/lib/sleepRun.ts) (`markSleepAlive` +
+  `reconcileSleepRun`).
+  *Check yourself:* the reconcile also does `min(aliveMin, timerMinutes)` when a
+  timer is set. Give a concrete case where the raw heartbeat span would exceed
+  the timer, and say why capping it is the honest number.
+
 - **2026-08-05 — a column DEFAULT is not a constraint; RLS `with check` is** (Fit Points)
   `daily_checkins.ist_date` was declared `default ist_today()`, and the PK is
   `(user_id, ist_date)`, so it *looked* like "one app-open bonus per real day".

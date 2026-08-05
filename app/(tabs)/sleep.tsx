@@ -6,6 +6,8 @@ import { listSleepSounds, type SleepSound } from "../../src/lib/content";
 import { isPlaying, playLoop, stopAudio, subscribeAudio } from "../../src/lib/audio";
 import { audioSourceFor } from "../../src/lib/localAudio";
 import { logActivity } from "../../src/lib/activity";
+import { beginSleepRun, markSleepAlive, clearSleepRun } from "../../src/lib/sleepRun";
+import { uuidv4 } from "../../src/lib/ids";
 
 /** Auto-stop options in minutes. 0 = off (explicit user choice, never default). */
 const TIMERS = [15, 30, 60, 0] as const;
@@ -52,6 +54,7 @@ export default function Sleep() {
   const runStartRef = useRef<number | null>(null); // ms at play, null = nothing playing
   const runRefIdRef = useRef<string | null>(null); // the sound id, for ref_id
   const runTimerRef = useRef<number>(0); // the chosen auto-stop, for meta.minutes
+  const runEventIdRef = useRef<string | null>(null); // shared with the crash-recovery mirror
   const loggedRef = useRef(false); // one row per run — guards the multi-path stop
 
   // Log the run that is ending, once, iff it heard >= 5 real minutes. Stable
@@ -62,12 +65,17 @@ export default function Sleep() {
     runStartRef.current = null;
     if (startedAt === null || loggedRef.current) return;
     const actualMin = Math.floor((Date.now() - startedAt) / 60000);
+    // The run ended in-app: drop the crash-recovery mirror either way, so the
+    // launch reconcile never re-logs a run the user already finished short.
+    void clearSleepRun();
     if (actualMin < 5) return; // too little listening to count as sleep
     loggedRef.current = true;
     logActivity(
       "sleep_sound",
       { minutes: runTimerRef.current, actual_min: actualMin, timer_completed: timerCompleted },
       runRefIdRef.current ?? undefined,
+      // Same id the mirror holds, so a live log and a stale reconcile dedup.
+      runEventIdRef.current ?? undefined,
     );
   }, []);
 
@@ -124,6 +132,16 @@ export default function Sleep() {
     return () => clearInterval(id);
   }, [playingId, minutes]);
 
+  // Heartbeat for crash recovery — bump the mirror's last-alive stamp while a
+  // sound plays, regardless of the timer (the countdown above only runs with a
+  // timer set). This stamp is the ceiling on the minutes the launch reconcile
+  // may claim, so we never count a backgrounded/killed stretch as listening.
+  useEffect(() => {
+    if (playingId === null) return;
+    const id = setInterval(() => void markSleepAlive(), 30000);
+    return () => clearInterval(id);
+  }, [playingId]);
+
   const play = useCallback(
     (s: SleepSound) => {
       const src = audioSourceFor(s.audio);
@@ -137,11 +155,16 @@ export default function Sleep() {
       if (runStartRef.current !== null) logRunIfQualified(false);
       void playLoop(src, { background: true });
       setPlayingId(s.id);
-      // Open a fresh listening run.
+      // Open a fresh listening run. The event id is generated here (synchronously
+      // available to the live log path) and shared with the crash-recovery
+      // mirror so a launch reconcile of this run dedups against a live log.
+      const eventId = uuidv4();
       runStartRef.current = Date.now();
       runRefIdRef.current = s.id;
       runTimerRef.current = minutes;
+      runEventIdRef.current = eventId;
       loggedRef.current = false;
+      void beginSleepRun(eventId, s.id, minutes);
       // Mirror bumped synchronously for the same reason as pickTimer: switching
       // straight from a playing sound to another leaves the previous interval
       // alive until commit, and its tick would clobber this fresh countdown.

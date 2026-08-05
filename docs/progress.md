@@ -3,6 +3,24 @@
 Running build log — one entry per shipped item, newest on top. This is the
 standup doc for the owner and the resume-from-home lifeline.
 
+- **2026-08-05** — **Slice 5 follow-up: sleep-run crash recovery.** Closed the
+  reviewer's HIGH finding that a backgrounded sleep run is lost if Android kills
+  the app before a JS stop path writes it. New `src/lib/sleepRun.ts`: the run is
+  mirrored to AsyncStorage at play-start (`beginSleepRun`), a 30 s heartbeat
+  (`markSleepAlive`) records last-known-alive while playing, and
+  `reconcileSleepRun` (wired into `app/_layout.tsx` on mount) logs a qualifying
+  run on the next launch. `actual_min` at reconcile is the heartbeat span capped
+  at the timer — **never** wall-clock-since-start, so a night the app sat killed
+  can't be counted as listening. Live log and reconcile share one
+  `client_event_id`, so 0012's unique key dedups any double-write —
+  `logActivity` gained an optional `clientEventId` (idempotent upsert) for this.
+  Residual gap (documented): the lock-immediately case where JS suspends within
+  seconds still isn't measurable from JS — needs a native audio-session tracker.
+  Typecheck clean; lint at the 2-error baseline (zero added); PGlite 104/104
+  (recovery rides on the existing `client_event_id` dedup test); web preview —
+  sleep renders clean, launch reconcile no-ops on an empty mirror, zero console
+  errors. No migration.
+
 - **2026-08-05** — **Slice 5: Fit Points engine (migration 0020).** A computed
   points layer over `activity_log` that rewards daily engagement without ever
   punishing a miss, tied to the streak. Owner override — points move into v1

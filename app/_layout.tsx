@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from "../src/lib/auth";
 import { hydrateFeedbackPrefs } from "../src/lib/settings";
 import { preloadFeedback } from "../src/lib/feedback";
 import { reconcile, watchForFlush } from "../src/lib/session";
+import { reconcileSleepRun } from "../src/lib/sleepRun";
 import { watchCheckIn } from "../src/lib/points";
 import { watchNotificationTaps } from "../src/lib/push";
 import { AudioStopPill, CeremonySplash, color } from "../src/ui";
@@ -44,6 +45,9 @@ export default function RootLayout() {
   // foreground, which is this app's stand-in for a connectivity listener.
   useEffect(() => {
     void reconcile();
+    // Recover a sleep run whose write was lost to a background process-kill
+    // (slice 5 follow-up): the mirror survives the kill, this logs it once.
+    void reconcileSleepRun();
     return watchForFlush();
   }, []);
 
