@@ -44,38 +44,79 @@ export default function Sleep() {
     setSecLeft(null);
   }, []);
 
+  // What the current listening run is — set when a sound starts, read when it
+  // ends. Sleep is only recorded AFTER real listening: logging on the play tap
+  // (the old behaviour) banked a point per tap and recorded nothing about
+  // whether anyone actually listened, so the points rule (actual_min >= 5,
+  // migration 0020) could never be evaluated honestly.
+  const runStartRef = useRef<number | null>(null); // ms at play, null = nothing playing
+  const runRefIdRef = useRef<string | null>(null); // the sound id, for ref_id
+  const runTimerRef = useRef<number>(0); // the chosen auto-stop, for meta.minutes
+  const loggedRef = useRef(false); // one row per run — guards the multi-path stop
+
+  // Log the run that is ending, once, iff it heard >= 5 real minutes. Stable
+  // (reads refs only), so every stop path — user tap, timer, blur, the global
+  // pill — can call it and the guards make repeat calls no-ops.
+  const logRunIfQualified = useCallback((timerCompleted: boolean) => {
+    const startedAt = runStartRef.current;
+    runStartRef.current = null;
+    if (startedAt === null || loggedRef.current) return;
+    const actualMin = Math.floor((Date.now() - startedAt) / 60000);
+    if (actualMin < 5) return; // too little listening to count as sleep
+    loggedRef.current = true;
+    logActivity(
+      "sleep_sound",
+      { minutes: runTimerRef.current, actual_min: actualMin, timer_completed: timerCompleted },
+      runRefIdRef.current ?? undefined,
+    );
+  }, []);
+
+  // Auto-stop reached: record it as a completed timer, then stop.
+  const finishTimer = useCallback(() => {
+    logRunIfQualified(true);
+    stop();
+  }, [logRunIfQualified, stop]);
+
   // Leaving the tab must not leave audio running forever with no visible
-  // control — the screen owns the player it started.
-  useEffect(() => stop, [stop]);
+  // control — the screen owns the player it started. Record the run first.
+  useEffect(
+    () => () => {
+      logRunIfQualified(false);
+      stopAudio();
+    },
+    [logRunIfQualified],
+  );
 
   // Stay in sync with an external stop (the global AudioStopPill hard-stops the
-  // singleton): reset this screen's row/timer state so it never shows "playing"
-  // over silence.
+  // singleton): record the run if it qualifies, then reset this screen's
+  // row/timer state so it never shows "playing" over silence. On our own stop
+  // paths the run is already logged, so this call is a no-op.
   useEffect(
     () =>
       subscribeAudio(() => {
         if (!isPlaying()) {
+          logRunIfQualified(false);
           setPlayingId(null);
           setSecLeft(null);
         }
       }),
-    [],
+    [logRunIfQualified],
   );
 
   // Latest-value mirror so the 1s tick reads current state and can end
   // playback without the interval being torn down every second.
-  const latest = useRef({ secLeft, stop });
+  const latest = useRef({ secLeft, finishTimer });
   useEffect(() => {
-    latest.current = { secLeft, stop };
+    latest.current = { secLeft, finishTimer };
   });
 
   useEffect(() => {
     if (playingId === null || minutes === 0) return;
     const id = setInterval(() => {
-      const { secLeft: s, stop: end } = latest.current;
+      const { secLeft: s, finishTimer: end } = latest.current;
       if (s === null) return;
       if (s <= 1) {
-        end(); // auto-stop reached — clears playingId and secLeft together
+        end(); // auto-stop reached — logs a completed timer, clears state
         return;
       }
       setSecLeft(s - 1);
@@ -88,20 +129,27 @@ export default function Sleep() {
       const src = audioSourceFor(s.audio);
       if (src == null) return; // placeholder row — not tappable
       if (playingId === s.id) {
+        logRunIfQualified(false); // tapping the playing row stops it
         stop();
         return;
       }
+      // Switching straight from another sound ends that run first.
+      if (runStartRef.current !== null) logRunIfQualified(false);
       void playLoop(src, { background: true });
       setPlayingId(s.id);
+      // Open a fresh listening run.
+      runStartRef.current = Date.now();
+      runRefIdRef.current = s.id;
+      runTimerRef.current = minutes;
+      loggedRef.current = false;
       // Mirror bumped synchronously for the same reason as pickTimer: switching
       // straight from a playing sound to another leaves the previous interval
       // alive until commit, and its tick would clobber this fresh countdown.
       const next = minutes > 0 ? minutes * 60 : null;
       latest.current.secLeft = next;
       setSecLeft(next);
-      logActivity("sleep_sound", { minutes }, s.id);
     },
-    [playingId, minutes, stop],
+    [playingId, minutes, stop, logRunIfQualified],
   );
 
   const pickTimer = useCallback(
@@ -150,6 +198,9 @@ export default function Sleep() {
           <B k="sleep_title" variant="h1" />
         </View>
         <B k="sleep_tagline" variant="caption" tone="nightMuted" />
+        {/* Why 5 minutes and not a tap: points are for real listening, so a user
+            who stops early knows why nothing was banked (migration 0020). */}
+        <B k="sleep_needs_five" variant="caption" tone="nightMuted" />
 
         {sounds.length === 0 ? (
           <Card night style={{ marginTop: space.md }}>

@@ -40,12 +40,14 @@ consent covers.
 
 ## Roadmap (schema-ready NOW, built later)
 
-- **Points** — *fitness points / bhakti points* per completed activity.
-  Computed from activity_log (a points ledger view), so switching it on later
-  requires zero backfill.
-- **Milestone rewards** — e.g. Bajrangvati discount at streak milestones.
-  Touches monetization (deferred) — design the milestone check, park the
-  reward fulfilment.
+- **Points** — ✅ BUILT (slice 5, migration 0020, owner override 2026-08-05).
+  Now v1, not roadmap. Computed views over activity_log (zero backfill, as
+  promised here), a daily app-open bonus, and streak-milestone bonuses tied to
+  `longest_streak` so a break is never punishing. Full spec:
+  `docs/specs/points-rewards.md`.
+- **Milestone rewards** — the milestone *check* now exists (`streak_milestones`
+  + `points_summary`); the reward *fulfilment* (e.g. Bajrangvati discount) is
+  still parked (monetization deferred).
 - **Friends & leaderboard** — friend graph + activity visibility + ranking.
   Needs privacy controls (activity sharing is opt-in) and moderation
   thinking; the log already has everything a leaderboard needs.

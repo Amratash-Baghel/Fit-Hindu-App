@@ -16,6 +16,8 @@ import {
 import { useI18n } from "../../src/lib/i18n";
 import { getTodayDevotional, type DevotionalToday } from "../../src/lib/content";
 import { useStreak } from "../../src/lib/streak";
+import { usePoints } from "../../src/lib/points";
+import type { PointsSummary } from "../../src/types/db";
 
 /**
  * Daily Home — the habit surface (most polished screen in the app).
@@ -162,15 +164,18 @@ function StreakCard() {
   const router = useRouter();
   const { t } = useI18n();
   const { streak, loading, refresh } = useStreak();
+  const { points, refresh: refreshPoints } = usePoints();
 
   // An activity logged elsewhere (workout, meditation) should be reflected the
   // moment the user lands back on Home — re-read on focus, not just on mount.
   // A refresh keeps the previous streak visible (loading stays false), so only
-  // the very first signed-in read shows the resting state below.
+  // the very first signed-in read shows the resting state below. Points read
+  // from the same activity_log, so they refresh on the same focus.
   useFocusEffect(
     useCallback(() => {
       refresh();
-    }, [refresh]),
+      refreshPoints();
+    }, [refresh, refreshPoints]),
   );
 
   const count = streak?.current_streak ?? 0;
@@ -228,7 +233,53 @@ function StreakCard() {
           <DiyaIcon key={i} size={24} dim={i >= lit} />
         ))}
       </View>
+      <PointsRow points={points} />
     </Card>
+  );
+}
+
+/**
+ * Fit Points line inside the sankalp card (slice 5). Shown only to a signed-in
+ * user whose read has landed (points != null) — a guest already sees the
+ * sign-in invitation above, so a zero here would be noise. Points come from the
+ * same activity_log as the streak, so the two never disagree about who is in.
+ */
+function PointsRow({ points }: { points: PointsSummary | null }) {
+  const { t } = useI18n();
+  if (!points) return null;
+
+  const daysToNext =
+    points.next_milestone_day != null
+      ? Math.max(0, points.next_milestone_day - points.current_streak)
+      : null;
+  const nextLine =
+    daysToNext != null && points.next_milestone_bonus != null
+      ? t("points_next_milestone")
+          .replace("{d}", String(daysToNext))
+          .replace("{b}", String(points.next_milestone_bonus))
+      : t("points_milestone_max");
+
+  return (
+    <View style={{ marginTop: space.md, borderTopWidth: 1, borderTopColor: color.line, paddingTop: space.md }}>
+      <View style={{ flexDirection: "row", alignItems: "center" }}>
+        <View style={{ flex: 1 }}>
+          <T variant="caption" tone="muted">
+            {t("points_label")}
+          </T>
+          <T variant="bodyBold" tone="gold">
+            {points.total_points}
+          </T>
+        </View>
+        {points.today_points > 0 ? (
+          <T variant="caption" tone="saffron">
+            {t("points_today").replace("{n}", String(points.today_points))}
+          </T>
+        ) : null}
+      </View>
+      <T variant="caption" tone="muted" style={{ marginTop: 4 }}>
+        {nextLine}
+      </T>
+    </View>
   );
 }
 

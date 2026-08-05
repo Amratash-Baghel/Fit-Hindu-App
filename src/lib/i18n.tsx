@@ -269,6 +269,15 @@ export const strings = {
   sankalp_longest: { hi: "सबसे लंबा: {n} दिन", en: "Longest: {n} days" },
   soon_badge: { hi: "जल्द", en: "Soon" },
 
+  // Fit Points (slice 5, migration 0020). Descriptive and effort-based — points
+  // are for showing up, never framed as a health outcome. {n}/{d}/{b} are
+  // filled at the call site so the copy stays reviewable here.
+  points_label: { hi: "फिट अंक", en: "Fit Points" },
+  points_today: { hi: "आज +{n}", en: "+{n} today" },
+  points_next_milestone: { hi: "{d} दिन और · {b} अंक बोनस", en: "{d} more days · {b} bonus" },
+  points_milestone_max: { hi: "सभी पड़ाव पूरे 🎉", en: "All milestones reached 🎉" },
+  sleep_needs_five: { hi: "अंक पाने के लिए 5 मिनट सुनें", en: "Listen 5 minutes to earn points" },
+
   // progress screen (slice 6). Numbers are rendered at the call site and the
   // labels stay separate, so nothing here needs interpolation. Copy is
   // descriptive and effort-based — never a health outcome or a body claim.

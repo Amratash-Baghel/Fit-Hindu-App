@@ -2,6 +2,27 @@
 
 One dated line per decision, with the why. Newest on top.
 
+- **2026-08-05 (Fit Points is v1 — owner override; points computed, not
+  stored)** — points UI moves into v1 (the confirmed `tracking-streaks.md` had
+  it "schema-ready only"). Same override pattern as the 2026-07-16 diet-AI
+  carve-out. Migration **0020**: `points_rules` + `streak_milestones` (admin
+  config), `daily_checkins` (app-open bonus), the `points_daily` /
+  `jap_rounds_today` views and `points_summary()`. Points are COMPUTED over
+  `activity_log` — no ledger table — keeping the zero-backfill guarantee.
+  Key sub-decisions: (1) **single visible currency** ("Fit Points"), but a
+  `currency` column is seeded all-`'fit'` so a future Fit/Bhakti split is data,
+  not a migration; (2) **milestone bonuses award off `longest_streak`, not
+  `current_streak`** — earned once, permanent, so a broken streak never loses
+  banked points and nothing can double-award; (3) the **app-open bonus is NOT an
+  `activity_log` row** — that would let opening the app earn the संकल्प streak;
+  it lives in `daily_checkins` (PK `(user_id, ist_date)` = unfarmable) and earns
+  points but never a streak day; (4) **`sleep_sound` logging moved off the play
+  tap** to a stop/timer-complete write carrying `actual_min`, because the sleep
+  rule (`actual_min ≥ 5`) can't be evaluated honestly otherwise — the old code
+  banked a point per tap. Magnitude order milestone > workout > meditation > jap
+  > sleep, app-open present but never decisive. Spec:
+  `docs/specs/points-rewards.md`. ⚠️ Migration 0020 must be run in Supabase.
+
 - **2026-08-03 (phone OTP is v1 auth; app stays guest-first, no hard gate)** —
   `AUTH_CHANNEL` flipped to `"phone"` (`src/lib/auth.tsx`); sign-in is phone +
   OTP via Supabase. The Sprint 2 pack said "gate the app on a session," but that

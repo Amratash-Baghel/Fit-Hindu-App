@@ -10,6 +10,29 @@ Format:
 
 <!-- entries added at each /ship, newest on top -->
 
+- **2026-08-05 — a column DEFAULT is not a constraint; RLS `with check` is** (Fit Points)
+  `daily_checkins.ist_date` was declared `default ist_today()`, and the PK is
+  `(user_id, ist_date)`, so it *looked* like "one app-open bonus per real day".
+  It wasn't. A DEFAULT only fills the column when the client **omits** it — our
+  own `checkIn()` omits it, so in the app it always meant today. But Supabase
+  exposes every table over REST with the anon key, and a hostile client can POST
+  `ist_date` explicitly. Each forged date is a new row (own `user_id`, unique PK
+  per date) that satisfies the insert policy `with check (user_id = auth.uid())`,
+  so a loop over thousands of fake dates mints the bonus — and, worse, the same
+  hole on `activity_log` mints full-value workout/jap/sleep points, because
+  `points_daily` scores per `ist_date`. The fix isn't a CHECK constraint (those
+  must be IMMUTABLE, and `ist_today()` is only STABLE, so Postgres rejects it) —
+  it's the **RLS `with check`**, which may call stable/volatile functions:
+  `with check (user_id = auth.uid() and ist_date = ist_today())`. The lesson: a
+  DEFAULT is a convenience for honest callers; the security boundary is the RLS
+  predicate, and anything a client can send it can forge. Live in
+  [supabase/migrations/0020_points_engine.sql](../supabase/migrations/0020_points_engine.sql)
+  (the `daily_checkins` insert policy + the `activity_log` insert-policy
+  tightening right below it).
+  *Check yourself:* our `activity_log` bound is `ist_date between ist_today()-1
+  and ist_today()`, not `= ist_today()` like the check-in. Why is one day of
+  slack correct for activity logs but wrong for the app-open bonus?
+
 - **2026-08-03 — `maxLength` truncates BEFORE your onChange normalizer runs** (phone auth)
   Our phone field normalizes whatever the user enters down to 10 local digits:
   paste `+919109386355`, and `normalizeLocal` is supposed to strip the `91`

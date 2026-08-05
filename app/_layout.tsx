@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from "../src/lib/auth";
 import { hydrateFeedbackPrefs } from "../src/lib/settings";
 import { preloadFeedback } from "../src/lib/feedback";
 import { reconcile, watchForFlush } from "../src/lib/session";
+import { watchCheckIn } from "../src/lib/points";
 import { watchNotificationTaps } from "../src/lib/push";
 import { AudioStopPill, CeremonySplash, color } from "../src/ui";
 
@@ -45,6 +46,11 @@ export default function RootLayout() {
     void reconcile();
     return watchForFlush();
   }, []);
+
+  // Bank the daily app-open bonus on launch and on every foreground (slice 5).
+  // Idempotent per IST day at the database (daily_checkins PK) and a no-op for
+  // guests — it earns points, never a streak day.
+  useEffect(() => watchCheckIn(), []);
 
   // A tapped notification opens the screen it is about (slice 7). Mounted here
   // because a cold start launched BY a tap has no listener yet — push.ts also

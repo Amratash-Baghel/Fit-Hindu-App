@@ -496,3 +496,88 @@ export interface PlanProgress {
   days_done: number;
   started_on: string;
 }
+
+// ---------- points engine (migration 0020) ----------
+
+/** Admin-authored scoring config. program_id null = applies to every program
+ *  (nothing hardcodes one program). rule_key is free text, not the activity
+ *  enum, so non-activity earners like 'checkin' need no enum migration. Points
+ *  are COMPUTED from these over activity_log — there is no ledger table. */
+export interface PointsRule {
+  id: string;
+  program_id: string | null;
+  rule_key: string;
+  /** The activity_type scored, or null for earners with no activity_log row. */
+  activity_type: ActivityType | null;
+  /** Split-ready: one visible currency in v1 (all 'fit'). */
+  currency: string;
+  base_points: number;
+  per_unit_points: number;
+  /** Meta key holding the unit count; null = one unit per qualifying row. */
+  unit_meta_key: string | null;
+  /** Units earning only base_points; per-unit applies beyond this. */
+  units_free: number;
+  /** A row qualifies only if meta[key] >= value; null key = always. */
+  min_qualify_meta_key: string | null;
+  min_qualify_value: number | null;
+  /** Applied per (user, rule, IST day) after per-unit. */
+  daily_cap: number;
+  active: boolean;
+  created_at: string;
+}
+
+/** Admin-authored streak-milestone bonus. Awarded off LONGEST streak, so a
+ *  broken streak keeps what it earned (never punishing). User-level, like the
+ *  streak itself — no program_id (see migration 0020). */
+export interface StreakMilestone {
+  id: string;
+  day_count: number;
+  bonus_points: number;
+  currency: string;
+  label_key: string | null;
+  active: boolean;
+  created_at: string;
+}
+
+/** The app-open bonus row. Deliberately NOT an activity_log row — check-ins
+ *  earn points but never a streak day. PK (user_id, ist_date) makes a second
+ *  open the same IST day a no-op. Append-only. */
+export interface DailyCheckin {
+  user_id: string;
+  ist_date: string;
+  created_at: string;
+}
+
+/** One row per (user, IST day, rule) from the points_daily view — already
+ *  capped. Powers the slice-8 history list. */
+export interface PointsDaily {
+  user_id: string;
+  ist_date: string;
+  rule_key: string;
+  currency: string;
+  program_id: string | null;
+  units: number;
+  points: number;
+}
+
+/** One row per deity from jap_rounds_today — completed malas today. */
+export interface JapRoundsToday {
+  user_id: string;
+  ist_date: string;
+  deity_id: string | null;
+  rounds: number;
+}
+
+/** Return of points_summary(uid) — one round-trip for the Home card. Always
+ *  exactly one row; a user with no history gets zeroes, never null.
+ *  next_milestone_* is null once every milestone is passed. */
+export interface PointsSummary {
+  total_points: number;
+  today_points: number;
+  activity_points: number;
+  milestone_points: number;
+  current_streak: number;
+  longest_streak: number;
+  next_milestone_day: number | null;
+  next_milestone_bonus: number | null;
+}

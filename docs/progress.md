@@ -3,6 +3,52 @@
 Running build log — one entry per shipped item, newest on top. This is the
 standup doc for the owner and the resume-from-home lifeline.
 
+- **2026-08-05** — **Slice 5: Fit Points engine (migration 0020).** A computed
+  points layer over `activity_log` that rewards daily engagement without ever
+  punishing a miss, tied to the streak. Owner override — points move into v1
+  (see `docs/decisions.md` 2026-08-05; spec `docs/specs/points-rewards.md`).
+  **Schema (0020):** `points_rules` + `streak_milestones` (admin-tunable config,
+  public-read/admin-write), `daily_checkins` (app-open bonus, PK
+  `(user_id, ist_date)` = unfarmable, append-only own-row RLS), the
+  `points_daily` and `jap_rounds_today` `security_invoker` views, and
+  `points_summary(uid)` (`stable`, not security-definer — same RLS contract as
+  `streak_state`). Points are **computed, never stored** — no ledger table, zero
+  backfill. **Rules:** workout 25 / meditation 15 (≥3 min) / jap 10 +2 per round
+  past the 2nd (cap 18) / sleep 8 (≥5 min) / app-open 5 / meal 5×n (dormant, no
+  writer yet); milestones 3→108 days (25→1108 pts) awarded off `longest_streak`
+  so a break never claws back banked points. **Client:** new `src/lib/points.ts`
+  (`usePoints()` mirroring `useStreak()`; `checkIn()` + `watchCheckIn()` fired
+  from `app/_layout.tsx` on launch + every foreground, idempotent per IST day);
+  a Fit Points row added to the Home sankalp card (`app/(tabs)/index.tsx`),
+  signed-in only — a guest keeps the sign-in invitation, never a zero. **Fixed
+  `app/(tabs)/sleep.tsx`** to log `sleep_sound` on stop/timer-complete with real
+  `actual_min` (guarded, once per run) instead of on the play tap — the old code
+  banked a point per tap and recorded nothing about real listening, so the sleep
+  rule could never qualify. Types mirrored in `src/types/db.ts`; new i18n
+  `{hi,en}` keys. **Verified:** PGlite **102/102** green (was 79 — +23 points
+  checks: cap clamping, jap ladder, qualifiers, check-in idempotency +
+  not-a-streak, milestone-survives-a-break, zero-history zeroes, user
+  isolation, security contract, the double-active-rule guard); typecheck clean;
+  lint held at the 2-error baseline (zero added); web preview — Home + Sleep
+  render for a guest with zero console errors, points row correctly absent for
+  the guest. **Reviewer caught a real currency-minting hole and three lesser
+  issues, all fixed before commit:** (1) HIGH — `ist_date` was client-forgeable,
+  so a direct REST insert could mint points across fabricated days; now pinned
+  in the `daily_checkins` and `activity_log` insert RLS (`ist_date = ist_today()`
+  / `between ist_today()-1 and ist_today()`). (2) a second active `points_rules`
+  row for one `activity_type` would double-count — a partial unique index now
+  forbids it. (3) `streak_milestones.program_id` was a false affordance the read
+  path ignored — dropped (milestones are user-level, like the streak). (4)
+  `points_summary` now filters `currency='fit'` so a future split is deliberate.
+  **Deferred (task chip):** a sleep run is lost if Android kills the app while
+  backgrounded (logging is stop-path-only now); the fix is a launch-reconcile
+  like `session.ts`. Reverting to log-on-tap is not an option — it reopens the
+  farm the ≥5-min rule closes. **Not verifiable here:** the real Supabase
+  round-trip and points against genuine multi-day history (needs 0020 applied +
+  the physical device); RLS enforcement of the `ist_date` bound (PGlite runs as
+  owner, bypasses RLS — spot-check with a real anon session). ⚠️ **USER MUST RUN
+  migration 0020 in Supabase.**
+
 - **2026-08-03** — **Slice 3: phone + OTP auth, live end-to-end.** Turned on
   phone sign-in for the Hindi-first audience. Auth stays Supabase (RLS/JWT
   unchanged). Mostly wiring — a channel-agnostic OTP flow already existed from

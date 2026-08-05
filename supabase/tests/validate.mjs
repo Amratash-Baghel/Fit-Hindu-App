@@ -1,7 +1,7 @@
 /**
- * Validates migrations 0001-0014 against a real Postgres engine (PGlite), then
- * exercises the streak rules, the progress aggregates and the push fan-out from
- * docs/specs/feature-sprint.md.
+ * Validates migrations 0001-0020 against a real Postgres engine (PGlite), then
+ * exercises the streak rules, the progress aggregates, the push fan-out
+ * (docs/specs/feature-sprint.md) and the points engine (docs/specs/points-rewards.md).
  *
  * RUN:  npm install --no-save @electric-sql/pglite && node supabase/tests/validate.mjs
  *
@@ -491,6 +491,144 @@ const pushsec = await q(`select proname, prosecdef from pg_proc
 check("push functions are not security definer",
   pushsec.map((p) => `${p.proname}:${p.prosecdef}`),
   ["push_audience:false", "push_claim:false"]);
+
+// ---------- 0020: points engine ----------
+// Purpose-built fixtures so every expected number is derivable by hand.
+const PT = "77777777-0000-4000-8000-0000000000"; // points-test id prefix
+const PU1 = `${PT}01`; // scores across every rule
+const PU2 = `${PT}02`; // isolation — never leaks into PU1
+const PDEITY = "88888888-0000-4000-8000-000000000001";
+await db.exec(`insert into auth.users (id) values ('${PU1}'), ('${PU2}')`);
+
+// A full day for PU1, today: 1 workout, 1 qualifying meditation, 3 jap malas,
+// 1 qualifying sleep, plus a check-in.
+await db.exec(`
+  insert into activity_log (user_id, activity_type, ist_date, meta) values
+    ('${PU1}', 'workout',     ist_today(), '{}'),
+    ('${PU1}', 'meditation',  ist_today(), '{"actual_min": 12}'),
+    ('${PU1}', 'jap',         ist_today(), '{"deity_id": "${PDEITY}", "count": 108}'),
+    ('${PU1}', 'jap',         ist_today(), '{"deity_id": "${PDEITY}", "count": 108}'),
+    ('${PU1}', 'jap',         ist_today(), '{"deity_id": "${PDEITY}", "count": 108}'),
+    ('${PU1}', 'sleep_sound', ist_today(), '{"actual_min": 30}');
+  insert into daily_checkins (user_id, ist_date) values ('${PU1}', ist_today());
+`);
+
+const pd = async (uid, key) =>
+  (await q(`select coalesce(sum(points),0)::int p from points_daily
+            where user_id='${uid}' and rule_key='${key}' and ist_date=ist_today()`))[0].p;
+
+check("points: workout scores its base", await pd(PU1, "workout"), 25);
+check("points: qualifying meditation scores its base", await pd(PU1, "meditation"), 15);
+// 3 malas: 10 base + 2*(3-2) = 12
+check("points: jap adds per-round beyond the free 2", await pd(PU1, "jap"), 12);
+check("points: qualifying sleep scores its base", await pd(PU1, "sleep_sound"), 8);
+check("points: check-in scores its base", await pd(PU1, "checkin"), 5);
+
+// meditation BELOW the qualifier earns nothing; sleep below 5 earns nothing.
+await db.exec(`insert into activity_log (user_id, activity_type, ist_date, meta) values
+  ('${PU2}', 'meditation',  ist_today(), '{"actual_min": 2}'),
+  ('${PU2}', 'sleep_sound', ist_today(), '{"actual_min": 4}')`);
+check("points: meditation under 3 min does not qualify", await pd(PU2, "meditation"), 0);
+check("points: sleep under 5 min does not qualify", await pd(PU2, "sleep_sound"), 0);
+
+// jap cap: 6 malas would be 10 + 2*4 = 18 (at cap); 9 malas still 18.
+await db.exec(`delete from activity_log where user_id='${PU2}'`);
+for (let i = 0; i < 9; i++)
+  await db.exec(`insert into activity_log (user_id, activity_type, ist_date, meta)
+                 values ('${PU2}','jap', ist_today(), '{"count":108}')`);
+check("points: jap is clamped to its daily cap", await pd(PU2, "jap"), 18);
+
+// two workouts one day still cap at a single workout's base (no per-unit)
+await db.exec(`insert into activity_log (user_id, activity_type, ist_date)
+               values ('${PU2}','workout', ist_today()), ('${PU2}','workout', ist_today())`);
+check("points: repeated workouts are capped, not additive", await pd(PU2, "workout"), 25);
+
+// check-in is unfarmable: a second open the same IST day is a no-op
+await db.exec(`insert into daily_checkins (user_id, ist_date) values ('${PU1}', ist_today())
+               on conflict do nothing`);
+check("check-in: a second open the same day inserts once",
+  (await q(`select count(*)::int c from daily_checkins
+            where user_id='${PU1}' and ist_date=ist_today()`))[0].c, 1);
+
+// check-ins never touch the streak: PU with ONLY a check-in has streak 0.
+await db.exec(`insert into auth.users (id) values ('${PT}03')`);
+await db.exec(`insert into daily_checkins (user_id, ist_date) values ('${PT}03', ist_today())`);
+check("check-in does not earn a streak day",
+  (await q(`select current_streak('${PT}03') c`))[0].c, 0);
+
+// points_summary rolls activity + milestones. PU1 today = 25+15+12+8+5 = 65.
+const psum = (await q(`select * from points_summary('${PU1}')`))[0];
+check("points_summary: today's activity total", psum.today_points, 65);
+check("points_summary: no milestone yet (streak below 3)", psum.milestone_points, 0);
+check("points_summary: next milestone is the first rung", psum.next_milestone_day, 3);
+
+// Milestone survives a broken streak: longest 5 (>=3) earns the day-3 bonus,
+// even though the current streak is dead. streak([0,10,11,12,13,14]) -> cur 1,
+// longest 5. mile_total = 25 (only day-3 <= 5).
+await db.exec(`delete from activity_log where user_id='${PU1}'`);
+await db.exec(`delete from daily_checkins where user_id='${PU1}'`);
+for (const o of [0, 10, 11, 12, 13, 14])
+  await db.exec(`insert into activity_log (user_id, activity_type, ist_date)
+                 values ('${PU1}','workout', ist_today() - ${o})`);
+const pmile = (await q(`select * from points_summary('${PU1}')`))[0];
+check("points_summary: milestone earned off LONGEST streak survives a break",
+  [pmile.current_streak, pmile.longest_streak, pmile.milestone_points], [1, 5, 25]);
+check("points_summary: next milestone is the 7-day rung after passing 3",
+  pmile.next_milestone_day, 7);
+
+// zero-history user: one row of zeroes, never null.
+const pempty = (await q(`select * from points_summary('${U3}')`))[0];
+check("points_summary: no history returns zeroes, not null",
+  [pempty.total_points, pempty.today_points, pempty.milestone_points], [0, 0, 0]);
+
+// isolation: PU1 now has 6 daily-capped workouts (150) + the day-3 milestone
+// (25) = 175, and PU2's separate jap/workout totals never leak in.
+check("points_summary: counts only the asked-for user",
+  (await q(`select total_points from points_summary('${PU1}')`))[0].total_points, 175);
+
+// jap_rounds_today groups by deity + IST day
+check("jap_rounds_today: counts malas per deity for today",
+  (await q(`select rounds from jap_rounds_today
+            where user_id='${PU2}' and ist_date=ist_today()`))[0].rounds, 9);
+
+// security contract: not security definer, views are security_invoker
+check("points_summary is not security definer",
+  (await q(`select prosecdef from pg_proc where proname='points_summary'`))[0].prosecdef, false);
+const pinv = await q(`select relname, reloptions from pg_class
+  where relname in ('points_daily','jap_rounds_today') order by relname`);
+check("points views are security_invoker",
+  pinv.map(r => `${r.relname}:${String(r.reloptions).includes("security_invoker=true")}`),
+  ["jap_rounds_today:true", "points_daily:true"]);
+
+// append-only: daily_checkins has no update/delete policy
+check("daily_checkins has no update/delete policy",
+  (await q(`select cmd from pg_policies where tablename='daily_checkins'`))
+    .map(p => p.cmd).sort(), ["INSERT", "SELECT"]);
+
+// config tables: public read + admin write, RLS enabled
+const cfgrls = await q(`select relname, relrowsecurity from pg_class
+  where relname in ('points_rules','streak_milestones','daily_checkins') order by relname`);
+check("RLS enabled on all 3 new tables",
+  cfgrls.map(r => `${r.relname}:${r.relrowsecurity}`),
+  ["daily_checkins:true", "points_rules:true", "streak_milestones:true"]);
+
+// Guardrail (reviewer finding): a SECOND active rule for an activity_type that
+// already has one must be rejected by the partial unique index — else
+// points_daily joins a row to both and doubles that type's points. Unique
+// indexes bind the table owner too, so PGlite can prove this (unlike RLS).
+let dupRejected = false;
+try {
+  await db.exec(`insert into points_rules (rule_key, activity_type, base_points, daily_cap)
+                 values ('workout_bonus', 'workout', 5, 5)`);
+} catch { dupRejected = true; }
+check("points_rules: a second active rule for one activity_type is rejected", dupRejected, true);
+// …but an INACTIVE duplicate is fine (the guard is on active rules only).
+let inactiveOk = true;
+try {
+  await db.exec(`insert into points_rules (rule_key, activity_type, base_points, daily_cap, active)
+                 values ('workout_off', 'workout', 5, 5, false)`);
+} catch { inactiveOk = false; }
+check("points_rules: an inactive duplicate rule is allowed", inactiveOk, true);
 
 console.log("\n" + results.join("\n"));
 console.log(`\n${pass} passed, ${fail} failed\n`);
