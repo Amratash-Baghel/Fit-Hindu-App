@@ -3,12 +3,19 @@
  * nothing else in a screen may be gold. The gold face is the mockup's
  * diya-flame gradient (goldHi → gold → deep) with a soft glow shadow.
  * Ghost is the quiet secondary.
+ *
+ * Press feel + haptic come from PressableScale (docs/specs/ui-polish.md), so a
+ * button dips and buzzes consistently with every other tappable surface. A
+ * button whose handler already fires a stronger semantic haptic
+ * (complete/success/error) passes `haptic={false}` to avoid a double buzz.
  */
 import React from "react";
-import { Pressable, View, type ViewStyle, type StyleProp } from "react-native";
+import { View, type ViewStyle, type StyleProp } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { color, radius, space, tapTarget, goldGradient } from "./tokens";
+import { pressScale } from "./motion";
+import { PressableScale } from "./PressableScale";
 import { T } from "./Text";
 import { useI18n, type StringKey } from "../lib/i18n";
 
@@ -17,10 +24,12 @@ interface Props {
   onPress: () => void;
   kind?: "gold" | "ghost";
   disabled?: boolean;
+  /** Suppress the press haptic when the handler fires its own (e.g. error). */
+  haptic?: "press" | false;
   style?: StyleProp<ViewStyle>;
 }
 
-export function Button({ k, onPress, kind = "gold", disabled, style }: Props) {
+export function Button({ k, onPress, kind = "gold", disabled, haptic = "press", style }: Props) {
   const { t, tSub } = useI18n();
   const sub = tSub(k);
   const isGold = kind === "gold";
@@ -39,12 +48,13 @@ export function Button({ k, onPress, kind = "gold", disabled, style }: Props) {
   );
 
   return (
-    <Pressable
-      accessibilityRole="button"
+    <PressableScale
       disabled={disabled}
       onPress={onPress}
-      style={({ pressed }) => [
-        { opacity: disabled ? 0.5 : pressed ? 0.85 : 1, borderRadius: radius.button },
+      haptic={disabled ? false : haptic}
+      scaleTo={pressScale.button}
+      style={[
+        { opacity: disabled ? 0.5 : 1, borderRadius: radius.button },
         isGold
           ? {
               shadowColor: color.gold,
@@ -89,7 +99,7 @@ export function Button({ k, onPress, kind = "gold", disabled, style }: Props) {
           {inner}
         </View>
       )}
-    </Pressable>
+    </PressableScale>
   );
 }
 

@@ -95,7 +95,7 @@ export default function Jap() {
 
   const tap = useCallback(() => {
     if (countRef.current === 0) {
-      feedback.tap(); // tapping the lit diya to start a fresh mala
+      feedback.select(); // tapping the lit diya to start a fresh mala
       resetMala();
       return;
     }
@@ -103,12 +103,16 @@ export default function Jap() {
     countRef.current = next;
     setLeft(next);
     if (next === 0) {
-      // Mala complete (108) — a distinct "yes", not just another tick.
+      // Mala complete (108) — a distinct "yes" you HEAR, not just another tick.
       feedback.success();
       // Only a COMPLETED mala is logged (spec) — partial malas aren't persisted in v1.
       if (mantra) logActivity("jap", { deity_id: mantra.deity_id, count: MALA }, mantra.id);
+    } else if (next === 81 || next === 54 || next === 27) {
+      // Quarter markers — a slightly stronger nudge you feel, still no sound, so
+      // the mala stays a quiet count (the fix for the "108 beeps" irritation).
+      feedback.milestone();
     } else {
-      feedback.tap(); // the light per-count tick
+      feedback.count(); // the light per-count tick — HAPTIC ONLY, never a beep
     }
   }, [mantra, resetMala]);
 

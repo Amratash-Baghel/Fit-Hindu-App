@@ -6,7 +6,6 @@ import { useI18n } from "../../src/lib/i18n";
 import { listMeditationSounds, type SoundWithMedia } from "../../src/lib/content";
 import { playLoop, stopAudio } from "../../src/lib/audio";
 import { audioSourceFor } from "../../src/lib/localAudio";
-import { feedback } from "../../src/lib/feedback";
 
 const SILENT = "silent";
 
@@ -44,7 +43,7 @@ export default function MeditationSounds() {
   }, []);
 
   function choose(item: SoundWithMedia | typeof SILENT) {
-    feedback.tap(); // light ack on selecting a sound (or silence)
+    // haptic comes from the Card (haptic="select"); no extra call here.
     if (item === SILENT) {
       setSelected(SILENT);
       stopAudio();
@@ -78,6 +77,7 @@ export default function MeditationSounds() {
           ListFooterComponent={
             <Card
               onPress={() => choose(SILENT)}
+              haptic="select"
               style={
                 selected === SILENT
                   ? { borderColor: color.saffron, backgroundColor: "rgba(240,118,30,0.10)" }
@@ -96,6 +96,7 @@ export default function MeditationSounds() {
             return (
               <Card
                 onPress={() => choose(item)}
+                haptic="select"
                 style={active ? { borderColor: color.saffron, backgroundColor: "rgba(240,118,30,0.10)" } : undefined}
               >
                 <View style={{ flexDirection: "row", alignItems: "center", gap: space.md }}>

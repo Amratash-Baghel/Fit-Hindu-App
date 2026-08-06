@@ -8,6 +8,7 @@ import { Pressable, View } from "react-native";
 import { color, radius, space, tapTarget } from "./tokens";
 import { T } from "./Text";
 import { Check } from "./icons";
+import { feedback } from "../lib/feedback";
 
 /**
  * A full-width answer row. `selected` is carried by the saffron border + wash
@@ -33,7 +34,10 @@ export function OptionRow({
       // radio's ARIA state is "checked" rather than "selected" regardless.
       // RN maps aria-* to accessibilityState on native, so this works on both.
       aria-checked={selected}
-      onPress={onPress}
+      onPress={() => {
+        feedback.select();
+        onPress();
+      }}
       style={({ pressed }) => ({
         minHeight: tapTarget + space.md,
         borderRadius: radius.card,
@@ -98,7 +102,10 @@ export function Checkbox({
       // See OptionRow — accessibilityState does not reach the DOM here, and a
       // consent control that never announces its state is not acceptable.
       aria-checked={checked}
-      onPress={onToggle}
+      onPress={() => {
+        feedback.select();
+        onToggle();
+      }}
       style={({ pressed }) => ({
         flexDirection: "row",
         alignItems: "center",

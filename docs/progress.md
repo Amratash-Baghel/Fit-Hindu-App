@@ -3,6 +3,49 @@
 Running build log — one entry per shipped item, newest on top. This is the
 standup doc for the owner and the resume-from-home lifeline.
 
+- **2026-08-06** — **UI polish, motion & engagement (slices A–D of
+  docs/specs/ui-polish.md).** Owner ask: fix messy haptics, kill the irritating
+  per-tap beep, add a glinting video loader, make the app feel premium/rich/
+  interactive (boss said "basic"). Built an app-wide motion layer in `src/ui/`
+  so every screen lifts at once:
+  - **A — Motion foundation:** `motion.ts` (duration/spring/pressScale tokens +
+    `useMotion()` — the web/reduce-motion gate), `PressableScale` (spring-dip +
+    haptic, now the base for Button + pressable Card), `Shimmer` (the diagonal
+    glint), `AnimatedNumber` (rAF count-up), `CelebrationBurst` (gold diya-sparks,
+    not confetti), `Reveal` (entrance/stagger).
+  - **B — Haptics + sound, fixed:** re-cut `feedback` so **sound fires only on
+    outcomes** (success/complete/chime/error); every press/select/jap-count/set
+    is haptic-only — a 108-mala is now 108 taps you feel + 1 chime, not 108
+    beeps. Wired press/select haptics through Button/Card/Chip/Toggle/OptionRow/
+    SelectCard so the whole app is tactile (was: Button fired nothing). SFX
+    regenerated softer/warmer/quieter (peak ~0.22 + reduced player volume);
+    `tap.wav` deleted (no per-tap sound anymore).
+  - **C — Glint loader:** `AvatarTile` sweeps a diagonal gold shine (idle sheen;
+    `loading` mode is the buffering state for a real player later). Off on the
+    workout grid thumbnails (`glint={false}`) to avoid 20 loops at once.
+  - **D — Rewarding completions + momentum:** workout + meditation completion
+    now bloom a `CelebrationBurst` behind the diya with count-up stats; Home
+    streak count + Fit-Points total count up, a gold milestone bar shows momentum,
+    the week's diyas light in a stagger, and the shloka hero carries a faint sheen.
+  - **E — Daily blessing:** a once-per-IST-day tap-to-reveal well-wish on Home
+    (the come-back-tomorrow loop). Kept honest and on-brand — the blessing IS the
+    reward (no fabricated points the client can't source), never gated, and the
+    day's line is chosen deterministically from the IST date, persisted per day.
+  - **F — App-wide overhaul:** the `Screen` wrapper now gives every screen a
+    gentle fade+rise entrance (one change, whole app assembles in); `ProgressBar`
+    gained an opt-in `animated` fill (UI-thread scaleX) used on the session and
+    Home-milestone bars; the Progress screen's headline numbers count up and its
+    plan bar fills. Press-springs + the glint reach every screen through the
+    shared Button/Card/AvatarTile, so the uplift is one consistent motion
+    language rather than per-screen redesigns.
+  All motion runs on the UI thread (Reanimated 4) and no-ops to a correct static
+  frame on web / reduce-motion. Typecheck green; new/edited files lint clean
+  (2 pre-existing `set-state-in-effect` errors + 2 unused-import warnings remain
+  on untouched workout screens — not introduced here; a follow-up task is
+  tracking them). Verified: app boots + interacts across onboarding with zero
+  console/server errors in the web preview; motion itself is device-only
+  (Reanimated is inert on RN-web, haptics no-op on web) so it's shown via a
+  self-contained motion-preview artifact for the owner's aesthetic read.
 - **2026-08-05** — **Slice 5 follow-up: sleep-run crash recovery.** Closed the
   reviewer's HIGH finding that a backgrounded sleep run is lost if Android kills
   the app before a JS stop path writes it. New `src/lib/sleepRun.ts`: the run is

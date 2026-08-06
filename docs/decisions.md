@@ -2,6 +2,22 @@
 
 One dated line per decision, with the why. Newest on top.
 
+- **2026-08-06 (UI motion layer lives in `src/ui/`; sound only on outcomes)** —
+  the premium/interactive polish is delivered as shared design-system primitives
+  (`PressableScale`, `Shimmer`, `AnimatedNumber`, `CelebrationBurst`, `Reveal`,
+  `motion.ts`) — never per-screen one-offs — so one change lifts every screen and
+  the "design system only" rule holds. Haptic/sound vocabulary re-cut: **sound
+  fires only on low-frequency outcomes** (success/complete/chime/error); every
+  tap/selection/jap-count/set is haptic-only. Why: the old build played a beep on
+  every jap count (108 per mala) — the owner's "irritating beep"; decoupling sound
+  from taps fixes it without going silent. All motion is UI-thread (Reanimated 4)
+  and no-ops to a static frame on web/reduce-motion (Reanimated is inert on
+  RN-web here — see CeremonyLoader), so the low-end-Android and a11y rules hold.
+  Engagement hooks kept inside the app's fence-lines: celebrations are devotional
+  diya-sparks (never confetti), the daily-blessing reveal (slice E) will surface
+  the *already-banked* app-open bonus (no invented/double points), streak hype
+  stays encouragement (no loss-guilt), and nothing gates worship. See
+  docs/specs/ui-polish.md.
 - **2026-08-05 (Fit Points is v1 — owner override; points computed, not
   stored)** — points UI moves into v1 (the confirmed `tracking-streaks.md` had
   it "schema-ready only"). Same override pattern as the 2026-07-16 diet-AI

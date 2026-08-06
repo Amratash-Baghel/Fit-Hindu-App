@@ -29,6 +29,8 @@ import {
   T,
   AvatarTile,
   DiyaIcon,
+  CelebrationBurst,
+  AnimatedNumber,
   color,
   space,
 } from "../../src/ui";
@@ -153,7 +155,9 @@ export default function WorkoutSession() {
     if (lastLogged.current === key) return;
     lastLogged.current = key;
 
-    feedback.tap(); // each set completed — the lightest acknowledgement
+    feedback.count(); // each set completed — haptic-only ack (fires for the manual
+    // tap AND the timed auto-complete; the button below suppresses its own press
+    // haptic so a tapped set isn't a double buzz)
 
     const w = parseFloat(weight);
     if (sessionId.current) {
@@ -281,13 +285,19 @@ export default function WorkoutSession() {
       <Screen scroll={false}>
         <Stack.Screen options={{ headerShown: false }} />
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: space.md }}>
-          <DiyaIcon size={72} />
+          {/* the reward moment: gold sparks radiate from behind the diya */}
+          <View style={{ width: 200, height: 120, alignItems: "center", justifyContent: "center" }}>
+            <View style={{ position: "absolute" }} pointerEvents="none">
+              <CelebrationBurst size={220} />
+            </View>
+            <DiyaIcon size={72} />
+          </View>
           <B k="workout_complete" variant="h1" center />
           <B k="great_work" variant="body" tone="muted" center />
           <View style={{ flexDirection: "row", gap: space.xl, marginTop: space.lg }}>
-            <Stat v={String(summary.exercises)} label={t("exercises_word")} />
-            <Stat v={String(summary.sets)} label={t("sets_total_word")} />
-            <Stat v={String(summary.minutes)} label={t("minutes_short")} />
+            <Stat n={summary.exercises} label={t("exercises_word")} />
+            <Stat n={summary.sets} label={t("sets_total_word")} />
+            <Stat n={summary.minutes} label={t("minutes_short")} />
           </View>
 
           {/* The permission moment (spec slice 7). Shows itself only when it
@@ -310,7 +320,7 @@ export default function WorkoutSession() {
       <Screen scroll={false}>
         <Stack.Screen options={{ headerShown: false }} />
         <View style={{ paddingTop: space.sm }}>
-          <ProgressBar value={setsDone} max={totalSets} trailing={`${setsDone}/${totalSets}`} />
+          <ProgressBar value={setsDone} max={totalSets} trailing={`${setsDone}/${totalSets}`} animated />
         </View>
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: space.lg }}>
           <T variant="eyebrow" tone="gold">
@@ -360,7 +370,7 @@ export default function WorkoutSession() {
 
       <View style={{ paddingTop: space.sm, gap: space.md, flex: 1 }}>
         {/* in-session progress — sets completed across the whole workout */}
-        <ProgressBar value={setsDone} max={totalSets} trailing={`${setsDone}/${totalSets}`} />
+        <ProgressBar value={setsDone} max={totalSets} trailing={`${setsDone}/${totalSets}`} animated />
 
         <AvatarTile height={200} playSize={52} silhouetteSize={92} />
 
@@ -427,7 +437,7 @@ export default function WorkoutSession() {
       </View>
 
       <FooterAction>
-        {timed ? null : <Button k="set_done" onPress={finishSet} />}
+        {timed ? null : <Button k="set_done" onPress={finishSet} haptic={false} />}
         {/* Leaving early still closes the session out, so the sets already
             logged count and no row is left 'active' for reconcile to find. */}
         <Button
@@ -498,12 +508,10 @@ function PushOptIn() {
   );
 }
 
-function Stat({ v, label }: { v: string; label: string }) {
+function Stat({ n, label }: { n: number; label: string }) {
   return (
     <View style={{ alignItems: "center" }}>
-      <T variant="h1" tone="gold" style={{ fontVariant: ["tabular-nums"] }}>
-        {v}
-      </T>
+      <AnimatedNumber value={n} variant="h1" tone="gold" style={{ fontVariant: ["tabular-nums"] }} />
       <T variant="caption" tone="muted">
         {label}
       </T>

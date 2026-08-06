@@ -1,17 +1,21 @@
 /** Card + Chip — the workhorse surfaces from the approved mockups. */
 import React from "react";
-import { Pressable, View, type ViewStyle, type StyleProp } from "react-native";
+import { View, type ViewStyle, type StyleProp } from "react-native";
 import { color, radius, space } from "./tokens";
+import { pressScale } from "./motion";
+import { PressableScale } from "./PressableScale";
 import { T } from "./Text";
 
 interface CardProps {
   children: React.ReactNode;
   onPress?: () => void;
   night?: boolean; // sleep-section mood
+  /** Which haptic a pressable card fires. Selectable cards pass "select". */
+  haptic?: "press" | "select" | false;
   style?: StyleProp<ViewStyle>;
 }
 
-export function Card({ children, onPress, night, style }: CardProps) {
+export function Card({ children, onPress, night, haptic = "press", style }: CardProps) {
   const base: ViewStyle = {
     backgroundColor: night ? color.nightSurface : color.surface,
     borderColor: night ? color.nightLine : color.line,
@@ -21,13 +25,9 @@ export function Card({ children, onPress, night, style }: CardProps) {
   };
   if (!onPress) return <View style={[base, style]}>{children}</View>;
   return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={onPress}
-      style={({ pressed }) => [base, { opacity: pressed ? 0.85 : 1 }, style]}
-    >
+    <PressableScale onPress={onPress} haptic={haptic} scaleTo={pressScale.card} style={[base, style]}>
       {children}
-    </Pressable>
+    </PressableScale>
   );
 }
 
@@ -38,10 +38,8 @@ interface ChipProps {
 }
 
 export function Chip({ label, active, onPress }: ChipProps) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={onPress}
+  const body = (
+    <View
       style={{
         borderRadius: radius.chip,
         borderWidth: 1,
@@ -56,6 +54,12 @@ export function Chip({ label, active, onPress }: ChipProps) {
       <T variant="caption" tone={active ? "saffron" : "muted"} style={active ? { fontWeight: "700" } : undefined}>
         {label}
       </T>
-    </Pressable>
+    </View>
+  );
+  if (!onPress) return body;
+  return (
+    <PressableScale onPress={onPress} haptic="select" scaleTo={pressScale.button}>
+      {body}
+    </PressableScale>
   );
 }

@@ -22,6 +22,7 @@ import {
   Card,
   Button,
   ProgressBar,
+  AnimatedNumber,
   B,
   T,
   DiyaIcon,
@@ -127,17 +128,18 @@ export default function Progress() {
             <T variant="caption" tone="muted">
               {t("progress_streak")}
             </T>
-            <T variant="h1" tone="gold" style={{ fontVariant: ["tabular-nums"] }}>
-              {streak?.current_streak ?? 0}
-            </T>
+            <AnimatedNumber
+              value={streak?.current_streak ?? 0}
+              variant="h1"
+              tone="gold"
+              style={{ fontVariant: ["tabular-nums"] }}
+            />
           </View>
           <View style={{ alignItems: "flex-end" }}>
             <T variant="caption" tone="muted">
               {t("progress_longest")}
             </T>
-            <T variant="h2" style={{ fontVariant: ["tabular-nums"] }}>
-              {streak?.longest_streak ?? 0}
-            </T>
+            <AnimatedNumber value={streak?.longest_streak ?? 0} variant="h2" style={{ fontVariant: ["tabular-nums"] }} />
           </View>
         </View>
       </Card>
@@ -170,6 +172,7 @@ export default function Progress() {
             value={plan.days_done}
             max={plan.duration_days}
             tone="gold"
+            animated
             label={t("progress_plan")}
             trailing={`${plan.days_done}/${plan.duration_days} ${t("progress_plan_days")}`}
           />
@@ -224,9 +227,7 @@ export default function Progress() {
 function Stat({ v, label }: { v: number; label: string }) {
   return (
     <View>
-      <T variant="h1" style={{ fontVariant: ["tabular-nums"] }}>
-        {v}
-      </T>
+      <AnimatedNumber value={v} variant="h1" style={{ fontVariant: ["tabular-nums"] }} />
       <T variant="caption" tone="muted">
         {label}
       </T>

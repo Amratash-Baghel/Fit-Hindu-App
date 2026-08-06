@@ -1,7 +1,13 @@
 export { color, space, radius, type, tapTarget, goldGradient, ceremony, progressBar } from "./tokens";
+export { duration, easing, spring, pressScale, useMotion } from "./motion";
 export { T, B } from "./Text";
 export { Button, FooterAction } from "./Button";
+export { PressableScale } from "./PressableScale";
 export { Card, Chip } from "./Card";
+export { Shimmer } from "./Shimmer";
+export { AnimatedNumber } from "./AnimatedNumber";
+export { CelebrationBurst } from "./CelebrationBurst";
+export { Reveal } from "./Reveal";
 export { SelectCard } from "./SelectCard";
 export { TextField, NumberField } from "./Field";
 export { OptionRow, ProgressDots, Checkbox } from "./Choice";

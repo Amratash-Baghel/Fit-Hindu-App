@@ -10,6 +10,27 @@ Format:
 
 <!-- entries added at each /ship, newest on top -->
 
+- **2026-08-06 — the first-render race: sync vs async state** (UI motion pass)
+  Our animation gate `useMotion()` must answer one question before a component
+  animates: "should motion play?" — false on web and when the OS reduce-motion
+  setting is on. The first version read that setting **asynchronously**
+  (`AccessibilityInfo.isReduceMotionEnabled()` returns a Promise), defaulting to
+  "yes, animate" until the answer arrived. The trap: one-shot components like
+  `Reveal` (every screen's entrance) and `CelebrationBurst` (the completion
+  sparks) fire their animation in their **very first effect** — which runs
+  *before* an async Promise can resolve. So a reduce-motion user got the full
+  animation every time, then the corrected `false` arrived too late to matter.
+  The bug is that the value wasn't ready at the one instant it was read. The fix
+  in [src/ui/motion.ts](../src/ui/motion.ts) is Reanimated's `useReducedMotion()`,
+  which reads a value Reanimated caches at startup and returns it **synchronously**
+  on the first render — so the gate is correct before anything animates. Lesson:
+  when a decision must be made on the first render, an async source is a race, not
+  a delay; you need the value synchronously or you must cancel/undo what the
+  stale value started. (A code review caught this — see docs/progress.md 2026-08-06.)
+  *Check yourself:* `Shimmer` and `AnimatedNumber` did NOT have this bug even with
+  the old async gate. What did their effects do that `Reveal`'s didn't, that let
+  them recover when the corrected value finally arrived?
+
 - **2026-08-05 — a timestamp you can trust vs. one you can't: heartbeat, not
   wall-clock** (sleep-run recovery)
   We want to recover a sleep-listening session that Android killed before the

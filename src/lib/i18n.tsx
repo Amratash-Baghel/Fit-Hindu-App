@@ -278,6 +278,21 @@ export const strings = {
   points_milestone_max: { hi: "सभी पड़ाव पूरे 🎉", en: "All milestones reached 🎉" },
   sleep_needs_five: { hi: "अंक पाने के लिए 5 मिनट सुनें", en: "Listen 5 minutes to earn points" },
 
+  // daily blessing (docs/specs/ui-polish.md slice E) — a once-a-day tap-to-reveal
+  // devotional well-wish, the gentle come-back-tomorrow loop. The blessing IS the
+  // reward (never a points number the client can't honestly source), and it stays
+  // a warm well-wish — a blessing, never a product health claim.
+  daily_blessing_title: { hi: "आज का आशीर्वाद", en: "Today's blessing" },
+  daily_blessing_tap: { hi: "खोलने के लिए दबाएँ", en: "Tap to reveal" },
+  daily_blessing_footer: { hi: "कल फिर एक नया आशीर्वाद", en: "A new blessing tomorrow" },
+  blessing_1: { hi: "आज का दिन शुभ और शांत हो 🙏", en: "May today be gentle and blessed 🙏" },
+  blessing_2: { hi: "आपके हर कदम में धैर्य और शक्ति हो", en: "May there be patience and strength in every step" },
+  blessing_3: { hi: "मन शांत रहे, संकल्प दृढ़ रहे", en: "May your mind stay calm and your sankalp firm" },
+  blessing_4: { hi: "आज भी अपने संकल्प का एक दीया जलाएँ", en: "Light one more diya on your sankalp today" },
+  blessing_5: { hi: "जो करें, श्रद्धा और मन से करें", en: "Whatever you do, do it with heart and devotion" },
+  blessing_6: { hi: "हर सुबह एक नई शुरुआत है", en: "Every morning is a fresh beginning" },
+  blessing_7: { hi: "आपकी साधना आपको भीतर से शांत रखे", en: "May your sadhana keep you calm within" },
+
   // progress screen (slice 6). Numbers are rendered at the call site and the
   // labels stay separate, so nothing here needs interpolation. Copy is
   // descriptive and effort-based — never a health outcome or a body claim.

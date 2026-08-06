@@ -125,18 +125,16 @@ function FeedbackSection() {
         <ToggleRow
           label={t("settings_haptics")}
           value={prefs.haptics}
-          onChange={(v) => {
-            void setFeedbackPref("haptics", v);
-            if (v) feedback.tap(); // let it be felt the moment it's turned on
-          }}
+          onChange={(v) => void setFeedbackPref("haptics", v)}
         />
         <View style={{ height: 1, backgroundColor: color.line }} />
         <ToggleRow
           label={t("settings_sound")}
           value={prefs.sound}
+          haptic={false} // success() below is the confirm (buzz + chime) — avoid a double buzz
           onChange={(v) => {
             void setFeedbackPref("sound", v);
-            if (v) feedback.tap(); // let it be heard the moment it's turned on
+            if (v) feedback.success(); // let the sound be HEARD the moment it's on
           }}
         />
       </Card>
@@ -144,11 +142,21 @@ function FeedbackSection() {
   );
 }
 
-function ToggleRow({ label, value, onChange }: { label: string; value: boolean; onChange: (v: boolean) => void }) {
+function ToggleRow({
+  label,
+  value,
+  onChange,
+  haptic = true,
+}: {
+  label: string;
+  value: boolean;
+  onChange: (v: boolean) => void;
+  haptic?: boolean;
+}) {
   return (
     <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
       <T variant="bodyBold">{label}</T>
-      <Toggle value={value} onValueChange={onChange} accessibilityLabel={label} />
+      <Toggle value={value} onValueChange={onChange} accessibilityLabel={label} haptic={haptic} />
     </View>
   );
 }
@@ -345,7 +353,7 @@ function TimeStepper({ value, onCommit }: { value: string; onCommit: (p: PrefsPa
     // rather than producing a negative.
     const total = (h * 60 + m + deltaMinutes + 1440) % 1440;
     const next = `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
-    feedback.tap();
+    feedback.select();
     setPending(next);
     commit(next);
   };
@@ -430,7 +438,7 @@ function AccountSection() {
                 <View style={{ flex: 1 }}>
                   {/* Leaves the user on this screen; the section re-renders to
                       the guest state, which is the confirmation that it worked. */}
-                  <Button k="sign_out" kind="ghost" onPress={() => { feedback.error(); setConfirming(false); void signOut(); }} />
+                  <Button k="sign_out" kind="ghost" haptic={false} onPress={() => { feedback.error(); setConfirming(false); void signOut(); }} />
                 </View>
               </View>
             </View>

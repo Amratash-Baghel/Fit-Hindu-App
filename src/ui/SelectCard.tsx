@@ -22,6 +22,7 @@ export function SelectCard({ title, sub, selected, onPress }: SelectCardProps) {
   return (
     <Card
       onPress={onPress}
+      haptic="select"
       style={selected ? { borderColor: color.saffron, backgroundColor: "rgba(240,118,30,0.10)" } : undefined}
     >
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>

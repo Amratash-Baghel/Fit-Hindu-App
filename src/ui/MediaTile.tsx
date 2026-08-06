@@ -8,8 +8,9 @@
 import React from "react";
 import { View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { color, goldGradient, space } from "./tokens";
+import { color, goldGradient } from "./tokens";
 import { T } from "./Text";
+import { Shimmer } from "./Shimmer";
 import { AvatarSilhouette, PlayIcon } from "./icons";
 import { useI18n } from "../lib/i18n";
 
@@ -20,9 +21,25 @@ interface Props {
   playSize?: number;
   silhouetteSize?: number;
   showBadge?: boolean;
+  /** Show the diagonal shine. On by default for hero surfaces; the workout grid
+   *  passes false so a screen full of thumbnails isn't 20 shimmer loops at once
+   *  (visual noise + the low-end-Android cost). */
+  glint?: boolean;
+  /** Stronger, faster "media is loading" sweep instead of the idle sheen. Wire
+   *  this to a real player's buffering state once one exists; today the tile is
+   *  the permanent placeholder so it defaults to the subtle idle glint. */
+  loading?: boolean;
 }
 
-export function AvatarTile({ height, aspectRatio, playSize = 48, silhouetteSize = 96, showBadge = true }: Props) {
+export function AvatarTile({
+  height,
+  aspectRatio,
+  playSize = 48,
+  silhouetteSize = 96,
+  showBadge = true,
+  glint = true,
+  loading = false,
+}: Props) {
   const { t } = useI18n();
   return (
     <View
@@ -90,6 +107,17 @@ export function AvatarTile({ height, aspectRatio, playSize = 48, silhouetteSize 
             <PlayIcon size={playSize * 0.42} />
           </LinearGradient>
         </View>
+
+        {/* the glint — a diagonal shine sweeping across the video surface. The
+            idle sheen keeps the hero feeling premium/alive; `loading` swaps in
+            the stronger media-is-loading sweep (docs/specs/ui-polish.md slice C). */}
+        {glint ? (
+          <Shimmer
+            mode={loading ? "loading" : "sheen"}
+            tint={color.goldHi}
+            peak={loading ? undefined : 0.22}
+          />
+        ) : null}
       </LinearGradient>
     </View>
   );

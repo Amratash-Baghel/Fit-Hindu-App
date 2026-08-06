@@ -9,15 +9,21 @@
 import React from "react";
 import { Pressable, View } from "react-native";
 import { color, radius } from "./tokens";
+import { feedback } from "../lib/feedback";
 
 export function Toggle({
   value,
   onValueChange,
   accessibilityLabel,
+  haptic = true,
 }: {
   value: boolean;
   onValueChange: (v: boolean) => void;
   accessibilityLabel?: string;
+  /** Fire the selection tick on press. Pass false when the handler already
+   *  fires its own semantic haptic (e.g. the sound toggle's success chime), so
+   *  a single toggle isn't a double buzz. */
+  haptic?: boolean;
 }) {
   return (
     <Pressable
@@ -25,7 +31,10 @@ export function Toggle({
       aria-checked={value}
       accessibilityLabel={accessibilityLabel}
       hitSlop={8}
-      onPress={() => onValueChange(!value)}
+      onPress={() => {
+        if (haptic) feedback.select();
+        onValueChange(!value);
+      }}
       style={({ pressed }) => ({
         width: 48,
         height: 28,

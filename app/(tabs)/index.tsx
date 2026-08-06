@@ -1,8 +1,10 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Pressable, View } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
-import { Screen, Card, Chip, B, T, color, space } from "../../src/ui";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Screen, Card, Chip, B, T, AnimatedNumber, Reveal, ProgressBar, Shimmer, PressableScale, color, radius, space } from "../../src/ui";
+import { feedback } from "../../src/lib/feedback";
 import {
   DumbbellIcon,
   BowlIcon,
@@ -106,10 +108,15 @@ export default function Home() {
             )}
           </View>
         </LinearGradient>
+        {/* a slow, faint gold sheen so the day's hero card feels alive */}
+        <Shimmer mode="sheen" tint={color.goldHi} peak={0.09} />
       </View>
 
       {/* sankalp / streak */}
       <StreakCard />
+
+      {/* today's blessing — the gentle come-back-tomorrow reveal */}
+      <DailyBlessing />
 
       {/* today's cards */}
       <TodayCard
@@ -217,9 +224,7 @@ function StreakCard() {
           ) : null}
         </View>
         {active ? (
-          <T variant="display" tone="gold" style={{ fontWeight: "800" }}>
-            {count}
-          </T>
+          <AnimatedNumber value={count} variant="display" tone="gold" style={{ fontWeight: "800" }} />
         ) : null}
       </View>
       <View
@@ -230,7 +235,11 @@ function StreakCard() {
         }}
       >
         {Array.from({ length: WEEK_DIYAS }).map((_, i) => (
-          <DiyaIcon key={i} size={24} dim={i >= lit} />
+          // a lit-up-in-sequence stagger when Home first appears; a fade-pop
+          // (distance 0), never a rise, so the diya row reads as igniting.
+          <Reveal key={i} delay={i * 70} distance={0}>
+            <DiyaIcon size={24} dim={i >= lit} />
+          </Reveal>
         ))}
       </View>
       <PointsRow points={points} />
@@ -266,9 +275,7 @@ function PointsRow({ points }: { points: PointsSummary | null }) {
           <T variant="caption" tone="muted">
             {t("points_label")}
           </T>
-          <T variant="bodyBold" tone="gold">
-            {points.total_points}
-          </T>
+          <AnimatedNumber value={points.total_points} variant="bodyBold" tone="gold" />
         </View>
         {points.today_points > 0 ? (
           <T variant="caption" tone="saffron">
@@ -276,9 +283,123 @@ function PointsRow({ points }: { points: PointsSummary | null }) {
           </T>
         ) : null}
       </View>
+      {/* momentum toward the next milestone — the bar the "{d} more days" line
+          describes, made visible (gold: this is the sankalp's own reward track). */}
+      {points.next_milestone_day != null ? (
+        <ProgressBar
+          value={points.current_streak}
+          max={points.next_milestone_day}
+          tone="gold"
+          animated
+          style={{ marginTop: space.sm }}
+        />
+      ) : null}
       <T variant="caption" tone="muted" style={{ marginTop: 4 }}>
         {nextLine}
       </T>
+    </View>
+  );
+}
+
+const BLESSING_KEYS = [
+  "blessing_1",
+  "blessing_2",
+  "blessing_3",
+  "blessing_4",
+  "blessing_5",
+  "blessing_6",
+  "blessing_7",
+] as const;
+const BLESSING_STORAGE = "fithindu.blessing.revealed";
+
+/** IST calendar day (YYYY-MM-DD) — the blessing's once-per-day key. */
+function istDayKey(): string {
+  return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+}
+
+/**
+ * Daily blessing (docs/specs/ui-polish.md slice E) — a once-per-IST-day
+ * tap-to-reveal well-wish; the gentle come-back-tomorrow loop. The blessing
+ * itself is the reward (no fabricated points the client can't honestly source),
+ * it is never gated (a blessing is worship-adjacent), and the day's line is
+ * picked deterministically from the IST date so it's stable all day. The
+ * revealed state is persisted per IST day, so returning to Home shows it opened.
+ */
+function DailyBlessing() {
+  const { t } = useI18n();
+  const [todayKey, setTodayKey] = useState(istDayKey);
+  // null = still reading the persisted state; don't flash the closed face first.
+  const [revealed, setRevealed] = useState<boolean | null>(null);
+
+  // Re-evaluate the IST day + persisted state on every focus, so returning to
+  // Home after the midnight boundary shows the new day's blessing (Home stays
+  // mounted as a tab, so a one-time mount read would go stale — review finding).
+  useFocusEffect(
+    useCallback(() => {
+      const key = istDayKey();
+      setTodayKey(key);
+      let alive = true;
+      AsyncStorage.getItem(BLESSING_STORAGE)
+        .then((v) => alive && setRevealed(v === key))
+        .catch(() => alive && setRevealed(false));
+      return () => {
+        alive = false;
+      };
+    }, []),
+  );
+
+  const blessingKey = useMemo(() => {
+    let h = 0;
+    for (let i = 0; i < todayKey.length; i++) h = (h + todayKey.charCodeAt(i)) % 100000;
+    return BLESSING_KEYS[h % BLESSING_KEYS.length];
+  }, [todayKey]);
+
+  const reveal = () => {
+    setRevealed(true);
+    void AsyncStorage.setItem(BLESSING_STORAGE, todayKey).catch(() => {});
+    feedback.success(); // a once-a-day earned moment — a small warm chime
+  };
+
+  if (revealed === null) return null;
+
+  return (
+    <View style={{ borderRadius: radius.card, overflow: "hidden", borderWidth: 1, borderColor: "#4a3416" }}>
+      <LinearGradient colors={["#241407", "#1C1510"]} start={{ x: 0, y: 0 }} end={{ x: 0.9, y: 1 }}>
+        {revealed ? (
+          <Reveal distance={6} style={{ padding: space.lg, flexDirection: "row", alignItems: "center", gap: space.md }}>
+            <DiyaIcon size={30} />
+            <View style={{ flex: 1 }}>
+              <T variant="bodyBold" style={{ color: color.goldHi }}>
+                {t(blessingKey)}
+              </T>
+              <T variant="caption" tone="muted" style={{ marginTop: 2 }}>
+                {t("daily_blessing_footer")}
+              </T>
+            </View>
+          </Reveal>
+        ) : (
+          <PressableScale
+            onPress={reveal}
+            haptic={false}
+            scaleTo={0.98}
+            accessibilityLabel={t("daily_blessing_title")}
+            style={{ padding: space.lg, flexDirection: "row", alignItems: "center", gap: space.md }}
+          >
+            <DiyaIcon size={30} dim />
+            <View style={{ flex: 1 }}>
+              <T variant="eyebrow" tone="gold">
+                {t("daily_blessing_title")}
+              </T>
+              <T variant="caption" tone="muted" style={{ marginTop: 2 }}>
+                {t("daily_blessing_tap")}
+              </T>
+            </View>
+            <ChevronRight />
+          </PressableScale>
+        )}
+      </LinearGradient>
+      {/* faint sheen so the blessing card reads as something special */}
+      <Shimmer mode="sheen" tint={color.goldHi} peak={0.1} />
     </View>
   );
 }
