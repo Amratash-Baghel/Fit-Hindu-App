@@ -78,6 +78,70 @@ export function usePoints(): UsePoints {
 }
 
 /**
+ * The per-activity reward moment (owner ask 2026-08-10): when a workout /
+ * meditation / jap / sleep run finishes, show how many Fit Points THAT activity
+ * earned. Points stay computed server-side — this never scores anything on the
+ * client. It just diffs the total: read today's total BEFORE the activity is
+ * counted, read again after, and the difference is that activity's honest earn.
+ *
+ * Why a diff and not a lookup of "this activity's points": the rules are
+ * per-DAY, not per-row (daily caps, jap's +2-per-round-beyond-2nd). The 2nd
+ * workout of a day genuinely earns 0 (cap 25 already banked); the diff shows
+ * that truthfully as +0 → the reward's "already claimed today" state, never a
+ * fake +25. Caps and qualifiers therefore need no duplication here.
+ */
+export interface ActivityEarn {
+  /** Points THIS activity added to today's total (>= 0), or null when it can't
+   *  be measured — a guest, offline, or a failed read. 0 means the day's cap for
+   *  this activity was already reached. */
+  earned: number | null;
+  /** All-time total after the activity, for the reward's running total line.
+   *  null when unread. */
+  total: number | null;
+}
+
+/** Full Fit-Points summary right now, or null (guest / offline / RPC error).
+ *  Same RLS contract as usePoints — points_summary is not security definer, so
+ *  passing our own uid returns our rows and nobody else's.
+ *
+ *  Uses getSession() (a LOCAL read) not getUser() (a network round-trip to the
+ *  auth server): the reward path fires this twice per activity, and on the 2G
+ *  target the extra hops are pure latency that also widen the window in which a
+ *  not-yet-flushed write reads as "+0". The uid from the persisted session is
+ *  all points_summary needs. */
+export async function readPointsNow(): Promise<PointsSummary | null> {
+  try {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session) return null; // guest — nothing banked, so no number to show
+    const { data, error } = await supabase.rpc("points_summary", { uid: session.user.id }).single();
+    if (error || !data) return null;
+    return data as PointsSummary;
+  } catch {
+    return null;
+  }
+}
+
+/** Today's Fit-Points total right now — the "before" snapshot to capture just
+ *  before an activity is logged. null for a guest / failed read (the reward then
+ *  simply shows no +number). */
+export async function pointsTodayNow(): Promise<number | null> {
+  const s = await readPointsNow();
+  return s ? s.today_points : null;
+}
+
+/** Given the today-total captured BEFORE the activity was logged (and the write
+ *  now durably landed), read the summary again and return the per-activity earn
+ *  plus the new all-time total. */
+export async function earnSince(before: number | null): Promise<ActivityEarn> {
+  const after = await readPointsNow();
+  if (!after) return { earned: null, total: null };
+  const earned = before == null ? null : Math.max(0, after.today_points - before);
+  return { earned, total: after.total_points };
+}
+
+/**
  * Record the app-open bonus for today. Fire-and-forget: the (user_id, ist_date)
  * primary key is the correctness guarantee — a second call the same IST day is
  * an `on conflict do nothing`, so calling this on every foreground is safe and

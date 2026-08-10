@@ -17,12 +17,14 @@
 import React, { useCallback } from "react";
 import { View } from "react-native";
 import { Stack, useFocusEffect, useRouter } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
 import {
   Screen,
   Card,
   Button,
   ProgressBar,
   AnimatedNumber,
+  Shimmer,
   B,
   T,
   DiyaIcon,
@@ -120,46 +122,59 @@ export default function Progress() {
     <Screen>
       {header}
 
-      {/* sankalp — the same server-computed streak the Home card shows */}
-      <Card style={{ gap: space.sm }}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: space.sm }}>
-          <DiyaIcon size={28} dim={(streak?.current_streak ?? 0) === 0} />
-          <View style={{ flex: 1 }}>
-            <T variant="caption" tone="muted">
-              {t("progress_streak")}
-            </T>
-            <AnimatedNumber
-              value={streak?.current_streak ?? 0}
-              variant="h1"
-              tone="gold"
-              style={{ fontVariant: ["tabular-nums"] }}
-            />
+      {/* sankalp — the server-computed streak, given the hero treatment (owner:
+          the tracker felt sloppy). Ember gradient + a faint gold sheen, like
+          Home's day card, so the streak reads as the screen's centrepiece. */}
+      <View style={{ borderRadius: radius.card, overflow: "hidden", borderWidth: 1, borderColor: "#4a3416" }}>
+        <LinearGradient colors={["#241407", "#1C1510"]} start={{ x: 0, y: 0 }} end={{ x: 0.9, y: 1 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: space.md, padding: space.lg }}>
+            <DiyaIcon size={34} dim={(streak?.current_streak ?? 0) === 0} />
+            <View style={{ flex: 1 }}>
+              <T variant="eyebrow" tone="gold">
+                {t("progress_streak")}
+              </T>
+              <View style={{ flexDirection: "row", alignItems: "baseline", gap: space.xs, marginTop: 2 }}>
+                <AnimatedNumber
+                  value={streak?.current_streak ?? 0}
+                  variant="display"
+                  tone="gold"
+                  style={{ fontSize: 40, fontWeight: "800", fontVariant: ["tabular-nums"] }}
+                />
+                <T variant="caption" tone="muted">
+                  {t("progress_plan_days")}
+                </T>
+              </View>
+            </View>
+            <View style={{ alignItems: "flex-end" }}>
+              <T variant="caption" tone="muted">
+                {t("progress_longest")}
+              </T>
+              <AnimatedNumber value={streak?.longest_streak ?? 0} variant="h2" style={{ fontVariant: ["tabular-nums"] }} />
+            </View>
           </View>
-          <View style={{ alignItems: "flex-end" }}>
-            <T variant="caption" tone="muted">
-              {t("progress_longest")}
-            </T>
-            <AnimatedNumber value={streak?.longest_streak ?? 0} variant="h2" style={{ fontVariant: ["tabular-nums"] }} />
-          </View>
-        </View>
-      </Card>
+        </LinearGradient>
+        <Shimmer mode="sheen" tint={color.goldHi} peak={0.08} />
+      </View>
 
       {/* this week vs all time */}
       <Card style={{ gap: space.md }}>
         <T variant="eyebrow" tone="gold">
           {t("progress_this_week")}
         </T>
-        <View style={{ flexDirection: "row", gap: space.xl }}>
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
           <Stat v={summary.sessions_week} label={t("progress_sessions")} />
+          <StatDivider />
           <Stat v={summary.minutes_week} label={t("progress_minutes")} />
         </View>
         <View style={{ height: 1, backgroundColor: color.line }} />
         <T variant="eyebrow" tone="gold">
           {t("progress_all_time")}
         </T>
-        <View style={{ flexDirection: "row", gap: space.xl }}>
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
           <Stat v={summary.sessions_total} label={t("progress_sessions")} />
+          <StatDivider />
           <Stat v={summary.minutes_total} label={t("progress_minutes")} />
+          <StatDivider />
           <Stat v={summary.active_days} label={t("progress_days_trained")} />
         </View>
       </Card>
@@ -204,18 +219,21 @@ export default function Progress() {
         <T variant="eyebrow" tone="gold">
           {t("progress_activity")}
         </T>
-        <View style={{ flexDirection: "row", gap: 3, alignItems: "flex-end" }}>
-          {strip.map((d) => (
-            <View
-              key={d.date}
-              style={{
-                flex: 1,
-                height: d.active ? 34 : 14,
-                borderRadius: 2,
-                backgroundColor: d.active ? color.saffron : color.surface2,
-              }}
-            />
-          ))}
+        <View style={{ flexDirection: "row", gap: 3, alignItems: "flex-end", height: 38 }}>
+          {strip.map((d, i) => {
+            const today = i === strip.length - 1;
+            return (
+              <View
+                key={d.date}
+                style={{
+                  flex: 1,
+                  height: d.active ? (today ? 38 : 32) : 6,
+                  borderRadius: 3,
+                  backgroundColor: d.active ? (today ? color.goldHi : color.saffron) : color.surface2,
+                }}
+              />
+            );
+          })}
         </View>
       </Card>
 
@@ -226,13 +244,18 @@ export default function Progress() {
 
 function Stat({ v, label }: { v: number; label: string }) {
   return (
-    <View>
+    <View style={{ flex: 1, alignItems: "center", gap: 2 }}>
       <AnimatedNumber value={v} variant="h1" style={{ fontVariant: ["tabular-nums"] }} />
       <T variant="caption" tone="muted">
         {label}
       </T>
     </View>
   );
+}
+
+/** Hairline between stats — structure without a heavy box. */
+function StatDivider() {
+  return <View style={{ width: 1, height: 30, backgroundColor: color.line }} />;
 }
 
 function Empty({

@@ -278,6 +278,16 @@ export const strings = {
   points_milestone_max: { hi: "सभी पड़ाव पूरे 🎉", en: "All milestones reached 🎉" },
   sleep_needs_five: { hi: "अंक पाने के लिए 5 मिनट सुनें", en: "Listen 5 minutes to earn points" },
 
+  // the reward moment — shown when an activity completes (workout/meditation/
+  // jap/sleep). `reward_earned` labels the counted-up "+N फिट अंक"; `reward_total`
+  // is the running all-time total; `reward_capped` is the honest state when this
+  // activity added nothing because the day's cap for it was already reached.
+  reward_earned: { hi: "आपने अर्जित किए", en: "You earned" },
+  reward_total: { hi: "कुल {n} फिट अंक", en: "{n} Fit Points total" },
+  reward_capped: { hi: "आज के अंक पहले ही पूरे — लगे रहें 🙏", en: "Today's points already claimed — keep it up 🙏" },
+  sleep_reward_title: { hi: "विश्राम पूर्ण 🙏", en: "Rest complete 🙏" },
+  sleep_reward_body: { hi: "सुंदर विश्राम। शुभ रात्रि।", en: "Rest well. Good night." },
+
   // daily blessing (docs/specs/ui-polish.md slice E) — a once-a-day tap-to-reveal
   // devotional well-wish, the gentle come-back-tomorrow loop. The blessing IS the
   // reward (never a points number the client can't honestly source), and it stays

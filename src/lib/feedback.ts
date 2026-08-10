@@ -32,10 +32,11 @@ import { getFeedbackPrefs } from "./settings";
 
 type Sfx = "success" | "complete" | "error" | "chime";
 
-/** UI chirps are deliberately quiet — a devotional app, not a game. The assets
- *  are already low-amplitude (assets/sfx/README.md); this trims them further so
- *  a chime never feels out of place in a quiet room. */
-const SFX_VOLUME = 0.7;
+/** UI chirps stay warm but must be clearly audible on a phone speaker — the
+ *  earlier 0.7 trim left the earned chimes so quiet they read as "no sound at
+ *  all" on device. The assets are already low-amplitude (assets/sfx/README.md),
+ *  so play them at full scale and let the quiet mix do the softening. */
+const SFX_VOLUME = 1.0;
 
 // require() sources are resolved by Metro at build time — bundled assets, not
 // runtime URLs, so there is no network and no failure path beyond a missing file.
@@ -81,7 +82,7 @@ function playSfx(key: Sfx): void {
   }
 }
 
-type Buzz = "light" | "medium" | "selection" | "success" | "warning";
+type Buzz = "light" | "medium" | "heavy" | "selection" | "success" | "warning";
 
 function haptic(kind: Buzz): void {
   if (!getFeedbackPrefs().haptics) return;
@@ -92,11 +93,13 @@ function haptic(kind: Buzz): void {
         ? Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
         : kind === "medium"
           ? Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
-          : kind === "selection"
-            ? Haptics.selectionAsync()
-            : kind === "success"
-              ? Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
-              : Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+          : kind === "heavy"
+            ? Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy)
+            : kind === "selection"
+              ? Haptics.selectionAsync()
+              : kind === "success"
+                ? Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+                : Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
     void p.catch(() => {}); // swallow async rejection (device without a motor, etc.)
   } catch {
     // sync throw (unsupported) — ignore
@@ -119,7 +122,10 @@ function haptic(kind: Buzz): void {
  */
 export const feedback = {
   press() {
-    haptic("light");
+    // Bumped Light → Medium: on most Android motors the Light impact is so faint
+    // it reads as "haptics don't work". Medium is the baseline tap that actually
+    // registers under the thumb (owner feedback 2026-08-08).
+    haptic("medium");
   },
   select() {
     haptic("selection");
@@ -127,8 +133,15 @@ export const feedback = {
   count() {
     haptic("light");
   },
+  /** One jap count — the strongest thump we fire, on EVERY tap. The mala is the
+   *  one place a devotee wants a satisfying, definite hit per bead (owner
+   *  override 2026-08-08), so it opts out of the quiet `count` tick. Still no
+   *  sound: the 108 stay a felt count, not 108 beeps. */
+  japTap() {
+    haptic("heavy");
+  },
   milestone() {
-    haptic("medium");
+    haptic("heavy");
   },
   success() {
     haptic("medium");

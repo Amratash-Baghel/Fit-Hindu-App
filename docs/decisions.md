@@ -2,6 +2,45 @@
 
 One dated line per decision, with the why. Newest on top.
 
+- **2026-08-10 (per-activity reward = server before/after points diff, gated on
+  write success)** — the "you earned N" popup reads `points_summary` before an
+  activity is logged and again after, showing the delta. Why: points stay
+  **computed, never stored** (docs/specs/points-rewards.md), so a per-row lookup
+  can't express the daily caps / jap per-round rules — but a cumulative diff
+  can, and it stays honest (a 2nd same-day workout shows +0 → "already
+  claimed"). The diff runs only when the write is confirmed landed (the
+  `logActivity` boolean, or a re-`flushQueue()` for the queued workout row);
+  otherwise the reward shows no number, never a false "+0 already claimed".
+  Reads use `getSession()` (local), not `getUser()` (network), to spare the 2G
+  target two round-trips per reward.
+- **2026-08-10 (exercise video autoplays control-less; errors fall back to the
+  tile)** — `VideoHero` drops `nativeControls` for a muted, looping, autoplaying
+  demo (owner: "it shouldn't be a video player"), and treats a player `error`
+  status as a fallback-to-`AvatarTile` (with a `__DEV__` error line), never a
+  black box. Why: real Bunny HLS can 403 / not-yet-encode, and the premium
+  placeholder beats a broken player. Extends the 2026-08-08 `expo-video` seam.
+- **2026-08-10 (ambient/sleep audio stops on navigation blur, not just
+  unmount)** — bottom tabs stay mounted on a tab-switch, so the Sleep screen's
+  unmount-only stop let the loop play on across the app. Moved to a
+  `useFocusEffect` blur stop. A phone-lock is an AppState background (not a nav
+  blur), so falling-asleep playback is preserved — the one case that must keep
+  going.
+- **2026-08-08 (jap taps opt out of the "haptic-light" rule; press baseline is
+  Medium)** — the mala button now fires a **Heavy** impact on *every* tap (not
+  the light per-count tick), and the global `press` haptic moved Light → Medium.
+  Why: on device the Light impact was imperceptible ("haptics don't work") and
+  the owner wants each bead to feel like a definite, satisfying strike. This
+  narrows — does not reverse — the 2026-08-06 "sound only on outcomes" rule: jap
+  is still **haptic-only, no beep**; only the *strength* changed.
+- **2026-08-08 (real video via `expo-video`, behind a placeholder-fallback
+  seam)** — added a React Native video player at last: `expo-video` + `VideoHero`,
+  which plays the exercise's HLS `playback_url` and falls back to the `AvatarTile`
+  placeholder for null / `example.com` / web URLs. Why the seam: the seed URLs
+  are placeholders and content is uploaded later via admin/Bunny, so the app must
+  degrade gracefully to the tile until real media exists — no broken players, and
+  it upgrades itself the moment a video is published. Cost: `expo-video` is
+  native, so the dev client must be **rebuilt** (not just JS-reloaded); web stays
+  on the tile (HLS there would need hls.js, and web is only a preview surface).
 - **2026-08-06 (UI motion layer lives in `src/ui/`; sound only on outcomes)** —
   the premium/interactive polish is delivered as shared design-system primitives
   (`PressableScale`, `Shimmer`, `AnimatedNumber`, `CelebrationBurst`, `Reveal`,

@@ -50,7 +50,8 @@
           "icon": "./assets/android-icon-monochrome.png",
           "color": "#F0761E"
         }
-      ]
+      ],
+      "expo-video"
     ],
     "extra": {
       "router": {},

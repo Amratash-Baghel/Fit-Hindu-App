@@ -1,11 +1,13 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, ScrollView, View } from "react-native";
-import { Screen, Card, Chip, Button, B, T, MoonIcon, MuteIcon, color, radius, space } from "../../src/ui";
+import { useFocusEffect } from "expo-router";
+import { Screen, Card, Chip, Button, B, T, MoonIcon, MuteIcon, RewardOverlay, color, radius, space } from "../../src/ui";
 import { useI18n } from "../../src/lib/i18n";
 import { listSleepSounds, type SleepSound } from "../../src/lib/content";
 import { isPlaying, playLoop, stopAudio, subscribeAudio } from "../../src/lib/audio";
 import { audioSourceFor } from "../../src/lib/localAudio";
 import { logActivity } from "../../src/lib/activity";
+import { earnSince, pointsTodayNow } from "../../src/lib/points";
 import { beginSleepRun, markSleepAlive, clearSleepRun } from "../../src/lib/sleepRun";
 import { uuidv4 } from "../../src/lib/ids";
 
@@ -25,6 +27,8 @@ export default function Sleep() {
   const [minutes, setMinutes] = useState<number>(DEFAULT_MINUTES);
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [secLeft, setSecLeft] = useState<number | null>(null); // null = no timer running
+  /** The reward shown when a qualifying run ends while the user is watching. */
+  const [reward, setReward] = useState<{ earned: number | null; total: number | null } | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -56,11 +60,16 @@ export default function Sleep() {
   const runTimerRef = useRef<number>(0); // the chosen auto-stop, for meta.minutes
   const runEventIdRef = useRef<string | null>(null); // shared with the crash-recovery mirror
   const loggedRef = useRef(false); // one row per run — guards the multi-path stop
+  const runPointsBeforeRef = useRef<number | null>(null); // today's points at play-start, for the earn delta
 
   // Log the run that is ending, once, iff it heard >= 5 real minutes. Stable
   // (reads refs only), so every stop path — user tap, timer, blur, the global
   // pill — can call it and the guards make repeat calls no-ops.
-  const logRunIfQualified = useCallback((timerCompleted: boolean) => {
+  // `present` = the user is on the screen to see a reward (the timer finished,
+  // or they tapped the playing row to stop). Blur / sound-switch / external-stop
+  // pass false: they still LOG the run, but showing a modal while the user is
+  // leaving (or a modal that pops mid sound-switch) would be wrong.
+  const logRunIfQualified = useCallback((timerCompleted: boolean, present = false) => {
     const startedAt = runStartRef.current;
     runStartRef.current = null;
     if (startedAt === null || loggedRef.current) return;
@@ -70,29 +79,46 @@ export default function Sleep() {
     void clearSleepRun();
     if (actualMin < 5) return; // too little listening to count as sleep
     loggedRef.current = true;
-    logActivity(
+    const before = runPointsBeforeRef.current;
+    const logged = logActivity(
       "sleep_sound",
       { minutes: runTimerRef.current, actual_min: actualMin, timer_completed: timerCompleted },
       runRefIdRef.current ?? undefined,
       // Same id the mirror holds, so a live log and a stale reconcile dedup.
       runEventIdRef.current ?? undefined,
     );
+    if (present) {
+      void logged.then(async (ok) => {
+        // Diff only when the write landed, so a failed log shows the "rest
+        // complete" moment without a misleading "already claimed" line.
+        const e = await earnSince(ok ? before : null);
+        setReward({ earned: e.earned, total: e.total });
+      });
+    }
   }, []);
 
   // Auto-stop reached: record it as a completed timer, then stop.
   const finishTimer = useCallback(() => {
-    logRunIfQualified(true);
+    logRunIfQualified(true, true); // timer finished on-screen — reward the user
     stop();
   }, [logRunIfQualified, stop]);
 
-  // Leaving the tab must not leave audio running forever with no visible
-  // control — the screen owns the player it started. Record the run first.
-  useEffect(
-    () => () => {
-      logRunIfQualified(false);
-      stopAudio();
-    },
-    [logRunIfQualified],
+  // Leaving the Sleep tab must silence the sound it started. This is a FOCUS
+  // effect, not an unmount effect: a bottom tab stays mounted when you switch
+  // away from it, so an unmount cleanup would never fire on a tab switch and the
+  // loop would keep playing across the whole app (the leak this fixes). The
+  // blur cleanup fires on every navigation away and on real unmount, and — key
+  // for sleep — locking the phone is an AppState background, NOT a navigation
+  // blur, so it does NOT fire then: the sound keeps playing as you fall asleep,
+  // which is the entire point of the surface. Record the run first.
+  useFocusEffect(
+    useCallback(
+      () => () => {
+        logRunIfQualified(false);
+        stopAudio();
+      },
+      [logRunIfQualified],
+    ),
   );
 
   // Stay in sync with an external stop (the global AudioStopPill hard-stops the
@@ -147,11 +173,12 @@ export default function Sleep() {
       const src = audioSourceFor(s.audio);
       if (src == null) return; // placeholder row — not tappable
       if (playingId === s.id) {
-        logRunIfQualified(false); // tapping the playing row stops it
+        logRunIfQualified(false, true); // tapping the playing row stops it — reward if it qualified
         stop();
         return;
       }
-      // Switching straight from another sound ends that run first.
+      // Switching straight from another sound ends that run first (no reward
+      // mid-switch — the user is starting another sound, not finishing).
       if (runStartRef.current !== null) logRunIfQualified(false);
       void playLoop(src, { background: true });
       setPlayingId(s.id);
@@ -164,6 +191,11 @@ export default function Sleep() {
       runTimerRef.current = minutes;
       runEventIdRef.current = eventId;
       loggedRef.current = false;
+      // Snapshot today's points at play-start — the "before" for this run's earn
+      // delta, captured well before the run is logged at stop/timer.
+      void pointsTodayNow().then((v) => {
+        runPointsBeforeRef.current = v;
+      });
       void beginSleepRun(eventId, s.id, minutes);
       // Mirror bumped synchronously for the same reason as pickTimer: switching
       // straight from a playing sound to another leaves the previous interval
@@ -264,6 +296,15 @@ export default function Sleep() {
           </>
         )}
       </ScrollView>
+
+      <RewardOverlay
+        visible={reward != null}
+        titleKey="sleep_reward_title"
+        bodyKey="sleep_reward_body"
+        earned={reward?.earned ?? null}
+        total={reward?.total ?? null}
+        onDone={() => setReward(null)}
+      />
     </Screen>
   );
 }

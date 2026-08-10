@@ -53,6 +53,11 @@ export function Button({ k, onPress, kind = "gold", disabled, haptic = "press", 
       onPress={onPress}
       haptic={disabled ? false : haptic}
       scaleTo={pressScale.button}
+      // Gold is the primary action — it gets the expanding-ring bloom on every
+      // press (owner ask 2026-08-08). Ghost stays quiet, a dip only.
+      bloom={isGold && !disabled}
+      bloomColor={color.goldHi}
+      bloomRadius={radius.button}
       style={[
         { opacity: disabled ? 0.5 : 1, borderRadius: radius.button },
         isGold

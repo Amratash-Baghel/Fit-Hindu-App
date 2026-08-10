@@ -147,6 +147,10 @@ export function stopAudio() {
   // player that keeps looping past the stop — the exact bug this slice fixes.
   gen++;
   try {
+    // Pause first, THEN release: on some expo-audio builds a looping player can
+    // keep sounding for a beat after remove() alone (the buffer plays out),
+    // which reads as "stop doesn't work". pause() silences it immediately.
+    player?.pause();
     player?.remove();
   } catch {}
   player = null;

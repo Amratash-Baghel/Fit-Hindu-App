@@ -27,16 +27,17 @@ import {
   ProgressBar,
   B,
   T,
-  AvatarTile,
-  DiyaIcon,
-  CelebrationBurst,
+  VideoHero,
+  CompletionDiya,
+  PointsEarned,
   AnimatedNumber,
   color,
   space,
 } from "../../src/ui";
 import { useI18n } from "../../src/lib/i18n";
 import { loadSession, type SessionSource, type TemplateItem } from "../../src/lib/content";
-import { finishSession, logSet, startSession } from "../../src/lib/session";
+import { finishSession, flushQueue, logSet, startSession } from "../../src/lib/session";
+import { earnSince, pointsTodayNow, type ActivityEarn } from "../../src/lib/points";
 import { feedback } from "../../src/lib/feedback";
 import { markPushOffered, requestPushPermission, shouldOfferPush } from "../../src/lib/push";
 
@@ -80,6 +81,9 @@ export default function WorkoutSession() {
   const [weight, setWeight] = useState("");
   const [setsDone, setSetsDone] = useState(0);
   const [summary, setSummary] = useState<Summary | null>(null);
+  /** The Fit-Points this workout earned, read after the finish lands. null =
+   *  not yet read / guest / offline → the reward block simply shows no number. */
+  const [earn, setEarn] = useState<ActivityEarn | null>(null);
 
   /** Server session id; null for a guest, who still gets the whole player. */
   const sessionId = useRef<string | null>(null);
@@ -95,6 +99,9 @@ export default function WorkoutSession() {
   /** "itemIdx:setNo" of the last set recorded — the double-tap guard. */
   const lastLogged = useRef<string | null>(null);
   const completed = useRef(false);
+  /** Today's Fit-Points total captured at session start, so the completion
+   *  screen can show the honest per-workout delta (see complete()). */
+  const pointsBefore = useRef<number | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -117,6 +124,13 @@ export default function WorkoutSession() {
         // connection — acceptable, and far better than a blocking spinner.
         const local = await startSession(s);
         if (alive) sessionId.current = local?.id ?? null;
+
+        // Snapshot today's points BEFORE this workout's activity row is written
+        // (that happens at finishSession), so complete() can show the delta this
+        // workout actually added — +0 and an "already claimed" line if the daily
+        // cap was banked earlier today.
+        const before = await pointsTodayNow();
+        if (alive) pointsBefore.current = before;
       })
       .catch(() => {
         if (alive) setStatus("error");
@@ -142,7 +156,19 @@ export default function WorkoutSession() {
     const minutes = Math.max(1, Math.round((Date.now() - startedAtMs.current) / 60000));
     setSummary({ exercises: exercisesSeen.current.size, sets: setsLogged.current, minutes });
     setPhase("done");
-    if (sessionId.current) void finishSession(sessionId.current);
+    // finishSession resolves once the activity row is QUEUED, not once it lands
+    // (the offline queue swallows delivery failures). Re-flush and check the
+    // result: a drained queue (true) means the row reached the server, so the
+    // points diff is real; still-queued (false, i.e. offline) → pass null so the
+    // completion screen shows no number rather than a false "already claimed
+    // today". The Home card reconciles to the true total once delivery catches
+    // up on the next foreground.
+    if (sessionId.current) {
+      void finishSession(sessionId.current).then(async () => {
+        const delivered = await flushQueue();
+        setEarn(await earnSince(delivered ? pointsBefore.current : null));
+      });
+    }
   }, []);
 
   const finishSet = useCallback(() => {
@@ -285,20 +311,29 @@ export default function WorkoutSession() {
       <Screen scroll={false}>
         <Stack.Screen options={{ headerShown: false }} />
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: space.md }}>
-          {/* the reward moment: gold sparks radiate from behind the diya */}
-          <View style={{ width: 200, height: 120, alignItems: "center", justifyContent: "center" }}>
-            <View style={{ position: "absolute" }} pointerEvents="none">
-              <CelebrationBurst size={220} />
-            </View>
-            <DiyaIcon size={72} />
-          </View>
+          {/* the reward moment: the diya lights, holds a beat, then the gold
+              sparks radiate slowly out from behind it (owner feedback: was too
+              fast). All timing lives in CompletionDiya. */}
+          <CompletionDiya diyaSize={72} burstSize={220} />
+
           <B k="workout_complete" variant="h1" center />
           <B k="great_work" variant="body" tone="muted" center />
-          <View style={{ flexDirection: "row", gap: space.xl, marginTop: space.lg }}>
-            <Stat n={summary.exercises} label={t("exercises_word")} />
-            <Stat n={summary.sets} label={t("sets_total_word")} />
-            <Stat n={summary.minutes} label={t("minutes_short")} />
-          </View>
+
+          {/* the reward hero — the Fit-Points this workout earned, counting up
+              once the finish has landed and the delta is read */}
+          <PointsEarned earned={earn?.earned ?? null} total={earn?.total ?? null} style={{ marginTop: space.md }} />
+
+          {/* the session at a glance — structured in a card, not three numbers
+              floating in space (owner: the completion screen felt sloppy) */}
+          <Card style={{ width: "100%", maxWidth: 420, marginTop: space.xs }}>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <Stat n={summary.exercises} label={t("exercises_word")} />
+              <StatDivider />
+              <Stat n={summary.sets} label={t("sets_total_word")} />
+              <StatDivider />
+              <Stat n={summary.minutes} label={t("minutes_short")} />
+            </View>
+          </Card>
 
           {/* The permission moment (spec slice 7). Shows itself only when it
               has something to ask for. */}
@@ -372,7 +407,10 @@ export default function WorkoutSession() {
         {/* in-session progress — sets completed across the whole workout */}
         <ProgressBar value={setsDone} max={totalSets} trailing={`${setsDone}/${totalSets}`} animated />
 
-        <AvatarTile height={200} playSize={52} silhouetteSize={92} />
+        {/* the exercise demo — real HLS when the team has uploaded one, else the
+            avatar placeholder (VideoHero decides). Keyed by exercise so it swaps
+            per set. */}
+        <VideoHero url={item.exercise.video?.playback_url} height={200} playSize={52} silhouetteSize={92} />
 
         <View>
           <View style={{ flexDirection: "row", alignItems: "baseline", justifyContent: "space-between" }}>
@@ -390,17 +428,17 @@ export default function WorkoutSession() {
           ) : null}
         </View>
 
-        {/* set progress + target */}
-        <Card style={{ alignItems: "center", paddingVertical: space.lg }}>
+        {/* set progress + target — the screen's focal card, given room to breathe */}
+        <Card style={{ alignItems: "center", paddingVertical: space.xl, gap: space.xs }}>
           <T variant="eyebrow" tone="gold">
             {t("set_word")} {target.setNo}/{eff.sets}
           </T>
           {timed ? (
-            <T variant="display" style={{ fontSize: 56, fontVariant: ["tabular-nums"], marginTop: space.xs }}>
+            <T variant="display" style={{ fontSize: 58, fontVariant: ["tabular-nums"], letterSpacing: 1 }}>
               {String(Math.floor((secLeft ?? 0) / 60)).padStart(2, "0")}:{String((secLeft ?? 0) % 60).padStart(2, "0")}
             </T>
           ) : (
-            <T variant="display" style={{ fontSize: 56, fontVariant: ["tabular-nums"], marginTop: space.xs }} tone="saffron">
+            <T variant="display" style={{ fontSize: 58, fontVariant: ["tabular-nums"], letterSpacing: 1 }} tone="saffron">
               ×{eff.reps ?? "—"}
             </T>
           )}
@@ -510,11 +548,16 @@ function PushOptIn() {
 
 function Stat({ n, label }: { n: number; label: string }) {
   return (
-    <View style={{ alignItems: "center" }}>
+    <View style={{ flex: 1, alignItems: "center", gap: 2 }}>
       <AnimatedNumber value={n} variant="h1" tone="gold" style={{ fontVariant: ["tabular-nums"] }} />
       <T variant="caption" tone="muted">
         {label}
       </T>
     </View>
   );
+}
+
+/** Hairline between the completion stats — structure without a heavy box. */
+function StatDivider() {
+  return <View style={{ width: 1, height: 32, backgroundColor: color.line }} />;
 }

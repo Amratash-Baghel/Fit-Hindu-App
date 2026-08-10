@@ -1,5 +1,16 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Animated, Easing, Pressable, ScrollView, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
+import Animated, {
+  cancelAnimation,
+  Easing,
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withSpring,
+  withTiming,
+} from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
 import {
   Screen,
@@ -9,6 +20,8 @@ import {
   B,
   T,
   DiyaIcon,
+  RewardOverlay,
+  useMotion,
   color,
   goldGradient,
   radius,
@@ -17,6 +30,7 @@ import {
 import { useI18n } from "../../src/lib/i18n";
 import { listMantras, getTodayDevotional, type MantraWithDeity } from "../../src/lib/content";
 import { logActivity } from "../../src/lib/activity";
+import { earnSince, pointsTodayNow } from "../../src/lib/points";
 import { feedback } from "../../src/lib/feedback";
 
 /** One mala. Fixed in v1 — see docs/specs/jap.md. */
@@ -34,6 +48,8 @@ export default function Jap() {
   const [reloadKey, setReloadKey] = useState(0);
   const [pickedDeityId, setPickedDeityId] = useState<string | null>(null);
   const [left, setLeft] = useState(MALA);
+  /** The reward shown when a mala completes (108 → 0); null = hidden. */
+  const [reward, setReward] = useState<{ earned: number | null; total: number | null } | null>(null);
   /**
    * The count's source of truth. State alone loses taps: a devotee chants
    * fast, and any two taps React batches into one render would both read the
@@ -106,13 +122,28 @@ export default function Jap() {
       // Mala complete (108) — a distinct "yes" you HEAR, not just another tick.
       feedback.success();
       // Only a COMPLETED mala is logged (spec) — partial malas aren't persisted in v1.
-      if (mantra) logActivity("jap", { deity_id: mantra.deity_id, count: MALA }, mantra.id);
-    } else if (next === 81 || next === 54 || next === 27) {
-      // Quarter markers — a slightly stronger nudge you feel, still no sound, so
-      // the mala stays a quiet count (the fix for the "108 beeps" irritation).
-      feedback.milestone();
+      if (mantra) {
+        const deityId = mantra.deity_id;
+        const mantraId = mantra.id;
+        // Snapshot points before the mala lands, log it, then diff — so the
+        // reward shows THIS mala's earn (the 1st mala today is +10, the 2nd +0
+        // once the flat base is banked, the 3rd +2, capped at 18).
+        void (async () => {
+          const before = await pointsTodayNow();
+          const ok = await logActivity("jap", { deity_id: deityId, count: MALA }, mantraId);
+          // Only diff against `before` if the write actually landed. If it
+          // failed (offline/guest/transient), pass null → earned is null → the
+          // overlay celebrates without a number, never the misleading "already
+          // claimed today" that a bare earned===0 would show.
+          const e = await earnSince(ok ? before : null);
+          setReward({ earned: e.earned, total: e.total });
+        })();
+      }
     } else {
-      feedback.count(); // the light per-count tick — HAPTIC ONLY, never a beep
+      // Every bead is a strong, definite thump you feel (owner override
+      // 2026-08-08). Still HAPTIC-ONLY — no beep — so 108 taps stay a felt
+      // count, not 108 chimes. The quarter markers ride the same heavy hit.
+      feedback.japTap();
     }
   }, [mantra, resetMala]);
 
@@ -217,65 +248,109 @@ export default function Jap() {
           )}
         </View>
       </ScrollView>
+
+      <RewardOverlay
+        visible={reward != null}
+        titleKey="jap_complete"
+        earned={reward?.earned ?? null}
+        total={reward?.total ?? null}
+        onDone={() => setReward(null)}
+      />
     </Screen>
   );
 }
 
 /**
- * The tap target: a gold diya face under a slow saffron halo pulse, so the
- * screen breathes while idle. Completion swaps the face for a lit diya.
+ * The tap target — reworked into a "precious artifact" (owner ask 2026-08-08):
+ * a gold diya jewel resting in a breathing halo, that on EVERY tap dips smaller
+ * then springs bigger with an overshoot, throws a ring-burst outward, and its
+ * glowing bed flares. Paired with the heavy per-tap haptic in `tap()`, the mala
+ * should feel satisfying to strike. Reanimated (UI thread) so 108 fast taps in
+ * a row never stutter on low-end Android.
  */
 function JapButton({ done, onPress }: { done: boolean; onPress: () => void }) {
   const { t } = useI18n();
-  // Animated.Value is an imperative handle, not render state. A lazy useState
-  // initializer gives one stable instance for the component's life without
-  // reading a ref during render (react-hooks/refs).
-  const [pulse] = useState(() => new Animated.Value(0));
-  const [press] = useState(() => new Animated.Value(0));
+  const enabled = useMotion();
+
+  const press = useSharedValue(1); // face scale — dips then overshoots per tap
+  const burst = useSharedValue(0); // ring expands + fades per tap
+  const glow = useSharedValue(0.35); // bed glow intensity — spikes per tap, settles
+  const halo = useSharedValue(0); // slow idle breathing 0..1
 
   useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulse, { toValue: 1, duration: 1600, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
-        Animated.timing(pulse, { toValue: 0, duration: 1600, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
-      ]),
+    if (!enabled) return;
+    halo.value = withRepeat(withTiming(1, { duration: 1800, easing: Easing.inOut(Easing.quad) }), -1, true);
+    return () => cancelAnimation(halo);
+  }, [enabled, halo]);
+
+  const strike = () => {
+    onPress();
+    if (!enabled) return;
+    // smaller → spring bigger (low damping overshoots past 1, then settles).
+    press.value = withSequence(
+      withTiming(0.9, { duration: 70, easing: Easing.out(Easing.quad) }),
+      withSpring(1, { damping: 7, stiffness: 220, mass: 0.7 }),
     );
-    loop.start();
-    return () => loop.stop();
-  }, [pulse]);
+    burst.value = 0;
+    burst.value = withTiming(1, { duration: 520, easing: Easing.out(Easing.cubic) });
+    glow.value = withSequence(
+      withTiming(0.95, { duration: 80 }),
+      withTiming(0.4, { duration: 640, easing: Easing.out(Easing.quad) }),
+    );
+  };
 
-  const flash = useCallback(() => {
-    press.setValue(1);
-    Animated.timing(press, { toValue: 0, duration: 260, easing: Easing.out(Easing.quad), useNativeDriver: true }).start();
-  }, [press]);
-
-  const haloScale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.18] });
-  const haloOpacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.34, 0.1] });
-  const faceScale = press.interpolate({ inputRange: [0, 1], outputRange: [1, 0.94] });
+  const haloStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(halo.value, [0, 1], [0.3, 0.14]),
+    transform: [{ scale: interpolate(halo.value, [0, 1], [1, 1.14]) }],
+  }));
+  const glowStyle = useAnimatedStyle(() => ({
+    opacity: glow.value,
+    transform: [{ scale: interpolate(glow.value, [0.35, 0.95], [1, 1.16]) }],
+  }));
+  const burstStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(burst.value, [0, 0.12, 1], [0, 0.75, 0]),
+    transform: [{ scale: interpolate(burst.value, [0, 1], [0.94, 1.7]) }],
+  }));
+  const faceStyle = useAnimatedStyle(() => ({ transform: [{ scale: press.value }] }));
 
   return (
     <Pressable
       accessibilityRole="button"
-      onPress={() => {
-        flash();
-        onPress();
-      }}
-      style={{ alignItems: "center", justifyContent: "center", width: 240, height: 240 }}
+      onPress={strike}
+      style={{ alignItems: "center", justifyContent: "center", width: 260, height: 260 }}
     >
-      {/* halo — pure decoration, never intercepts the tap */}
+      {/* slow saffron breathing halo — the artifact rests in it */}
       <Animated.View
         pointerEvents="none"
-        style={{
-          position: "absolute",
-          width: 210,
-          height: 210,
-          borderRadius: radius.chip,
-          backgroundColor: color.saffron,
-          opacity: haloOpacity,
-          transform: [{ scale: haloScale }],
-        }}
+        style={[
+          { position: "absolute", width: 226, height: 226, borderRadius: radius.chip, backgroundColor: color.saffron },
+          haloStyle,
+        ]}
       />
-      <Animated.View style={{ transform: [{ scale: faceScale }] }}>
+      {/* the glowing gold bed — flares on each strike */}
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          { position: "absolute", width: 208, height: 208, borderRadius: radius.chip, backgroundColor: color.goldHi },
+          glowStyle,
+        ]}
+      />
+      {/* the ring-burst thrown outward on each strike */}
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          {
+            position: "absolute",
+            width: 176,
+            height: 176,
+            borderRadius: radius.chip,
+            borderWidth: 3,
+            borderColor: color.goldHi,
+          },
+          burstStyle,
+        ]}
+      />
+      <Animated.View style={faceStyle}>
         <LinearGradient
           colors={goldGradient}
           start={{ x: 0.1, y: 0 }}
@@ -287,11 +362,13 @@ function JapButton({ done, onPress }: { done: boolean; onPress: () => void }) {
             alignItems: "center",
             justifyContent: "center",
             gap: space.xs,
+            borderWidth: 1,
+            borderColor: "rgba(255,240,200,0.55)", // a fine jewelled rim
             shadowColor: color.gold,
-            shadowOpacity: 0.5,
-            shadowRadius: 24,
+            shadowOpacity: 0.6,
+            shadowRadius: 26,
             shadowOffset: { width: 0, height: 0 },
-            elevation: 12,
+            elevation: 14,
           }}
         >
           {done ? (

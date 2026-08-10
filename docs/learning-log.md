@@ -10,6 +10,26 @@ Format:
 
 <!-- entries added at each /ship, newest on top -->
 
+- **2026-08-10 — deriving a per-event delta from a total you don't own**
+  (Fit-Points reward popup)
+  The reward says "you earned +10 फिट अंक" for one jap mala — but the app never
+  computes points. The server does (`points_summary`, migration 0020), and only
+  as a **running total**, with the daily caps and jap's per-round math baked
+  into SQL. So how do you show what ONE activity added? You don't ask "what did
+  this earn" — there is no such number to fetch. You **diff the total across the
+  event**: read the today-total *before* the write, read it again *after*, and
+  the difference is that activity's honest contribution. This is why a 2nd
+  workout the same day correctly shows **+0** ("already claimed") instead of a
+  fake +25 — the cap was already in the total, so the subtraction yields zero,
+  with *no* rule logic duplicated on the client. The subtlety the diff forces
+  into the open: the "after" read only means anything once the write has
+  actually landed, so the diff is gated on the write's success — see `earnSince`
+  in [src/lib/points.ts](../src/lib/points.ts) and its use in
+  [app/(tabs)/jap.tsx](../app/(tabs)/jap.tsx) (`before → log → earnSince(ok ?
+  before : null)`). Same shape as a bank statement: you learn a single
+  transaction's amount from the balance before and after, not from the bank
+  telling you the line item.
+
 - **2026-08-06 — the first-render race: sync vs async state** (UI motion pass)
   Our animation gate `useMotion()` must answer one question before a component
   animates: "should motion play?" — false on web and when the OS reduce-motion

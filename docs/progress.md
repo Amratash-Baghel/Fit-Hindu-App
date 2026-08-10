@@ -3,6 +3,77 @@
 Running build log — one entry per shipped item, newest on top. This is the
 standup doc for the owner and the resume-from-home lifeline.
 
+- **2026-08-10** — **Reward popups, video autoplay, sound-stop, premium polish
+  (owner device feedback).** Five fixes after the owner ran the build:
+  - **Per-activity Fit-Points reward.** Finishing a workout / meditation / jap
+    mala / sleep run now shows an earned-points moment (the lit diya + a
+    counting-up **"+N फिट अंक"** + running total). New `src/ui/Reward.tsx`
+    (`PointsEarned` block + `RewardOverlay` modal for the jap/sleep tabs) and
+    `src/lib/points.ts` `earnSince` — an honest **server before/after diff** of
+    `points_summary`, so it respects daily caps (a 2nd same-day workout truly
+    shows +0) and never scores on the client. Gated on the write landing, so a
+    failed/offline log shows the celebration without a false "already claimed".
+  - **Workout video = clean autoplay, no player chrome.** `VideoHero` rebuilt:
+    removed `nativeControls`, muted autoplay + loop, fades the stream in only on
+    `readyToPlay`, and **falls back to the avatar tile on any playback error**
+    (never a black box) with a `__DEV__` error label so a real Bunny/HLS failure
+    is diagnosable on device.
+  - **Sound now stops when you leave.** The Sleep tab stopped audio only on
+    unmount, but tabs stay mounted on a tab-switch → the loop escaped the
+    screen. Now stops on **blur** (`useFocusEffect`); a phone-lock (AppState
+    background) still keeps playing, as intended for falling asleep.
+  - **Premium polish:** workout completion reordered (reward as hero) with the
+    stats in a structured card; the Progress/tracker streak is now an ember-
+    gradient hero with dividers + a refined 30-day strip.
+  - Verified: typecheck + lint (clean on every touched file) + Metro web bundle
+    green; `/code-review` run (3 medium findings fixed: local `getSession` read,
+    and gating the points diff on write-success at all four sites); clicked
+    through jap/workout in the web preview, zero console errors.
+  ⚠️ **USER MUST:** ensure **migration 0020** is applied in Supabase or points
+  read zero (Home line AND the new reward popups). Video playback, audio-stop,
+  and the reward numbers are native / auth-gated — **verify on a device build.**
+
+- **2026-08-08** — **Feel & motion polish pass 2 (owner device feedback).**
+  After running the dev build the owner flagged that the motion promised in the
+  showcase wasn't landing on the phone. Fixed, all in `src/ui/` + the four
+  screens:
+  - **Gold-button bloom:** `PressableScale` gained an optional expanding-ring
+    "bloom" (the visible twin of the haptic); the gold `Button` now fires it on
+    every press. Ghost buttons stay a quiet dip.
+  - **Haptics strengthened:** `press` Light → **Medium** (Light was
+    imperceptible on most Android motors — "haptics don't work"); added a
+    **Heavy** tier; SFX volume 0.7 → 1.0 (the earned chimes were too quiet to
+    hear = "beep not functional").
+  - **Jap button = a "precious artifact":** rebuilt on Reanimated — every tap
+    now fires the **Heavy** haptic (owner override of the old light per-count
+    tick — still no beep), dips smaller then springs bigger with overshoot,
+    throws a gold ring-burst, and its glowing bed flares; slow breathing halo at
+    rest.
+  - **Completion diya (workout + meditation):** new `CompletionDiya` — the diya
+    now *lights up slowly*, holds ~1.1s, then the spark burst radiates over
+    ~1.5s (was an instant 900ms flash).
+  - **Daily-blessing tile flip:** new `FlipCard`; the "tap to reveal" tile now
+    does a real 3D Y-flip instead of a fade-swap.
+  - **Meditation Om:** new `BreathingOm` — layered breathing halos + a session
+    progress ring (react-native-svg) + warm backdrop gradient; was a bland
+    single pulse.
+  - **Audio stop:** `stopAudio()` now `pause()`s before `remove()` so a looping
+    player is silenced immediately (was: could play out a beat → "stop doesn't
+    work").
+  - **Video playback, finally wired:** installed `expo-video` (native) + its
+    config plugin; new `VideoHero` in `src/ui/` plays the exercise's HLS
+    (`video.playback_url`) and *falls back to the AvatarTile placeholder* for
+    null / `example.com` / web (so nothing breaks before real uploads exist).
+    Dropped into the session player and the exercise-detail hero. ⚠️ **expo-video
+    is a native module — the owner MUST rebuild the dev client** (`npx expo
+    run:android` or an EAS dev build); a JS reload will NOT pick it up. And it
+    only *shows* video once real exercise media is uploaded via the admin panel
+    (the seed URLs are `example.com` placeholders → they keep showing the tile).
+  - Typecheck + lint green on the diff (2 pre-existing `set-state-in-effect`
+    errors in untouched workout list/template screens remain). Web preview is a
+    smoke test only — the motion is intentionally inert on web (`useMotion()`
+    gate) and video is native-only, so the owner verifies the real *feel* +
+    playback on the dev build.
 - **2026-08-06** — **UI polish, motion & engagement (slices A–D of
   docs/specs/ui-polish.md).** Owner ask: fix messy haptics, kill the irritating
   per-tap beep, add a glinting video loader, make the app feel premium/rich/

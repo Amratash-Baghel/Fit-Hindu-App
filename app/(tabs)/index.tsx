@@ -3,7 +3,7 @@ import { Pressable, View } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Screen, Card, Chip, B, T, AnimatedNumber, Reveal, ProgressBar, Shimmer, PressableScale, color, radius, space } from "../../src/ui";
+import { Screen, Card, Chip, B, T, AnimatedNumber, Reveal, ProgressBar, Shimmer, FlipCard, color, radius, space } from "../../src/ui";
 import { feedback } from "../../src/lib/feedback";
 import {
   DumbbellIcon,
@@ -362,42 +362,60 @@ function DailyBlessing() {
 
   if (revealed === null) return null;
 
+  // The two faces of the flip. Each carries its own ember gradient so the whole
+  // tile turns over (owner ask 2026-08-08: reveal is a FLIP, not a fade-swap).
+  const face = {
+    padding: space.lg,
+    minHeight: 96,
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: space.md,
+  };
+  const front = (
+    <LinearGradient colors={["#241407", "#1C1510"]} start={{ x: 0, y: 0 }} end={{ x: 0.9, y: 1 }} style={face}>
+      <DiyaIcon size={30} dim />
+      <View style={{ flex: 1 }}>
+        <T variant="eyebrow" tone="gold">
+          {t("daily_blessing_title")}
+        </T>
+        <T variant="caption" tone="muted" style={{ marginTop: 2 }}>
+          {t("daily_blessing_tap")}
+        </T>
+      </View>
+      <ChevronRight />
+    </LinearGradient>
+  );
+  const back = (
+    <LinearGradient colors={["#2A1808", "#1C1510"]} start={{ x: 0, y: 0 }} end={{ x: 0.9, y: 1 }} style={face}>
+      <DiyaIcon size={30} />
+      <View style={{ flex: 1 }}>
+        <T variant="bodyBold" style={{ color: color.goldHi }}>
+          {t(blessingKey)}
+        </T>
+        <T variant="caption" tone="muted" style={{ marginTop: 2 }}>
+          {t("daily_blessing_footer")}
+        </T>
+      </View>
+    </LinearGradient>
+  );
+
   return (
-    <View style={{ borderRadius: radius.card, overflow: "hidden", borderWidth: 1, borderColor: "#4a3416" }}>
-      <LinearGradient colors={["#241407", "#1C1510"]} start={{ x: 0, y: 0 }} end={{ x: 0.9, y: 1 }}>
-        {revealed ? (
-          <Reveal distance={6} style={{ padding: space.lg, flexDirection: "row", alignItems: "center", gap: space.md }}>
-            <DiyaIcon size={30} />
-            <View style={{ flex: 1 }}>
-              <T variant="bodyBold" style={{ color: color.goldHi }}>
-                {t(blessingKey)}
-              </T>
-              <T variant="caption" tone="muted" style={{ marginTop: 2 }}>
-                {t("daily_blessing_footer")}
-              </T>
-            </View>
-          </Reveal>
-        ) : (
-          <PressableScale
-            onPress={reveal}
-            haptic={false}
-            scaleTo={0.98}
-            accessibilityLabel={t("daily_blessing_title")}
-            style={{ padding: space.lg, flexDirection: "row", alignItems: "center", gap: space.md }}
-          >
-            <DiyaIcon size={30} dim />
-            <View style={{ flex: 1 }}>
-              <T variant="eyebrow" tone="gold">
-                {t("daily_blessing_title")}
-              </T>
-              <T variant="caption" tone="muted" style={{ marginTop: 2 }}>
-                {t("daily_blessing_tap")}
-              </T>
-            </View>
-            <ChevronRight />
-          </PressableScale>
-        )}
-      </LinearGradient>
+    <View
+      style={{
+        borderRadius: radius.card,
+        overflow: "hidden",
+        borderWidth: 1,
+        borderColor: "#4a3416",
+        backgroundColor: color.surface, // shows on-brand at the flip's edge-on instant
+      }}
+    >
+      <FlipCard
+        front={front}
+        back={back}
+        flipped={revealed}
+        onPress={reveal}
+        accessibilityLabel={t("daily_blessing_title")}
+      />
       {/* faint sheen so the blessing card reads as something special */}
       <Shimmer mode="sheen" tint={color.goldHi} peak={0.1} />
     </View>

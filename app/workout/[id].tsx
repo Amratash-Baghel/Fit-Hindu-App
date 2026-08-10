@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { Screen, Card, T, Button, FooterAction, AvatarTile, color, radius, space } from "../../src/ui";
+import { Screen, Card, T, Button, FooterAction, VideoHero, color, space } from "../../src/ui";
 import { useI18n, type StringKey } from "../../src/lib/i18n";
 import { getExercise, type ExerciseWithMedia } from "../../src/lib/content";
 
@@ -71,8 +71,9 @@ export default function ExerciseDetail() {
     <Screen>
       <Stack.Screen options={{ headerShown: false }} />
 
-      {/* video hero — avatar demo (placeholder until real Bunny media) */}
-      <AvatarTile height={220} playSize={62} silhouetteSize={110} />
+      {/* video hero — plays the exercise's real HLS when uploaded, else the
+          avatar placeholder (VideoHero decides). */}
+      <VideoHero url={ex.video?.playback_url} height={220} playSize={62} silhouetteSize={110} />
 
       <T variant="h1" style={{ marginTop: space.lg }}>
         {loc(ex.name_hi, ex.name_en)}
