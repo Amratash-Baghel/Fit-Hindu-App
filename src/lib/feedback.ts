@@ -151,6 +151,45 @@ export const feedback = {
     haptic("success");
     playSfx("complete");
   },
+  /**
+   * The reward burst — a haptic that BUILDS mid-level and then RELEASES hard, in
+   * sync with the diya spark burst on the completion / Fit-Points reward screens
+   * (owner ask 2026-08-11: "a pop in sync with a diya burst — mid-level going
+   * linearly, then a high-intensity release"). CompletionDiya lights over ~1000ms
+   * and the sparks fire at ~1100ms, so the ramp rises across the light-up and the
+   * hard hit lands with the sparks. expo-haptics has no true waveform on Android,
+   * so discrete impacts on an accelerating cadence approximate the ramp.
+   *
+   * `ramp:false` (reduce-motion — the burst renders as one static frame, nothing
+   * to sync to) collapses to a single felt hit + confirm. Returns a cancel fn so
+   * a surface that unmounts mid-sequence stops the pending buzzes. Each scheduled
+   * hit re-checks the haptics pref via haptic(), so toggling off mid-burst mutes
+   * the rest.
+   */
+  rewardBurst(opts?: { ramp?: boolean }): () => void {
+    if (!getFeedbackPrefs().haptics || Platform.OS === "web") return () => {};
+    if (opts?.ramp === false) {
+      haptic("medium");
+      haptic("success");
+      return () => {};
+    }
+    const ids: ReturnType<typeof setTimeout>[] = [];
+    const at = (ms: number, kind: Buzz) => ids.push(setTimeout(() => haptic(kind), ms));
+    // rising mid-level ramp across the diya lighting — the gaps shrink
+    // (accelerando) so it reads as building tension, not a flat pulse train
+    at(110, "medium");
+    at(250, "medium");
+    at(380, "medium");
+    at(500, "medium");
+    at(610, "medium");
+    at(710, "heavy");
+    at(800, "heavy");
+    at(880, "heavy");
+    // the release — the "pop" that lands with the spark burst (~1100ms)
+    at(1080, "heavy");
+    at(1180, "success");
+    return () => ids.forEach(clearTimeout);
+  },
   /** The quiet end of a meditation — a light haptic + soft bell, deliberately
    *  gentler than the shared `complete` reward (the "timer sound"). */
   chime() {

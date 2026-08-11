@@ -2,6 +2,23 @@
 
 One dated line per decision, with the why. Newest on top.
 
+- **2026-08-11 (Bunny Stream needs an explicit Referer; media-URL logic lives in
+  `src/lib/media.ts`)** — native players and the native `<Image>` loader send no
+  Referer, and Bunny's Stream zone 403s referer-less requests, so video sources
+  and derived posters must attach one. Restored the helper that was lost when
+  this branch diverged from the video work. Why: the `VideoHero` rewrite dropped
+  it and silently fell back to placeholders on device though the old build played
+  fine — the app, not Bunny, was the problem.
+- **2026-08-11 (ambient audio teardown = pause-then-remove, always)** — a looping
+  expo-audio player keeps sounding after `remove()` alone, so swapping or stopping
+  without pausing first leaks an unreachable, still-looping player. Why: this was
+  the "sounds overlap and Stop does nothing" bug; one `teardown()` path (used by
+  both `playLoop`'s swap and `stopAudio`) keeps exactly one stoppable player.
+- **2026-08-11 (reward-burst haptic owned by `CompletionDiya`)** — the ramp→release
+  buzz fires from the diya component's own mount, not the calling screen. Why: it
+  then stays in sync with the sparks whether the diya is on a pushed completion
+  screen (workout) or a modal that mounts later (the Fit-Points `RewardOverlay`).
+
 - **2026-08-10 (per-activity reward = server before/after points diff, gated on
   write success)** — the "you earned N" popup reads `points_summary` before an
   activity is logged and again after, showing the delta. Why: points stay

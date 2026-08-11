@@ -119,7 +119,7 @@ export function RewardOverlay({ visible, titleKey, bodyKey, earned, total, onDon
           gap: space.md,
         }}
       >
-        <CompletionDiya diyaSize={72} burstSize={210} />
+        <CompletionDiya diyaSize={72} burstSize={210} celebrate />
         <B k={titleKey} variant="h1" center />
         {bodyKey ? <B k={bodyKey} variant="body" tone="muted" center /> : null}
         <PointsEarned earned={earned} total={total} style={{ marginTop: space.sm }} />

@@ -3,6 +3,31 @@
 Running build log — one entry per shipped item, newest on top. This is the
 standup doc for the owner and the resume-from-home lifeline.
 
+- **2026-08-11** — **Device-feedback fixes: sound overlap, Bunny video/thumbs,
+  haptics, reward-burst.** Four issues from the owner's device run of ebc27d5:
+  - **Ambient sound stacked + Stop did nothing.** `audio.ts` `playLoop` swapped
+    sounds with `player.remove()` and no `pause()` first — on this expo-audio
+    build a *looping* player keeps sounding after remove() alone, so every tap
+    orphaned an unreachable loop and Stop / Silent / Exit / the sleep timer only
+    killed the newest layer. Added a `teardown()` (pause **then** remove) used by
+    both the swap path and `stopAudio` → one stoppable player at all times.
+  - **Videos + thumbnails blank (fine on the old build).** The `VideoHero`
+    rewrite handed the raw Bunny URL to the player with **no Referer header**;
+    the Bunny Stream zone 403s referer-less requests → error → placeholder.
+    Restored `src/lib/media.ts` (the helper lost when this branch diverged):
+    HLS+Referer on native, MP4 on web, `posterUrl` derivation, `imageHeaders`.
+    `VideoHero` builds its source via `videoSource()`; `AvatarTile` renders real
+    posters again; the workout grid + detail + session pass `posterUrl(thumb,
+    video)`. App-side only — Bunny + DB untouched, exactly as the owner deduced.
+  - **Haptics silent.** The code was intact and default-on; the curated
+    `app.json` Android permission allowlist omitted **`android.permission.
+    VIBRATE`**. Added it. ⚠️ needs a dev-client REBUILD to take effect.
+  - **Reward-burst haptic (owner ask).** `feedback.rewardBurst()` — a mid-level
+    ramp that accelerates then **releases hard in sync with the diya spark burst
+    (~1100 ms)**. Fired from `CompletionDiya` via a new `celebrate` prop, on the
+    workout-complete screen + the Fit-Points `RewardOverlay` (jap/sleep); calm
+    surfaces (meditation) stay gentle. tsc clean; web bundle renders clean.
+
 - **2026-08-10** — **Reward popups, video autoplay, sound-stop, premium polish
   (owner device feedback).** Five fixes after the owner ran the build:
   - **Per-activity Fit-Points reward.** Finishing a workout / meditation / jap

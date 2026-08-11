@@ -12,6 +12,7 @@ import {
   type WorkoutTemplateSummary,
   type UserWorkoutSummary,
 } from "../../src/lib/content";
+import { posterUrl } from "../../src/lib/media";
 import type { BodyArea, WorkoutMode } from "../../src/types/db";
 
 type Tab = WorkoutMode | "custom";
@@ -75,6 +76,7 @@ export default function Workout() {
   }, [tab, area]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: load() flips to "loading" then immediately suspends on the fetch; the reset on tab/area change is a one-shot transition, not a cascading render.
     load();
   }, [load]);
 
@@ -271,7 +273,13 @@ function ExerciseGrid({ items, header }: { items: ExerciseWithMedia[]; header: R
         const sub = locSub(item.name_hi, item.name_en);
         return (
           <Card onPress={() => router.push(`/workout/${item.id}`)} style={{ flex: 1, padding: space.sm }}>
-            <AvatarTile aspectRatio={4 / 3} playSize={30} silhouetteSize={62} glint={false} />
+            <AvatarTile
+              aspectRatio={4 / 3}
+              image={posterUrl(item.thumb?.playback_url, item.video?.playback_url)}
+              playSize={30}
+              silhouetteSize={62}
+              glint={false}
+            />
             <View style={{ paddingHorizontal: space.xs, paddingTop: space.sm, paddingBottom: space.xs }}>
               <T variant="bodyBold" numberOfLines={1}>
                 {loc(item.name_hi, item.name_en)}

@@ -40,6 +40,25 @@ export function isPlaying(): boolean {
   return player != null && !paused;
 }
 
+/**
+ * Silence AND release a player. pause() must run BEFORE remove(): on this
+ * expo-audio build a *looping* player keeps sounding after remove() alone (the
+ * buffer/loop plays on), so tearing one down without pausing first leaks an
+ * audible, now-unreferenced loop. That leak is the "every tap stacks another
+ * sound and Stop / Silent / Exit do nothing" bug — each sound-switch orphaned a
+ * loop the singleton could no longer reach, so stopAudio() only ever killed the
+ * newest layer. Pausing first cuts the sound dead the instant the reference is
+ * dropped, whether we're swapping sources (playLoop) or stopping (stopAudio).
+ */
+function teardown(p: AudioPlayer): void {
+  try {
+    p.pause();
+  } catch {}
+  try {
+    p.remove();
+  } catch {}
+}
+
 async function ensureMode(background: boolean) {
   if (modeBackground === background) return;
   try {
@@ -79,7 +98,7 @@ export async function playLoop(source: string | number, opts?: { background?: bo
       return;
     }
     if (player) {
-      player.remove();
+      teardown(player); // pause-then-release: remove() alone would leave the old loop sounding
       player = null;
     }
     const next = createAudioPlayer(typeof source === "number" ? source : { uri: source });
@@ -146,13 +165,7 @@ export function stopAudio() {
   // "tap a sound, then stop before the audio mode finishes switching" leaks a
   // player that keeps looping past the stop — the exact bug this slice fixes.
   gen++;
-  try {
-    // Pause first, THEN release: on some expo-audio builds a looping player can
-    // keep sounding for a beat after remove() alone (the buffer plays out),
-    // which reads as "stop doesn't work". pause() silences it immediately.
-    player?.pause();
-    player?.remove();
-  } catch {}
+  if (player) teardown(player); // pause-then-release (see teardown) — the hard stop
   player = null;
   currentKey = null;
   paused = false;

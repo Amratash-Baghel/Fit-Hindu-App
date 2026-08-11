@@ -22,27 +22,19 @@
  * ever sees a URL string; where it is hosted (Bunny today) is not its concern.
  */
 import React, { useEffect, useState } from "react";
-import { Platform, StyleSheet, View, type ViewStyle } from "react-native";
+import { StyleSheet, View, type ViewStyle } from "react-native";
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { AvatarTile } from "./MediaTile";
 import { T } from "./Text";
 import { useMotion } from "./motion";
-
-/**
- * True only for a URL we can actually stream. Placeholder rows carry
- * example.com sentinels (supabase/seed.sql) and must show the tile, not a
- * broken player. Kept exported so screens can branch on it too if needed.
- */
-export function isPlayableVideoUrl(url?: string | null): url is string {
-  if (!url) return false;
-  if (!/^https?:\/\//i.test(url)) return false;
-  if (/(example\.com|localhost|127\.0\.0\.1|placeholder)/i.test(url)) return false;
-  return true;
-}
+import { videoSource, posterUrl, type VideoSource } from "../lib/media";
 
 interface Props {
   url?: string | null;
+  /** Team-uploaded thumbnail (exercises.thumb). Optional — when absent the
+   *  poster is derived from the video itself (Bunny's thumbnail.jpg). */
+  thumbUrl?: string | null;
   height?: number;
   /** Fill parent with an aspectRatio instead of a fixed height. */
   aspectRatio?: number;
@@ -63,6 +55,7 @@ interface Props {
 
 export function VideoHero({
   url,
+  thumbUrl,
   height,
   aspectRatio,
   playSize,
@@ -73,12 +66,18 @@ export function VideoHero({
   loop = true,
   muted = true,
 }: Props) {
-  const canPlay = Platform.OS !== "web" && isPlayableVideoUrl(url);
+  // videoSource() resolves to null for placeholder/non-Bunny URLs, HLS+Referer
+  // on native, MP4 on web — and it carries the header the Stream zone needs.
+  const source = videoSource(url);
+  // The poster sits UNDER the video (real frame while it buffers, and left in
+  // place if playback fails) — derived from the team thumb or Bunny's own frame.
+  const poster = posterUrl(thumbUrl, url);
 
   const placeholder = (
     <AvatarTile
       height={height}
       aspectRatio={aspectRatio}
+      image={poster}
       playSize={playSize}
       silhouetteSize={silhouetteSize}
       showBadge={showBadge}
@@ -86,14 +85,14 @@ export function VideoHero({
     />
   );
 
-  if (!canPlay) return placeholder;
+  if (!source) return placeholder;
 
-  // Key by URL so navigating to a different exercise builds a fresh player
-  // instead of trying to reuse one bound to the old stream.
+  // Key by the resolved URI so navigating to a different exercise builds a fresh
+  // player instead of trying to reuse one bound to the old stream.
   return (
     <NativeVideo
-      key={url}
-      url={url}
+      key={source.uri}
+      source={source}
       height={height}
       aspectRatio={aspectRatio}
       autoPlay={autoPlay}
@@ -105,7 +104,7 @@ export function VideoHero({
 }
 
 function NativeVideo({
-  url,
+  source,
   height,
   aspectRatio,
   autoPlay,
@@ -113,7 +112,7 @@ function NativeVideo({
   muted,
   placeholder,
 }: {
-  url: string;
+  source: VideoSource;
   height?: number;
   aspectRatio?: number;
   autoPlay: boolean;
@@ -122,7 +121,9 @@ function NativeVideo({
   placeholder: React.ReactNode;
 }) {
   const motion = useMotion();
-  const player = useVideoPlayer(url, (p) => {
+  // Pass the {uri, headers} object straight through — expo-video forwards the
+  // Referer header to the native player, which is what stops Bunny's 403.
+  const player = useVideoPlayer(source, (p) => {
     p.loop = loop;
     p.muted = muted;
     if (autoPlay) p.play();

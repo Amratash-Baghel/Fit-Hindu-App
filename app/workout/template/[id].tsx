@@ -36,6 +36,7 @@ export default function WorkoutTemplateScreen() {
   }, [id]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: load() flips to "loading" then immediately suspends on the fetch; the reset on id change is a one-shot transition, not a cascading render.
     load();
   }, [load]);
 

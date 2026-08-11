@@ -314,7 +314,7 @@ export default function WorkoutSession() {
           {/* the reward moment: the diya lights, holds a beat, then the gold
               sparks radiate slowly out from behind it (owner feedback: was too
               fast). All timing lives in CompletionDiya. */}
-          <CompletionDiya diyaSize={72} burstSize={220} />
+          <CompletionDiya diyaSize={72} burstSize={220} celebrate />
 
           <B k="workout_complete" variant="h1" center />
           <B k="great_work" variant="body" tone="muted" center />
@@ -410,7 +410,13 @@ export default function WorkoutSession() {
         {/* the exercise demo — real HLS when the team has uploaded one, else the
             avatar placeholder (VideoHero decides). Keyed by exercise so it swaps
             per set. */}
-        <VideoHero url={item.exercise.video?.playback_url} height={200} playSize={52} silhouetteSize={92} />
+        <VideoHero
+          url={item.exercise.video?.playback_url}
+          thumbUrl={item.exercise.thumb?.playback_url}
+          height={200}
+          playSize={52}
+          silhouetteSize={92}
+        />
 
         <View>
           <View style={{ flexDirection: "row", alignItems: "baseline", justifyContent: "space-between" }}>

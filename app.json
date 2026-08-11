@@ -18,6 +18,7 @@
       },
       "permissions": [
         "POST_NOTIFICATIONS",
+        "android.permission.VIBRATE",
         "android.permission.MODIFY_AUDIO_SETTINGS",
         "android.permission.FOREGROUND_SERVICE",
         "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, FlatList, TextInput, View } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { Screen, Card, Chip, Button, FooterAction, T, ChevronRight, color, space } from "../../../src/ui";
+import { Screen, Card, Chip, Button, FooterAction, T, color, space } from "../../../src/ui";
 import { useI18n } from "../../../src/lib/i18n";
 import {
   getUserWorkout,

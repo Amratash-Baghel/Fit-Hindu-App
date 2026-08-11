@@ -73,7 +73,13 @@ export default function ExerciseDetail() {
 
       {/* video hero — plays the exercise's real HLS when uploaded, else the
           avatar placeholder (VideoHero decides). */}
-      <VideoHero url={ex.video?.playback_url} height={220} playSize={62} silhouetteSize={110} />
+      <VideoHero
+        url={ex.video?.playback_url}
+        thumbUrl={ex.thumb?.playback_url}
+        height={220}
+        playSize={62}
+        silhouetteSize={110}
+      />
 
       <T variant="h1" style={{ marginTop: space.lg }}>
         {loc(ex.name_hi, ex.name_en)}

@@ -30,6 +30,7 @@ import Animated, {
 import { color } from "./tokens";
 import { DiyaIcon } from "./icons";
 import { useMotion } from "./motion";
+import { feedback } from "../lib/feedback";
 
 interface Props {
   /** Diameter of the burst field (sparks reach ~radius/2 out). */
@@ -106,10 +107,16 @@ export function CompletionDiya({
   diyaSize = 72,
   burstSize = 220,
   rays = 12,
+  celebrate = false,
 }: {
   diyaSize?: number;
   burstSize?: number;
   rays?: number;
+  /** Fire the reward-burst haptic (feedback.rewardBurst) on mount, timed to this
+   *  diya's light-up + spark burst. Off by default so the calm surfaces
+   *  (meditation) stay gentle; the workout-complete + Fit-Points reward screens
+   *  opt in. */
+  celebrate?: boolean;
 }) {
   const enabled = useMotion();
   // Drives the diya lighting up: 0 = cold/small/dark, 1 = fully lit.
@@ -121,6 +128,16 @@ export function CompletionDiya({
     // ~1s ignite — slow enough to read as "the flame catches".
     lit.value = withTiming(1, { duration: 1000, easing: Easing.out(Easing.cubic) });
   }, [enabled, lit]);
+
+  // The haptic twin of the burst — fires here, on the diya's own mount, so it
+  // stays in sync with the sparks whether this is a pushed completion screen
+  // (workout) or a modal that mounts later (the Fit-Points RewardOverlay).
+  // ramp:false when motion is off, since the burst then renders as one static
+  // frame with nothing to sync a ramp to. Returns rewardBurst's cancel fn.
+  useEffect(() => {
+    if (!celebrate) return;
+    return feedback.rewardBurst({ ramp: enabled });
+  }, [celebrate, enabled]);
 
   const glowStyle = useAnimatedStyle(() => ({
     opacity: interpolate(lit.value, [0, 1], [0, 0.42]),

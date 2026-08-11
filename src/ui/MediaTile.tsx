@@ -1,23 +1,35 @@
 /**
- * AvatarTile — the premium video-placeholder surface from the mockup:
- * ember gradient, avatar silhouette anchored to the bottom, "Our Avatar"
- * badge, gold play badge. Used by the workout grid, exercise hero, and the
- * meditation demo slot. When a real video/thumbnail exists the parent
- * renders that instead — this is the empty-slot state.
+ * AvatarTile — the video surface on the workout/meditation screens.
+ *
+ * Two states in one component:
+ *  - `image` given → render that real thumbnail/poster (Bunny/CDN media uploaded
+ *    via the admin panel, or Bunny's auto-generated frame), with the gold play
+ *    badge overlaid so it still reads as a tappable video. A failed load (offline,
+ *    referer-gated, revoked media) degrades to the placeholder, never a dark box.
+ *  - no `image` → the premium empty-slot placeholder from the mockup (ember
+ *    gradient, avatar silhouette, "Our Avatar" badge, optional glint).
+ *
+ * The real poster is why an exercise card shows the demo frame instead of a
+ * generic silhouette; the URL comes from src/lib/media.ts `posterUrl`, and the
+ * native <Image> gets the Bunny Referer via `imageHeaders` (the Stream zone 403s
+ * referer-less requests).
  */
-import React from "react";
-import { View } from "react-native";
+import React, { useState } from "react";
+import { Image, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { color, goldGradient } from "./tokens";
 import { T } from "./Text";
 import { Shimmer } from "./Shimmer";
 import { AvatarSilhouette, PlayIcon } from "./icons";
 import { useI18n } from "../lib/i18n";
+import { imageHeaders } from "../lib/media";
 
 interface Props {
   height?: number;
   /** fill parent with aspectRatio instead of fixed height */
   aspectRatio?: number;
+  /** thumbnail/poster URL; when set (and it loads), shown instead of the placeholder */
+  image?: string | null;
   playSize?: number;
   silhouetteSize?: number;
   showBadge?: boolean;
@@ -34,6 +46,7 @@ interface Props {
 export function AvatarTile({
   height,
   aspectRatio,
+  image,
   playSize = 48,
   silhouetteSize = 96,
   showBadge = true,
@@ -41,6 +54,11 @@ export function AvatarTile({
   loading = false,
 }: Props) {
   const { t } = useI18n();
+  // A failed load (offline, revoked/expired media) degrades to the premium
+  // placeholder rather than an empty dark tile.
+  const [imageFailed, setImageFailed] = useState(false);
+  const hasImage = !!image && !imageFailed;
+
   return (
     <View
       style={{
@@ -52,73 +70,78 @@ export function AvatarTile({
         borderColor: "#4a3416",
       }}
     >
-      <LinearGradient colors={["#2E1A08", "#160E06"]} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={{ flex: 1 }}>
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "flex-end" }}>
-          <AvatarSilhouette size={silhouetteSize} />
-        </View>
-
-        {showBadge ? (
-          <View
-            style={{
-              position: "absolute",
-              top: 8,
-              left: 8,
-              paddingHorizontal: 9,
-              paddingVertical: 3,
-              borderRadius: 999,
-              backgroundColor: "rgba(15,11,7,0.65)",
-              borderWidth: 1,
-              borderColor: "#4a3416",
-            }}
-          >
-            <T variant="eyebrow" tone="gold" style={{ fontSize: 9, letterSpacing: 1.2 }}>
-              {t("our_avatar")}
-            </T>
+      {hasImage ? (
+        <Image
+          source={{ uri: image!, headers: imageHeaders(image) }}
+          resizeMode="cover"
+          style={{ width: "100%", height: "100%" }}
+          onError={() => setImageFailed(true)}
+        />
+      ) : (
+        <LinearGradient colors={["#2E1A08", "#160E06"]} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={{ flex: 1 }}>
+          <View style={{ flex: 1, alignItems: "center", justifyContent: "flex-end" }}>
+            <AvatarSilhouette size={silhouetteSize} />
           </View>
-        ) : null}
 
-        {/* gold play badge */}
-        <View
+          {showBadge ? (
+            <View
+              style={{
+                position: "absolute",
+                top: 8,
+                left: 8,
+                paddingHorizontal: 9,
+                paddingVertical: 3,
+                borderRadius: 999,
+                backgroundColor: "rgba(15,11,7,0.65)",
+                borderWidth: 1,
+                borderColor: "#4a3416",
+              }}
+            >
+              <T variant="eyebrow" tone="gold" style={{ fontSize: 9, letterSpacing: 1.2 }}>
+                {t("our_avatar")}
+              </T>
+            </View>
+          ) : null}
+
+          {/* the glint — a diagonal shine sweeping across the placeholder. Only on
+              the empty state; a real poster doesn't need the "alive" sheen. */}
+          {glint ? (
+            <Shimmer mode={loading ? "loading" : "sheen"} tint={color.goldHi} peak={loading ? undefined : 0.22} />
+          ) : null}
+        </LinearGradient>
+      )}
+
+      {/* gold play badge — overlaid in BOTH states, so a real poster still reads
+          as a tappable video demo */}
+      <View
+        style={{
+          position: "absolute",
+          top: "50%",
+          left: "50%",
+          transform: [{ translateX: -playSize / 2 }, { translateY: -playSize / 2 }],
+          shadowColor: color.gold,
+          shadowOpacity: 0.4,
+          shadowRadius: 16,
+          shadowOffset: { width: 0, height: 6 },
+          elevation: 8,
+        }}
+      >
+        <LinearGradient
+          colors={goldGradient}
+          start={{ x: 0.2, y: 0 }}
+          end={{ x: 0.8, y: 1.2 }}
           style={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: [{ translateX: -playSize / 2 }, { translateY: -playSize / 2 }],
-            shadowColor: color.gold,
-            shadowOpacity: 0.4,
-            shadowRadius: 16,
-            shadowOffset: { width: 0, height: 6 },
-            elevation: 8,
+            width: playSize,
+            height: playSize,
+            borderRadius: 999,
+            alignItems: "center",
+            justifyContent: "center",
+            paddingLeft: playSize * 0.06,
           }}
         >
-          <LinearGradient
-            colors={goldGradient}
-            start={{ x: 0.2, y: 0 }}
-            end={{ x: 0.8, y: 1.2 }}
-            style={{
-              width: playSize,
-              height: playSize,
-              borderRadius: 999,
-              alignItems: "center",
-              justifyContent: "center",
-              paddingLeft: playSize * 0.06,
-            }}
-          >
-            <PlayIcon size={playSize * 0.42} />
-          </LinearGradient>
-        </View>
-
-        {/* the glint — a diagonal shine sweeping across the video surface. The
-            idle sheen keeps the hero feeling premium/alive; `loading` swaps in
-            the stronger media-is-loading sweep (docs/specs/ui-polish.md slice C). */}
-        {glint ? (
-          <Shimmer
-            mode={loading ? "loading" : "sheen"}
-            tint={color.goldHi}
-            peak={loading ? undefined : 0.22}
-          />
-        ) : null}
-      </LinearGradient>
+          <PlayIcon size={playSize * 0.42} />
+        </LinearGradient>
+      </View>
     </View>
   );
 }

@@ -21,4 +21,4 @@ export { AudioStopPill } from "./AudioStopPill";
 export { CeremonyLoader, type CeremonyStatus } from "./CeremonyLoader";
 export * from "./icons";
 export { AvatarTile } from "./MediaTile";
-export { VideoHero, isPlayableVideoUrl } from "./VideoHero";
+export { VideoHero } from "./VideoHero";
