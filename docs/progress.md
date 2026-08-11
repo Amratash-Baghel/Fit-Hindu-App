@@ -3,6 +3,16 @@
 Running build log — one entry per shipped item, newest on top. This is the
 standup doc for the owner and the resume-from-home lifeline.
 
+- **2026-08-11 — MILESTONE: v1 preserved, redesign starts.** Tagged
+  `v1-devotional-fitness` at 2dec26b — the full first build: onboarding +
+  guest-first auth, rule-based plan engine, workout (home/gym/custom, session
+  player, composed templates), meditation, mantra jap (108 mala), sleep sounds,
+  Fit-Points rewards, devotional home, notifications, settings. `onboarding-
+  auth-plan-engine` is frozen at this commit; all new work moves to the
+  `redesign` branch (branched from the same point). Recover or branch off v1
+  anytime: `git checkout v1-devotional-fitness`. From here: a complete app-wide
+  redesign.
+
 - **2026-08-11 (follow-up)** — **Reward-burst smoothness, workout-screen lag,
   completion/set-done polish.** Owner reloaded the first batch: the burst felt
   choppy and the screens basic.

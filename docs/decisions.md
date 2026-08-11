@@ -2,6 +2,15 @@
 
 One dated line per decision, with the why. Newest on top.
 
+- **2026-08-11 (v1 preserved as a milestone before the redesign)** — tagged
+  `v1-devotional-fitness` at 2dec26b (tip of `onboarding-auth-plan-engine`) and
+  branched `redesign` from the same point; `onboarding-auth-plan-engine` is now
+  frozen and untouched, all further work happens on `redesign`. Why: the app is
+  getting a complete rework starting now, and the owner wants the current fully
+  working build (onboarding → plan → workout/meditation/jap/sleep → rewards)
+  reachable and buildable-from at any time, independent of what the redesign
+  does. `git checkout v1-devotional-fitness` returns to it exactly;
+  `git checkout -b <branch> v1-devotional-fitness` builds on it separately.
 - **2026-08-11 (reward burst = one native `Vibration.vibrate` pattern, not
   JS-timed impacts)** — the accelerando+pop is delivered as a single native
   pattern so the OS schedules the whole timeline. Why: ten `setTimeout`-scheduled
