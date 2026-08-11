@@ -3,6 +3,23 @@
 Running build log — one entry per shipped item, newest on top. This is the
 standup doc for the owner and the resume-from-home lifeline.
 
+- **2026-08-11 (follow-up)** — **Reward-burst smoothness, workout-screen lag,
+  completion/set-done polish.** Owner reloaded the first batch: the burst felt
+  choppy and the screens basic.
+  - **Burst = one native vibration pattern**, not 10 JS-`setTimeout` impacts
+    (which land late on the busy JS thread while the completion screen animates →
+    the choppy feel). Accelerando (pulses lengthen 30→170ms as gaps shrink
+    120→25ms) into a 320ms sustained pop synced to the sparks. New
+    `feedback.completeChime()` plays the workout sound haptic-free so a
+    notification buzz doesn't fight the pattern on the same motor.
+  - **Lag:** memoised the exercise video so the per-second timer no longer
+    rebuilds it (the heaviest subtree); dropped the JS-timer haptic that hogged
+    the thread on completion.
+  - **Polish:** completion screen gets a warm gradient backdrop + staggered
+    `Reveal` (copy / points / stats assemble in *after* the burst) + a gold reward
+    block; the set screen gets a glowing target medallion + set-progress pips
+    (gold done · wide saffron current · dim upcoming). tsc + lint clean.
+
 - **2026-08-11** — **Device-feedback fixes: sound overlap, Bunny video/thumbs,
   haptics, reward-burst.** Four issues from the owner's device run of ebc27d5:
   - **Ambient sound stacked + Stop did nothing.** `audio.ts` `playLoop` swapped

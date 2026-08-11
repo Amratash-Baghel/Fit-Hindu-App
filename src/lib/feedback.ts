@@ -25,7 +25,7 @@
  * plays, and it resets the mode back on stopAudio() so that choice does not
  * leak into subsequent chirps.
  */
-import { Platform } from "react-native";
+import { Platform, Vibration } from "react-native";
 import * as Haptics from "expo-haptics";
 import { createAudioPlayer, type AudioPlayer } from "expo-audio";
 import { getFeedbackPrefs } from "./settings";
@@ -151,44 +151,55 @@ export const feedback = {
     haptic("success");
     playSfx("complete");
   },
+  /** Just the workout reward chime — the SOUND with no haptic, for a screen whose
+   *  haptic is the synced rewardBurst instead (so a notification buzz doesn't
+   *  fight the vibration pattern on the same vibrator). */
+  completeChime() {
+    playSfx("complete");
+  },
   /**
-   * The reward burst — a haptic that BUILDS mid-level and then RELEASES hard, in
-   * sync with the diya spark burst on the completion / Fit-Points reward screens
-   * (owner ask 2026-08-11: "a pop in sync with a diya burst — mid-level going
-   * linearly, then a high-intensity release"). CompletionDiya lights over ~1000ms
-   * and the sparks fire at ~1100ms, so the ramp rises across the light-up and the
-   * hard hit lands with the sparks. expo-haptics has no true waveform on Android,
-   * so discrete impacts on an accelerating cadence approximate the ramp.
+   * The reward burst — a haptic that BUILDS then RELEASES hard, in sync with the
+   * diya spark burst on the completion / Fit-Points reward screens (owner ask
+   * 2026-08-11: "smooth accelerating then burst — continuous, not choppy").
    *
-   * `ramp:false` (reduce-motion — the burst renders as one static frame, nothing
-   * to sync to) collapses to a single felt hit + confirm. Returns a cancel fn so
-   * a surface that unmounts mid-sequence stops the pending buzzes. Each scheduled
-   * hit re-checks the haptics pref via haptic(), so toggling off mid-burst mutes
-   * the rest.
+   * Delivered as ONE native vibration pattern, NOT a train of JS-scheduled
+   * impacts. The first version fired ten setTimeout impacts, which land late and
+   * unevenly on a busy JS thread (exactly while the completion screen mounts +
+   * animates) → the laggy, choppy feel. Handing the whole timeline to the OS
+   * (Vibration.vibrate) keeps it smooth no matter what the JS thread is doing.
+   *
+   * The ramp accelerates — pulses lengthen as the gaps shrink, revving up — then
+   * a short breath and a long sustained BURST that lands with the sparks (the
+   * diya burst fires at ~1100ms in CompletionDiya; the burst pulse starts ~1075).
+   * `ramp:false` (reduce-motion — the burst renders static) collapses to one firm
+   * hit. Returns a cancel fn so a surface unmounting mid-burst stops the buzz.
    */
   rewardBurst(opts?: { ramp?: boolean }): () => void {
     if (!getFeedbackPrefs().haptics || Platform.OS === "web") return () => {};
-    if (opts?.ramp === false) {
-      haptic("medium");
+    // iOS has no precise-waveform vibration API (Vibration ignores durations
+    // there); a single rich confirm stands in — iOS ships later, Android is what
+    // this pattern is tuned for.
+    if (Platform.OS !== "android") {
       haptic("success");
       return () => {};
     }
-    const ids: ReturnType<typeof setTimeout>[] = [];
-    const at = (ms: number, kind: Buzz) => ids.push(setTimeout(() => haptic(kind), ms));
-    // rising mid-level ramp across the diya lighting — the gaps shrink
-    // (accelerando) so it reads as building tension, not a flat pulse train
-    at(110, "medium");
-    at(250, "medium");
-    at(380, "medium");
-    at(500, "medium");
-    at(610, "medium");
-    at(710, "heavy");
-    at(800, "heavy");
-    at(880, "heavy");
-    // the release — the "pop" that lands with the spark burst (~1100ms)
-    at(1080, "heavy");
-    at(1180, "success");
-    return () => ids.forEach(clearTimeout);
+    // Android pattern = [waitMs, onMs, offMs, onMs, offMs, …]; the final, longest
+    // `on` is the burst. Durations climb (30→170) while gaps shrink (120→25) for
+    // the accelerando, then a 50ms breath, then the 320ms sustained pop.
+    const pattern =
+      opts?.ramp === false
+        ? [0, 45, 60, 220]
+        : [0, 30, 120, 40, 100, 55, 80, 75, 60, 100, 40, 130, 25, 170, 50, 320];
+    try {
+      Vibration.vibrate(pattern);
+    } catch {
+      // no vibrator / unsupported — silent
+    }
+    return () => {
+      try {
+        Vibration.cancel();
+      } catch {}
+    };
   },
   /** The quiet end of a meditation — a light haptic + soft bell, deliberately
    *  gentler than the shared `complete` reward (the "timer sound"). */

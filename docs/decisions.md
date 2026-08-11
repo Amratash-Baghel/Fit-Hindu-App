@@ -2,6 +2,12 @@
 
 One dated line per decision, with the why. Newest on top.
 
+- **2026-08-11 (reward burst = one native `Vibration.vibrate` pattern, not
+  JS-timed impacts)** — the accelerando+pop is delivered as a single native
+  pattern so the OS schedules the whole timeline. Why: ten `setTimeout`-scheduled
+  expo-haptics impacts fire late on a busy JS thread (exactly while the completion
+  screen animates), which reads as choppy; a native pattern stays smooth
+  regardless of the JS thread.
 - **2026-08-11 (Bunny Stream needs an explicit Referer; media-URL logic lives in
   `src/lib/media.ts`)** — native players and the native `<Image>` loader send no
   Referer, and Bunny's Stream zone 403s referer-less requests, so video sources

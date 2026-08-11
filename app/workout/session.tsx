@@ -19,12 +19,14 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { ActivityIndicator, TextInput, View } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useKeepAwake } from "expo-keep-awake";
+import { LinearGradient } from "expo-linear-gradient";
 import {
   Screen,
   Card,
   Button,
   FooterAction,
   ProgressBar,
+  Reveal,
   B,
   T,
   VideoHero,
@@ -32,6 +34,7 @@ import {
   PointsEarned,
   AnimatedNumber,
   color,
+  radius,
   space,
 } from "../../src/ui";
 import { useI18n } from "../../src/lib/i18n";
@@ -149,10 +152,29 @@ export default function WorkoutSession() {
     [source],
   );
 
+  /** The exercise demo, memoised on the exercise's own media so the per-second
+   *  timer re-renders (timed sets / rest countdown) never rebuild the video
+   *  subtree — the heaviest thing on the screen. The player + poster only swap
+   *  when the exercise itself changes. */
+  const videoEl = useMemo(
+    () => (
+      <VideoHero
+        url={item?.exercise.video?.playback_url}
+        thumbUrl={item?.exercise.thumb?.playback_url}
+        height={200}
+        playSize={52}
+        silhouetteSize={92}
+      />
+    ),
+    [item?.exercise.video?.playback_url, item?.exercise.thumb?.playback_url],
+  );
+
   const complete = useCallback(() => {
     if (completed.current) return;
     completed.current = true;
-    feedback.complete(); // workout finished — the reward chime
+    // The sound only — the completion haptic is the synced rewardBurst fired by
+    // CompletionDiya below, so a notification buzz here doesn't fight its pattern.
+    feedback.completeChime(); // workout finished — the reward chime
     const minutes = Math.max(1, Math.round((Date.now() - startedAtMs.current) / 60000));
     setSummary({ exercises: exercisesSeen.current.size, sets: setsLogged.current, minutes });
     setPhase("done");
@@ -310,30 +332,55 @@ export default function WorkoutSession() {
     return (
       <Screen scroll={false}>
         <Stack.Screen options={{ headerShown: false }} />
+        {/* warm backdrop so the reward glows out of depth instead of flat black */}
+        <LinearGradient
+          colors={["#1F1207", "#150E08", "#0C0906"]}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
+        />
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: space.md }}>
           {/* the reward moment: the diya lights, holds a beat, then the gold
-              sparks radiate slowly out from behind it (owner feedback: was too
-              fast). All timing lives in CompletionDiya. */}
-          <CompletionDiya diyaSize={72} burstSize={220} celebrate />
+              sparks radiate — with the synced haptic burst. Timing in CompletionDiya. */}
+          <CompletionDiya diyaSize={76} burstSize={232} celebrate />
 
-          <B k="workout_complete" variant="h1" center />
-          <B k="great_work" variant="body" tone="muted" center />
+          {/* copy + stats assemble in AFTER the burst, so the celebration lands
+              first and the screen builds itself around it */}
+          <Reveal delay={640}>
+            <B k="workout_complete" variant="h1" center />
+          </Reveal>
+          <Reveal delay={760}>
+            <B k="great_work" variant="body" tone="muted" center />
+          </Reveal>
 
-          {/* the reward hero — the Fit-Points this workout earned, counting up
-              once the finish has landed and the delta is read */}
-          <PointsEarned earned={earn?.earned ?? null} total={earn?.total ?? null} style={{ marginTop: space.md }} />
+          {/* the reward hero — the Fit-Points this workout earned, counting up */}
+          <Reveal delay={920} style={{ width: "100%", alignItems: "center" }}>
+            <PointsEarned earned={earn?.earned ?? null} total={earn?.total ?? null} style={{ marginTop: space.sm }} />
+          </Reveal>
 
-          {/* the session at a glance — structured in a card, not three numbers
-              floating in space (owner: the completion screen felt sloppy) */}
-          <Card style={{ width: "100%", maxWidth: 420, marginTop: space.xs }}>
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <Stat n={summary.exercises} label={t("exercises_word")} />
-              <StatDivider />
-              <Stat n={summary.sets} label={t("sets_total_word")} />
-              <StatDivider />
-              <Stat n={summary.minutes} label={t("minutes_short")} />
+          {/* the session at a glance — a gold-tinted card matching the points
+              hero, so the two read as one cohesive reward block */}
+          <Reveal delay={1080} style={{ width: "100%", alignItems: "center" }}>
+            <View
+              style={{
+                width: "100%",
+                maxWidth: 420,
+                borderRadius: radius.card,
+                borderWidth: 1,
+                borderColor: "rgba(217,164,65,0.28)",
+                backgroundColor: "rgba(217,164,65,0.06)",
+                paddingVertical: space.lg,
+              }}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <Stat n={summary.exercises} label={t("exercises_word")} />
+                <StatDivider />
+                <Stat n={summary.sets} label={t("sets_total_word")} />
+                <StatDivider />
+                <Stat n={summary.minutes} label={t("minutes_short")} />
+              </View>
             </View>
-          </Card>
+          </Reveal>
 
           {/* The permission moment (spec slice 7). Shows itself only when it
               has something to ask for. */}
@@ -408,15 +455,9 @@ export default function WorkoutSession() {
         <ProgressBar value={setsDone} max={totalSets} trailing={`${setsDone}/${totalSets}`} animated />
 
         {/* the exercise demo — real HLS when the team has uploaded one, else the
-            avatar placeholder (VideoHero decides). Keyed by exercise so it swaps
-            per set. */}
-        <VideoHero
-          url={item.exercise.video?.playback_url}
-          thumbUrl={item.exercise.thumb?.playback_url}
-          height={200}
-          playSize={52}
-          silhouetteSize={92}
-        />
+            avatar placeholder (VideoHero decides). Memoised (videoEl) so the
+            per-second timer never rebuilds it. */}
+        {videoEl}
 
         <View>
           <View style={{ flexDirection: "row", alignItems: "baseline", justifyContent: "space-between" }}>
@@ -434,17 +475,56 @@ export default function WorkoutSession() {
           ) : null}
         </View>
 
-        {/* set progress + target — the screen's focal card, given room to breathe */}
-        <Card style={{ alignItems: "center", paddingVertical: space.xl, gap: space.xs }}>
+        {/* set progress + target — the screen's focal medallion */}
+        <Card style={{ alignItems: "center", paddingVertical: space.xl, gap: space.sm, overflow: "hidden" }}>
+          {/* soft halo behind the target so the number glows off the card */}
+          <View
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              left: "50%",
+              top: "50%",
+              width: 200,
+              height: 200,
+              marginLeft: -100,
+              marginTop: -70,
+              borderRadius: 100,
+              backgroundColor: timed ? color.gold : color.saffron,
+              opacity: 0.08,
+            }}
+          />
           <T variant="eyebrow" tone="gold">
             {t("set_word")} {target.setNo}/{eff.sets}
           </T>
+          {/* pips — progress through THIS exercise's sets */}
+          <SetPips total={eff.sets} current={target.setNo} />
           {timed ? (
-            <T variant="display" style={{ fontSize: 58, fontVariant: ["tabular-nums"], letterSpacing: 1 }}>
+            <T
+              variant="display"
+              style={{
+                fontSize: 62,
+                fontVariant: ["tabular-nums"],
+                letterSpacing: 1,
+                textShadowColor: "rgba(242,200,121,0.45)",
+                textShadowRadius: 22,
+                textShadowOffset: { width: 0, height: 0 },
+              }}
+            >
               {String(Math.floor((secLeft ?? 0) / 60)).padStart(2, "0")}:{String((secLeft ?? 0) % 60).padStart(2, "0")}
             </T>
           ) : (
-            <T variant="display" style={{ fontSize: 58, fontVariant: ["tabular-nums"], letterSpacing: 1 }} tone="saffron">
+            <T
+              variant="display"
+              tone="saffron"
+              style={{
+                fontSize: 64,
+                fontVariant: ["tabular-nums"],
+                letterSpacing: 1,
+                textShadowColor: "rgba(240,118,30,0.5)",
+                textShadowRadius: 24,
+                textShadowOffset: { width: 0, height: 0 },
+              }}
+            >
               ×{eff.reps ?? "—"}
             </T>
           )}
@@ -566,4 +646,32 @@ function Stat({ n, label }: { n: number; label: string }) {
 /** Hairline between the completion stats — structure without a heavy box. */
 function StatDivider() {
   return <View style={{ width: 1, height: 32, backgroundColor: color.line }} />;
+}
+
+/**
+ * Set progress through the current exercise: sets already done are gold dots,
+ * the active set is a wide saffron pill, upcoming sets are dim. Capped at 8 so a
+ * high-set exercise never overflows the medallion.
+ */
+function SetPips({ total, current }: { total: number; current: number }) {
+  return (
+    <View style={{ flexDirection: "row", gap: 6, alignItems: "center" }}>
+      {Array.from({ length: Math.min(total, 8) }).map((_, i) => {
+        const n = i + 1;
+        const done = n < current;
+        const active = n === current;
+        return (
+          <View
+            key={i}
+            style={{
+              width: active ? 22 : 8,
+              height: 8,
+              borderRadius: 4,
+              backgroundColor: done ? color.gold : active ? color.saffron : color.line,
+            }}
+          />
+        );
+      })}
+    </View>
+  );
 }
