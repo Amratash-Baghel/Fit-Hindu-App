@@ -3,23 +3,49 @@ import { Pressable, View } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Screen, Card, Chip, B, T, AnimatedNumber, Reveal, ProgressBar, Shimmer, FlipCard, color, radius, space } from "../../src/ui";
+import { Screen, Card, Chip, T, AnimatedNumber, Reveal, ProgressBar, Shimmer, FlipCard, PressableScale, PillarCoin, Purna, color, pillar, radius, space, type PillarKey } from "../../src/ui";
 import { feedback } from "../../src/lib/feedback";
 import {
   DumbbellIcon,
-  BowlIcon,
   LotusIcon,
   OmGlyph,
-  MoonIcon,
   ChevronRight,
   DiyaIcon,
   SettingsIcon,
 } from "../../src/ui/icons";
 import { useI18n } from "../../src/lib/i18n";
 import { getTodayDevotional, type DevotionalToday } from "../../src/lib/content";
+import { useAuth } from "../../src/lib/auth";
+import { currentDaypart, istDayKey, type DaypartInfo } from "../../src/lib/daypart";
 import { useStreak } from "../../src/lib/streak";
 import { usePoints } from "../../src/lib/points";
+import {
+  usePillars,
+  pillarComplete,
+  pillarsCompleteCount,
+  ringOrder,
+  PILLAR_ORDER,
+  type PillarProgress,
+} from "../../src/lib/pillars";
 import type { PointsSummary } from "../../src/types/db";
+
+/** Icon for each pillar's ring centre, tinted to the pillar. */
+const PILLAR_ICON: Record<PillarKey, (c: string) => React.ReactNode> = {
+  body: (c) => <DumbbellIcon size={26} color={c} />,
+  mind: (c) => <LotusIcon size={26} color={c} />,
+  soul: (c) => <OmGlyph size={24} color={c} />,
+};
+
+/** Each ring is the door to its pillar page. Literal routes keep expo-router's
+ *  typed-routes happy (a template string would not narrow). */
+const PILLAR_ROUTE = {
+  body: "/(tabs)/body",
+  mind: "/(tabs)/mind",
+  soul: "/(tabs)/soul",
+} as const;
+
+/** Purna is shown once per IST day, persisted like the blessing. */
+const PURNA_STORAGE = "fithindu.purna.shown";
 
 /**
  * Daily Home — the habit surface (most polished screen in the app).
@@ -30,7 +56,47 @@ import type { PointsSummary } from "../../src/types/db";
 export default function Home() {
   const router = useRouter();
   const { t, loc, mode } = useI18n();
+  const { session } = useAuth();
+  const guest = !session;
   const [dev, setDev] = useState<DevotionalToday | null>(null);
+  const { pillars, refresh: refreshPillars } = usePillars();
+  // The daypart is re-read on every focus so crossing a boundary (e.g. into the
+  // evening) re-washes Home and re-orders the rings — Home stays mounted as a
+  // tab, so a mount-only read would go stale.
+  const [dp, setDp] = useState<DaypartInfo>(currentDaypart);
+  const [purnaVisible, setPurnaVisible] = useState(false);
+
+  // An activity finished inside a module lights its ring the moment the user
+  // lands back on Home; the daypart re-reads at the same time.
+  useFocusEffect(
+    useCallback(() => {
+      refreshPillars();
+      setDp(currentDaypart());
+    }, [refreshPillars]),
+  );
+
+  const complete = pillarsCompleteCount(pillars);
+
+  // Purna — the once-a-day "all three pillars done" moment. Fires when the third
+  // pillar closes, shown once per IST day (persisted like the blessing) so it is
+  // an event, not a nag. Guests can't complete a ring, so it never fires for them.
+  useEffect(() => {
+    if (guest || complete < 3) return;
+    let alive = true;
+    AsyncStorage.getItem(PURNA_STORAGE)
+      .then((v) => {
+        if (alive && v !== istDayKey()) setPurnaVisible(true);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [guest, complete]);
+
+  const dismissPurna = () => {
+    setPurnaVisible(false);
+    void AsyncStorage.setItem(PURNA_STORAGE, istDayKey()).catch(() => {});
+  };
 
   useEffect(() => {
     let alive = true;
@@ -42,19 +108,28 @@ export default function Home() {
     };
   }, []);
 
-  const dateLine = new Intl.DateTimeFormat(mode === "english" ? "en-IN" : "hi-IN", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    timeZone: "Asia/Kolkata",
-  }).format(new Date());
+  // ICU formatter construction is expensive on Hermes — rebuild only when the
+  // locale or the IST day changes, not on every render. Formatting the IST-noon
+  // instant of today's IST date (rather than `now`) makes the memo key exact:
+  // the line updates the first render after IST midnight, never mid-day.
+  const dayStamp = istDayKey();
+  const dateLine = useMemo(
+    () =>
+      new Intl.DateTimeFormat(mode === "english" ? "en-IN" : "hi-IN", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        timeZone: "Asia/Kolkata",
+      }).format(new Date(`${dayStamp}T12:00:00+05:30`)),
+    [mode, dayStamp],
+  );
 
   return (
-    <Screen>
+    <Screen wash={dp.wash}>
       {/* greeting + deity of the day */}
       <View style={{ flexDirection: "row", alignItems: "center", paddingTop: space.sm }}>
         <View style={{ flex: 1 }}>
-          <B k="greeting" variant="h1" noSub />
+          <T variant="h1">{t(dp.greetingKey)}</T>
           <T variant="caption" tone="muted">
             {dateLine}
           </T>
@@ -69,6 +144,40 @@ export default function Home() {
         >
           <SettingsIcon color={color.muted} />
         </Pressable>
+      </View>
+
+      {/* the day's standing — the one number that says whether today is done.
+          Guests see Begin-rings + the sign-in invitation instead. */}
+      {!guest ? (
+        <View style={{ alignItems: "center", marginTop: space.xs }}>
+          <T variant="eyebrow" tone="gold">
+            {t("today_saadhana")}
+          </T>
+          <T variant="caption" tone="muted" style={{ marginTop: 2 }}>
+            {t("saadhana_count")
+              .replace("{n}", String(complete))
+              .replace("{m}", String(PILLAR_ORDER.length))}
+          </T>
+        </View>
+      ) : null}
+
+      {/* the BMS hero — Body · Mind · Soul rings (docs/specs/redesign-bms.md).
+          Each circle is the door to its pillar page; the ring is today's
+          completion (e.g. mind 1/1 once meditation is logged). After sunset the
+          order flips so Soul leads — the day turns inward (dp.soulFirst). */}
+      <View style={{ alignItems: "center", gap: space.xl, paddingVertical: space.md }}>
+        {ringOrder(dp.soulFirst).map((k, i) => (
+          <PillarRing
+            key={k}
+            k={k}
+            icon={PILLAR_ICON[k](pillar[k])}
+            progress={pillars[k]}
+            done={pillarComplete(pillars[k])}
+            guest={guest}
+            delay={i * 90}
+            onPress={() => router.push(PILLAR_ROUTE[k])}
+          />
+        ))}
       </View>
 
       {/* today's shloka — ember card with ॐ watermark (mockup) */}
@@ -118,40 +227,95 @@ export default function Home() {
       {/* today's blessing — the gentle come-back-tomorrow reveal */}
       <DailyBlessing />
 
-      {/* today's cards */}
-      <TodayCard
-        icon={<DumbbellIcon color={color.saffron} />}
-        titleHi="आज का व्यायाम"
-        titleEn="Today's workout"
-        onPress={() => router.push("/(tabs)/workout")}
-      />
-      <TodayCard
-        icon={<BowlIcon color={color.gold} />}
-        gold
-        titleHi="आज का आहार"
-        titleEn="Today's diet"
-        onPress={() => router.push("/(tabs)/diet")}
-      />
-      <TodayCard
-        icon={<LotusIcon color={color.saffron} />}
-        titleHi="ध्यान"
-        titleEn="Meditation"
-        onPress={() => router.push("/(tabs)/meditation")}
-      />
-      <TodayCard
-        icon={<OmGlyph size={20} color={color.gold} />}
-        gold
-        titleHi="मंत्र जप"
-        titleEn="Mantra jap"
-        onPress={() => router.push("/(tabs)/jap")}
-      />
-      <TodayCard
-        icon={<MoonIcon color={color.saffron} />}
-        titleHi="नींद की ध्वनियाँ"
-        titleEn="Sleep sounds"
-        onPress={() => router.push("/(tabs)/sleep")}
-      />
+      {/* the day made whole — fires once when all three pillars close */}
+      <Purna visible={purnaVisible} onDismiss={dismissPurna} />
     </Screen>
+  );
+}
+
+/**
+ * One BMS circle: the pillar's ring (today's completion), its icon and count
+ * at the centre, the pillar name beneath. The whole thing is one tap target
+ * into the pillar page.
+ */
+function PillarRing({
+  k,
+  icon,
+  progress,
+  onPress,
+  delay,
+  done,
+  guest,
+}: {
+  k: PillarKey;
+  icon: React.ReactNode;
+  progress: PillarProgress;
+  onPress: () => void;
+  delay: number;
+  /** every one of this pillar's activities is logged today */
+  done: boolean;
+  /** no session — the ring is an invitation, not a count */
+  guest: boolean;
+}) {
+  const { t } = useI18n();
+  const tint = pillar[k];
+  const wash = pillar[`${k}Wash`];
+  const nameKey = `pillar_${k}` as const;
+  const subKey = `pillar_${k}_sub` as const;
+  return (
+    <Reveal delay={delay}>
+      <PressableScale
+        onPress={onPress}
+        scaleTo={0.97}
+        accessibilityLabel={
+          guest
+            ? `${t(nameKey)} — ${t("ring_begin")}`
+            : `${t(nameKey)} — ${t("pillar_done")
+                .replace("{n}", String(progress.done))
+                .replace("{m}", String(progress.total))}`
+        }
+        style={{ alignItems: "center" }}
+      >
+        <View>
+          <PillarCoin
+            size={168}
+            progress={guest ? 0 : progress.total ? progress.done / progress.total : 0}
+            tint={tint}
+            track={wash}
+          >
+            <View style={{ alignItems: "center" }}>
+              {icon}
+              {guest ? (
+                <T variant="h2" style={{ marginTop: 4, color: tint }}>
+                  {t("ring_begin")}
+                </T>
+              ) : (
+                <T variant="h1" style={{ marginTop: 2 }}>
+                  {progress.done}
+                  <T variant="h2" tone="muted">
+                    /{progress.total}
+                  </T>
+                </T>
+              )}
+            </View>
+          </PillarCoin>
+          {/* a lit diya crowns a pillar that's fully done today */}
+          {done ? (
+            <View style={{ position: "absolute", top: 2, right: 10 }}>
+              <DiyaIcon size={26} />
+            </View>
+          ) : null}
+        </View>
+        <View style={{ alignItems: "center", marginTop: space.sm }}>
+          <T variant="h2" style={{ color: tint }}>
+            {t(nameKey)}
+          </T>
+          <T variant="caption" tone={done ? "gold" : "muted"}>
+            {done ? t("pillar_complete") : t(subKey)}
+          </T>
+        </View>
+      </PressableScale>
+    </Reveal>
   );
 }
 
@@ -263,7 +427,7 @@ function PointsRow({ points }: { points: PointsSummary | null }) {
       : null;
   const nextLine =
     daysToNext != null && points.next_milestone_bonus != null
-      ? t("points_next_milestone")
+      ? t(daysToNext === 1 ? "points_next_milestone_one" : "points_next_milestone")
           .replace("{d}", String(daysToNext))
           .replace("{b}", String(points.next_milestone_bonus))
       : t("points_milestone_max");
@@ -311,11 +475,6 @@ const BLESSING_KEYS = [
   "blessing_7",
 ] as const;
 const BLESSING_STORAGE = "fithindu.blessing.revealed";
-
-/** IST calendar day (YYYY-MM-DD) — the blessing's once-per-day key. */
-function istDayKey(): string {
-  return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
-}
 
 /**
  * Daily blessing (docs/specs/ui-polish.md slice E) — a once-per-IST-day
@@ -422,48 +581,3 @@ function DailyBlessing() {
   );
 }
 
-function TodayCard({
-  icon,
-  titleHi,
-  titleEn,
-  onPress,
-  gold,
-  soon,
-}: {
-  icon: React.ReactNode;
-  titleHi: string;
-  titleEn: string;
-  onPress?: () => void;
-  gold?: boolean;
-  soon?: string;
-}) {
-  const { loc, locSub } = useI18n();
-  const sub = locSub(titleHi, titleEn);
-  return (
-    <Card onPress={onPress} style={{ paddingVertical: space.md }}>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: space.md }}>
-        <View
-          style={{
-            width: 46,
-            height: 46,
-            borderRadius: 13,
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: gold ? "rgba(217,164,65,0.13)" : "rgba(240,118,30,0.13)",
-          }}
-        >
-          {icon}
-        </View>
-        <View style={{ flex: 1 }}>
-          <T variant="bodyBold">{loc(titleHi, titleEn)}</T>
-          {sub ? (
-            <T variant="caption" tone="muted">
-              {sub}
-            </T>
-          ) : null}
-        </View>
-        {soon ? <Chip label={soon} /> : onPress ? <ChevronRight /> : null}
-      </View>
-    </Card>
-  );
-}

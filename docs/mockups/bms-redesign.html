@@ -1,0 +1,1045 @@
+<title>Fit Hindu — BMS Interactive Mockup</title>
+<style>
+  /* ————— Fit Hindu design tokens (frozen from src/ui/tokens.ts) ————— */
+  :root{
+    --ink:#0F0B07; --surface:#1C1510; --surface2:#28201A; --line:#3A2E24;
+    --saffron:#F0761E; --saffron-wash:rgba(240,118,30,.14); --sindoor:#B84A16;
+    --gold:#D9A441; --gold-hi:#F2C879; --gold-wash:rgba(217,164,65,.14);
+    --mind:#8FA3E8; --mind-wash:rgba(143,163,232,.14);
+    --cream:#F6EDDD; --muted:#A8917A; --soft:#D9CBB8;
+    --stage:#070503;
+    --sans:"Segoe UI","Nirmala UI",system-ui,-apple-system,"Noto Sans Devanagari",sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{background:var(--stage)}
+  body{
+    font-family:var(--sans); color:var(--cream);
+    min-height:100vh; display:flex; flex-direction:column; align-items:center;
+    justify-content:center; gap:18px; padding:28px 12px;
+    background:
+      radial-gradient(60% 50% at 50% 42%, rgba(217,164,65,.05), transparent 70%),
+      var(--stage);
+  }
+
+  /* ————— stage chrome (outside the phone) ————— */
+  .stage-cap{display:flex;align-items:center;gap:14px;color:var(--muted);font-size:12.5px;letter-spacing:.4px}
+  .stage-cap b{color:var(--gold-hi);font-weight:600;letter-spacing:2px;text-transform:uppercase;font-size:11px}
+  .stage-cap button{
+    font:inherit;color:var(--gold-hi);background:none;border:1px solid var(--line);
+    border-radius:999px;padding:6px 14px;cursor:pointer;letter-spacing:.4px;transition:border-color .2s,background .2s;
+  }
+  .stage-cap button:hover{border-color:var(--gold);background:rgba(217,164,65,.08)}
+  .stage-cap button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+
+  /* ————— the phone ————— */
+  .phone{
+    position:relative; width:390px; height:812px; max-width:96vw;
+    border-radius:46px; background:var(--ink); overflow:hidden;
+    border:1px solid #241a10;
+    box-shadow:0 0 0 9px #17110b, 0 0 0 10px #2c2115, 0 42px 90px rgba(0,0,0,.75),
+               0 0 120px rgba(217,164,65,.05);
+  }
+  .statusbar{
+    position:absolute;top:0;left:0;right:0;height:34px;z-index:40;
+    display:flex;justify-content:space-between;align-items:center;
+    padding:12px 26px 0;font-size:12px;font-weight:600;color:rgba(246,237,221,.72);
+    pointer-events:none;font-variant-numeric:tabular-nums;
+  }
+
+  /* ————— screens & transitions ————— */
+  .screen{
+    position:absolute;inset:0;background:var(--ink);
+    opacity:0;transform:translateY(10px) scale(.995);pointer-events:none;
+    transition:opacity .38s ease,transform .38s cubic-bezier(.22,1,.36,1);
+    display:flex;flex-direction:column;overflow:hidden;
+  }
+  .screen.active{opacity:1;transform:none;pointer-events:auto}
+  .scroll{flex:1;overflow-y:auto;overscroll-behavior:contain;padding:52px 18px 96px;scrollbar-width:none}
+  .scroll::-webkit-scrollbar{display:none}
+
+  /* ————— shared bits ————— */
+  .press{transition:transform .38s cubic-bezier(.34,1.6,.64,1)}
+  .press.down{transform:scale(.965);transition:transform .1s ease}
+  .card{
+    position:relative;background:var(--surface);border:1px solid var(--line);
+    border-radius:18px;padding:16px;overflow:hidden;
+  }
+  .eyebrow{font-size:11px;font-weight:700;letter-spacing:2.4px;color:var(--gold);text-transform:uppercase}
+  .cap{font-size:12.5px;color:var(--muted);line-height:1.45}
+  .hi{font-size:17px;font-weight:700;line-height:1.4}
+  h1.pg{font-size:24px;font-weight:800;letter-spacing:.2px}
+  .chev{color:var(--muted);flex:none}
+  .num{font-variant-numeric:tabular-nums}
+
+  /* glint sweep — the golden sheen the jap button made famous */
+  .glint{position:relative;overflow:hidden}
+  .glint::after{
+    content:"";position:absolute;inset:-40%;pointer-events:none;
+    background:linear-gradient(115deg,transparent 42%,rgba(242,200,121,.16) 50%,transparent 58%);
+    transform:translateX(-130%) rotate(0.001deg);
+    animation:sweep 6s ease-in-out infinite;
+  }
+  @keyframes sweep{0%,55%{transform:translateX(-130%)}75%,100%{transform:translateX(130%)}}
+
+  /* press bloom — expanding gold ring */
+  .bloom-ring{
+    position:absolute;border:2px solid var(--gold-hi);border-radius:inherit;inset:0;
+    opacity:0;pointer-events:none;
+  }
+  .bloom-ring.go{animation:bloom .55s ease-out}
+  @keyframes bloom{0%{opacity:.65;transform:scale(.94)}100%{opacity:0;transform:scale(1.22)}}
+
+  /* spark burst */
+  .spark{
+    position:absolute;width:7px;height:7px;border-radius:50%;
+    background:radial-gradient(circle,#FFF3D6,var(--gold-hi) 55%,transparent 75%);
+    pointer-events:none;z-index:60;
+    animation:spark .8s cubic-bezier(.16,.84,.44,1) forwards;
+  }
+  @keyframes spark{
+    0%{transform:translate(0,0) scale(1);opacity:1}
+    100%{transform:translate(var(--dx),var(--dy)) scale(.15);opacity:0}
+  }
+
+  /* ══════════ SPLASH ══════════ */
+  #splash{
+    position:absolute;inset:0;z-index:50;overflow:hidden;cursor:pointer;
+    background:
+      radial-gradient(85% 62% at 50% 46%,#1A110A 0%,var(--ink) 55%,#080502 100%);
+    opacity:1;transition:opacity .6s ease;
+  }
+  #splash.gone{opacity:0;pointer-events:none}
+  .sp-glow{
+    position:absolute;left:50%;top:365px;width:430px;height:440px;
+    transform:translate(-50%,-52%) scale(.7);opacity:0;
+    background:radial-gradient(closest-side,rgba(242,200,121,.5) 0%,rgba(240,118,30,.16) 42%,rgba(184,74,22,.05) 68%,transparent 78%);
+    transition:opacity 1s ease,transform 1.1s cubic-bezier(.22,1,.36,1);
+  }
+  .sp-halo{
+    position:absolute;left:50%;top:284px;width:190px;height:190px;
+    transform:translate(-50%,-50%) scale(.75);opacity:0;
+    background:radial-gradient(closest-side,rgba(255,243,214,.75),rgba(242,200,121,.22) 55%,transparent 72%);
+    transition:opacity .9s ease .15s,transform 1s cubic-bezier(.22,1,.36,1) .15s;
+  }
+  #splash.p2 .sp-glow{opacity:1;transform:translate(-50%,-52%) scale(1)}
+  #splash.p2 .sp-halo{opacity:1;transform:translate(-50%,-50%) scale(1)}
+  #splash.p4 .sp-glow{animation:breathe 4.5s ease-in-out 1.4s infinite}
+  @keyframes breathe{0%,100%{transform:translate(-50%,-52%) scale(1)}50%{transform:translate(-50%,-52%) scale(1.045)}}
+
+  .sp-fig{
+    position:absolute;left:50%;top:212px;width:286px;
+    transform:translateX(-50%) translateY(16px);opacity:0;
+    transition:opacity .7s ease,transform .8s cubic-bezier(.22,1,.36,1);
+    filter:drop-shadow(0 0 22px rgba(0,0,0,.55));
+  }
+  #splash.p1 .sp-fig{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  .petal-w{position:absolute;pointer-events:none}
+  .petal-i{
+    opacity:0;transform:translateY(20px) scale(.5);transform-origin:50% 100%;
+    transition:opacity .5s ease,transform .62s cubic-bezier(.3,1.4,.5,1);
+  }
+  #splash.p3 .petal-i{opacity:1;transform:none}
+
+  .sp-word{
+    position:absolute;left:0;right:0;bottom:88px;text-align:center;
+    opacity:0;transform:translateY(12px);
+    transition:opacity .55s ease,transform .6s cubic-bezier(.22,1,.36,1);
+  }
+  #splash.p4 .sp-word{opacity:1;transform:none}
+  .sp-word .wm{
+    font-size:30px;font-weight:800;letter-spacing:3px;color:var(--gold-hi);
+    text-shadow:0 0 30px rgba(217,164,65,.35);
+  }
+  .sp-word .tg{margin-top:8px;font-size:14.5px;color:var(--soft)}
+  .sp-word .tg-en{margin-top:3px;font-size:11.5px;color:var(--muted);letter-spacing:.6px}
+  .sp-skip{position:absolute;bottom:26px;left:0;right:0;text-align:center;font-size:11px;color:rgba(168,145,122,.55);letter-spacing:1px}
+
+  .mote{
+    position:absolute;width:4px;height:4px;border-radius:50%;
+    background:radial-gradient(circle,rgba(242,200,121,.9),transparent 70%);
+    opacity:0;animation:rise 7s linear infinite;
+  }
+  @keyframes rise{
+    0%{opacity:0;transform:translateY(0) scale(.6)}
+    12%{opacity:.7}60%{opacity:.45}
+    100%{opacity:0;transform:translateY(-330px) scale(1.15)}
+  }
+
+  /* ══════════ HOME ══════════ */
+  .home-head{text-align:center;padding-top:10px}
+  .home-head .wm{
+    font-size:21px;font-weight:800;letter-spacing:4px;color:var(--gold-hi);
+    text-shadow:0 0 26px rgba(217,164,65,.3);
+  }
+  .home-head .date{margin-top:3px;font-size:12.5px;color:var(--muted)}
+  .home-head .greet{color:var(--soft);font-size:13px;margin-top:1px}
+
+  .rings{display:flex;flex-direction:column;align-items:center;gap:22px;margin:20px 0 6px}
+  .ringbtn{background:none;border:none;color:inherit;font:inherit;cursor:pointer;text-align:center;position:relative;border-radius:20px;padding:4px 26px}
+  .ringbtn:focus-visible{outline:2px solid var(--gold);outline-offset:4px;border-radius:20px}
+  .ringwrap{position:relative;width:138px;height:138px;margin:0 auto}
+  .ringwrap svg{transform:rotate(-90deg)}
+  .ringwrap .ic{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+  .ringwrap .frac{font-size:23px;font-weight:800;font-variant-numeric:tabular-nums}
+  .ringwrap .frac small{font-size:15px;font-weight:700;color:var(--muted)}
+  .ring-fg{transition:stroke-dashoffset 1s cubic-bezier(.22,1,.36,1)}
+  .ringlbl{margin-top:8px}
+  .ringlbl .nm{font-size:19px;font-weight:800;letter-spacing:.5px}
+  .ringlbl .en{font-size:11.5px;color:var(--muted);letter-spacing:1.6px;text-transform:uppercase;margin-top:1px}
+  .done-chip{
+    display:none;position:absolute;top:2px;right:8px;background:var(--gold);color:#241503;
+    font-size:10.5px;font-weight:800;border-radius:999px;padding:3px 8px;letter-spacing:.5px;
+  }
+  .ringbtn.alldone .done-chip{display:block;animation:chipin .45s cubic-bezier(.3,1.5,.5,1)}
+  @keyframes chipin{0%{transform:scale(.4);opacity:0}100%{transform:scale(1);opacity:1}}
+
+  /* streak / sankalp card */
+  .diya-row{display:flex;justify-content:space-between;margin-top:14px}
+  .diya{width:26px;height:30px}
+  .flame{transform-origin:50% 85%;animation:flick 2.6s ease-in-out infinite}
+  .diya:nth-child(2) .flame{animation-delay:.4s}.diya:nth-child(3) .flame{animation-delay:.9s}
+  .diya:nth-child(4) .flame{animation-delay:.2s}.diya:nth-child(5) .flame{animation-delay:1.3s}
+  .diya:nth-child(6) .flame{animation-delay:.7s}.diya:nth-child(7) .flame{animation-delay:1.7s}
+  @keyframes flick{0%,100%{transform:scale(1) rotate(0)}30%{transform:scale(1.12,1.06) rotate(-2deg)}60%{transform:scale(.94,1.02) rotate(2deg)}}
+  .pt-bar{height:6px;border-radius:3px;background:var(--surface2);margin-top:10px;overflow:hidden}
+  .pt-fill{height:100%;width:0;border-radius:3px;background:linear-gradient(90deg,var(--gold),var(--gold-hi));transition:width 1s cubic-bezier(.22,1,.36,1)}
+  .act-strip{display:flex;gap:7px;margin-top:12px;align-items:center}
+  .act-dot{width:9px;height:9px;border-radius:50%;background:var(--surface2);border:1px solid var(--line)}
+  .act-dot.on{background:var(--gold);border-color:var(--gold);box-shadow:0 0 8px rgba(217,164,65,.5)}
+  .act-dot.today{width:11px;height:11px}
+
+  /* blessing flip */
+  .flip{perspective:1000px;cursor:pointer}
+  .flip-inner{position:relative;transform-style:preserve-3d;transition:transform .65s cubic-bezier(.3,1.25,.45,1)}
+  .flip.open .flip-inner{transform:rotateY(180deg)}
+  .face{
+    backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:18px;border:1px solid #4a3416;
+    padding:18px;min-height:98px;display:flex;align-items:center;gap:14px;
+    background:linear-gradient(125deg,#241407,#1C1510);
+  }
+  .face.back{position:absolute;inset:0;transform:rotateY(180deg);background:linear-gradient(125deg,#2A1808,#1C1510)}
+
+  /* ══════════ PILLAR PAGES ══════════ */
+  .pill-head{padding:14px 2px 4px}
+  .pill-head .sub{color:var(--muted);font-size:13px;margin-top:2px}
+  .tiles{flex:1;display:flex;flex-direction:column;gap:12px;padding-bottom:8px}
+  .tile{
+    position:relative;flex:1;border-radius:20px;border:1px solid var(--line);
+    background:var(--surface);overflow:hidden;padding:18px;display:flex;
+    flex-direction:column;justify-content:space-between;cursor:pointer;min-height:120px;
+    text-align:left;color:inherit;font:inherit;
+  }
+  .tile:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+  .tile .wash{position:absolute;inset:0;pointer-events:none}
+  .tile .row{display:flex;justify-content:space-between;align-items:flex-start;position:relative}
+  .icslot{width:52px;height:52px;border-radius:15px;display:flex;align-items:center;justify-content:center;font-size:24px}
+  .tile .t-hi{font-size:23px;font-weight:800;position:relative}
+  .tile .t-en{font-size:12px;color:var(--muted);margin-top:2px;position:relative}
+  .tile.soon{opacity:.6;cursor:default}
+  .soon-chip{font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:4px 10px;background:var(--surface2)}
+  .tick{
+    display:none;position:absolute;right:16px;bottom:18px;width:26px;height:26px;border-radius:50%;
+    background:var(--gold);color:#241503;font-weight:800;font-size:14px;
+    align-items:center;justify-content:center;
+  }
+  .tile.done .tick{display:flex;animation:chipin .4s cubic-bezier(.3,1.5,.5,1)}
+
+  .backbtn{
+    display:flex;align-items:center;gap:6px;background:none;border:none;color:var(--muted);
+    font:inherit;font-size:13.5px;cursor:pointer;padding:6px 2px;margin-top:6px;
+  }
+  .backbtn:focus-visible{outline:2px solid var(--gold);outline-offset:2px;border-radius:8px}
+
+  /* ══════════ WORKOUT ══════════ */
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+  .chip{
+    font:inherit;font-size:13px;color:var(--soft);background:var(--surface2);
+    border:1px solid var(--line);border-radius:999px;padding:7px 14px;cursor:pointer;
+    transition:all .2s;
+  }
+  .chip.on{background:var(--saffron-wash);border-color:var(--saffron);color:var(--saffron);font-weight:700}
+  .chip:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+  .bodies{display:flex;justify-content:space-evenly;margin-top:14px}
+  .bodyfig{text-align:center}
+  .bodyfig .lbl{font-size:11.5px;color:var(--muted);margin-top:4px;letter-spacing:1px}
+  .m-reg{fill:var(--surface2);stroke:var(--line);stroke-width:1.4;cursor:pointer;transition:fill .25s,stroke .25s}
+  .m-reg:hover{stroke:var(--muted)}
+  .m-reg.on{fill:rgba(240,118,30,.55);stroke:var(--saffron)}
+  .m-fill{fill:#221912}
+  .exlist{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+  .exrow{
+    display:flex;align-items:center;gap:12px;background:var(--surface);
+    border:1px solid var(--line);border-radius:14px;padding:11px 14px;
+  }
+  .exrow .dot{width:34px;height:34px;border-radius:10px;background:var(--saffron-wash);display:flex;align-items:center;justify-content:center;font-size:15px;flex:none}
+  .exrow .nm{font-weight:700;font-size:14.5px}
+  .exrow .ar{font-size:11.5px;color:var(--muted)}
+
+  /* ══════════ JAP ══════════ */
+  .jap-stage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding-bottom:80px}
+  .jap-count{font-size:74px;font-weight:800;color:var(--gold-hi);font-variant-numeric:tabular-nums;line-height:1;text-shadow:0 0 34px rgba(217,164,65,.35);transition:transform .18s cubic-bezier(.3,1.5,.5,1)}
+  .jap-count.pop{transform:scale(1.12)}
+  .jap-of{font-size:13px;color:var(--muted);letter-spacing:1px}
+  .mala{display:flex;gap:6px;margin:10px 0 26px}
+  .bead{width:8px;height:8px;border-radius:50%;background:var(--surface2);border:1px solid var(--line);transition:all .25s}
+  .bead.on{background:var(--gold);border-color:var(--gold-hi);box-shadow:0 0 8px rgba(242,200,121,.6)}
+  .japbtn{
+    position:relative;width:168px;height:168px;border-radius:50%;border:none;cursor:pointer;
+    background:radial-gradient(circle at 38% 30%,#F2C879,#D9A441 52%,#B07E2B 100%);
+    box-shadow:0 10px 34px rgba(217,164,65,.35), inset 0 -8px 18px rgba(120,79,20,.55), inset 0 6px 14px rgba(255,236,196,.55);
+    color:#241503;font-size:56px;font-weight:800;font-family:var(--sans);
+    transition:transform .34s cubic-bezier(.34,1.7,.64,1);
+  }
+  .japbtn:active,.japbtn.down{transform:scale(.92);transition:transform .08s ease}
+  .japbtn:focus-visible{outline:3px solid var(--gold-hi);outline-offset:5px}
+  .jap-hint{font-size:12.5px;color:var(--muted);margin-top:18px}
+  .jap-flash{
+    position:absolute;inset:0;background:radial-gradient(circle,rgba(242,200,121,.5),rgba(240,118,30,.18) 55%,transparent 80%);
+    opacity:0;pointer-events:none;z-index:55;
+  }
+  .jap-flash.go{animation:flash 1s ease-out}
+  @keyframes flash{0%{opacity:0}22%{opacity:1}100%{opacity:0}}
+
+  /* ══════════ MODULE (diet / meditation / sleep demo) ══════════ */
+  .mod-stage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:0 30px 90px}
+  .mod-ic{width:88px;height:88px;border-radius:26px;display:flex;align-items:center;justify-content:center;font-size:42px;margin-bottom:8px}
+  .goldbtn{
+    position:relative;font:inherit;font-size:16.5px;font-weight:800;color:#241503;
+    background:linear-gradient(180deg,#F2C879,#D9A441 55%,#B07E2B);
+    border:none;border-radius:16px;padding:16px 34px;cursor:pointer;margin-top:22px;
+    box-shadow:0 8px 26px rgba(217,164,65,.3);letter-spacing:.4px;
+    transition:transform .34s cubic-bezier(.34,1.7,.64,1);
+  }
+  .goldbtn.down{transform:scale(.94);transition:transform .09s ease}
+  .goldbtn:focus-visible{outline:3px solid var(--gold-hi);outline-offset:4px}
+  .goldbtn .en{display:block;font-size:11px;font-weight:600;letter-spacing:1.6px;opacity:.75;margin-top:2px}
+
+  /* ══════════ TAB BAR ══════════ */
+  .tabbar{
+    position:absolute;left:0;right:0;bottom:0;height:80px;z-index:30;
+    background:rgba(18,13,8,.94);backdrop-filter:blur(8px);
+    border-top:1px solid var(--line);display:flex;padding:8px 6px 18px;
+  }
+  .tab{
+    flex:1;background:none;border:none;color:var(--muted);font:inherit;cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;
+    border-radius:12px;transition:color .2s;
+  }
+  .tab svg,.tab .g{transition:transform .3s cubic-bezier(.3,1.5,.5,1)}
+  .tab.on{color:var(--tab-c,var(--saffron))}
+  .tab.on svg,.tab.on .g{transform:translateY(-2px) scale(1.08)}
+  .tab:focus-visible{outline:2px solid var(--gold);outline-offset:-2px}
+  .tab .g{font-size:19px;line-height:22px}
+
+  .reveal{opacity:0;transform:translateY(12px);transition:opacity .5s ease,transform .55s cubic-bezier(.22,1,.36,1)}
+  .screen.active .reveal{opacity:1;transform:none}
+  .screen.active .reveal.d1{transition-delay:.06s}.screen.active .reveal.d2{transition-delay:.13s}
+  .screen.active .reveal.d3{transition-delay:.2s}.screen.active .reveal.d4{transition-delay:.28s}
+
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation-duration:.01s!important;transition-duration:.01s!important}
+  }
+  @media (max-height:900px){body{padding:14px 10px}}
+</style>
+
+<div class="stage-cap">
+  <b>Fit Hindu · BMS Redesign</b>
+  <span>interactive mockup — tap around inside the phone</span>
+  <button id="replay" type="button">⟳ Replay intro</button>
+</div>
+
+<div class="phone" id="phone">
+  <div class="statusbar"><span>9:41</span><span>▮▮▮▯ ᯤ</span></div>
+
+  <!-- ═══════ SPLASH ═══════ -->
+  <div id="splash" title="Tap to skip">
+    <div class="sp-glow"></div>
+    <div class="sp-halo"></div>
+    <div id="petals"></div>
+    <svg class="sp-fig" viewBox="70 258 220 254" aria-label="Meditating figure">
+      <g fill="#0D0803">
+        <circle cx="180" cy="300" r="27"/>
+        <path d="M180 318 C196 318 207 326 213 338 C229 344 235 353 237 369 C239 401 233 429 225 447 L135 447 C127 429 121 401 123 369 C125 353 131 344 147 338 C153 326 164 318 180 318 Z"/>
+        <path d="M226 350 C246 361 255 384 259 405 C262 423 265 437 268 449 C270 457 264 461 256 459 C247 456 242 448 238 436 C232 419 227 404 223 390 C218 373 218 358 226 350 Z"/>
+        <path d="M134 350 C114 361 105 384 101 405 C98 423 95 437 92 449 C90 457 96 461 104 459 C113 456 118 448 122 436 C128 419 133 404 137 390 C142 373 142 358 134 350 Z"/>
+        <path d="M80 472 C98 443 130 432 180 432 C230 432 262 443 280 472 C287 482 283 493 269 496 C239 502 210 504 180 504 C150 504 121 502 91 496 C77 493 73 482 80 472 Z"/>
+        <circle cx="263" cy="451" r="9"/><circle cx="97" cy="451" r="9"/>
+      </g>
+      <!-- rim light -->
+      <path d="M180 273 a27 27 0 0 1 27 27" stroke="rgba(242,200,121,.55)" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <path d="M213 338 C229 344 235 353 237 369" stroke="rgba(242,200,121,.35)" stroke-width="2" fill="none" stroke-linecap="round"/>
+    </svg>
+    <div id="motes"></div>
+    <div class="sp-word">
+      <div class="wm">FIT&nbsp;HINDU</div>
+      <div class="tg">तन, मन और आत्मा को जगाइए</div>
+      <div class="tg-en">UNLOCK YOUR BODY, MIND &amp; SOUL</div>
+    </div>
+    <div class="sp-skip">tap to skip</div>
+  </div>
+
+  <!-- ═══════ HOME ═══════ -->
+  <section class="screen" id="scr-home">
+    <div class="scroll">
+      <header class="home-head reveal">
+        <div class="wm glint">FIT&nbsp;HINDU</div>
+        <div class="greet">राम राम 🙏</div>
+        <div class="date">मंगलवार, 11 अगस्त · हनुमान जी का दिन</div>
+      </header>
+
+      <div class="rings">
+        <button class="ringbtn press reveal d1" id="ring-body" data-go="body" aria-label="तन Body">
+          <span class="done-chip">पूर्ण ✓</span>
+          <div class="ringwrap">
+            <svg width="138" height="138" viewBox="0 0 138 138">
+              <defs><linearGradient id="g-body" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#F2C879"/><stop offset="1" stop-color="#F0761E"/>
+              </linearGradient></defs>
+              <circle cx="69" cy="69" r="61" stroke="rgba(240,118,30,.16)" stroke-width="9" fill="none"/>
+              <circle class="ring-fg" data-ring="body" cx="69" cy="69" r="61" stroke="url(#g-body)" stroke-width="9"
+                fill="none" stroke-linecap="round" stroke-dasharray="383.27" stroke-dashoffset="383.27"
+                style="filter:drop-shadow(0 0 6px rgba(240,118,30,.45))"/>
+            </svg>
+            <div class="ic"><span style="font-size:21px">🏋</span>
+              <div class="frac num"><span data-frac="body">0</span><small>/2</small></div>
+            </div>
+          </div>
+          <div class="ringlbl"><div class="nm" style="color:var(--saffron)">तन</div><div class="en">Body · व्यायाम और आहार</div></div>
+        </button>
+
+        <button class="ringbtn press reveal d2" id="ring-mind" data-go="mind" aria-label="मन Mind">
+          <span class="done-chip">पूर्ण ✓</span>
+          <div class="ringwrap">
+            <svg width="138" height="138" viewBox="0 0 138 138">
+              <defs><linearGradient id="g-mind" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#C3D0FA"/><stop offset="1" stop-color="#8FA3E8"/>
+              </linearGradient></defs>
+              <circle cx="69" cy="69" r="61" stroke="rgba(143,163,232,.16)" stroke-width="9" fill="none"/>
+              <circle class="ring-fg" data-ring="mind" cx="69" cy="69" r="61" stroke="url(#g-mind)" stroke-width="9"
+                fill="none" stroke-linecap="round" stroke-dasharray="383.27" stroke-dashoffset="383.27"
+                style="filter:drop-shadow(0 0 6px rgba(143,163,232,.45))"/>
+            </svg>
+            <div class="ic"><span style="font-size:21px">🪷</span>
+              <div class="frac num"><span data-frac="mind">0</span><small>/1</small></div>
+            </div>
+          </div>
+          <div class="ringlbl"><div class="nm" style="color:var(--mind)">मन</div><div class="en">Mind · ध्यान और ज्ञान</div></div>
+        </button>
+
+        <button class="ringbtn press reveal d3" id="ring-soul" data-go="soul" aria-label="आत्मा Soul">
+          <span class="done-chip">पूर्ण ✓</span>
+          <div class="ringwrap">
+            <svg width="138" height="138" viewBox="0 0 138 138">
+              <defs><linearGradient id="g-soul" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#F2C879"/><stop offset="1" stop-color="#D9A441"/>
+              </linearGradient></defs>
+              <circle cx="69" cy="69" r="61" stroke="rgba(217,164,65,.16)" stroke-width="9" fill="none"/>
+              <circle class="ring-fg" data-ring="soul" cx="69" cy="69" r="61" stroke="url(#g-soul)" stroke-width="9"
+                fill="none" stroke-linecap="round" stroke-dasharray="383.27" stroke-dashoffset="383.27"
+                style="filter:drop-shadow(0 0 6px rgba(217,164,65,.45))"/>
+            </svg>
+            <div class="ic"><span style="font-size:21px;color:var(--gold-hi)">ॐ</span>
+              <div class="frac num"><span data-frac="soul">0</span><small>/2</small></div>
+            </div>
+          </div>
+          <div class="ringlbl"><div class="nm" style="color:var(--gold)">आत्मा</div><div class="en">Soul · जप और विश्राम</div></div>
+        </button>
+      </div>
+
+      <!-- sankalp / streak + activity -->
+      <div class="card glint reveal d3" style="margin-top:14px">
+        <div style="display:flex;align-items:center;gap:12px">
+          <svg class="diya" viewBox="0 0 26 30" style="width:30px;height:34px">
+            <path class="flame" d="M13 2 C16 7 17.5 9.5 13 13 C8.5 9.5 10 7 13 2Z" fill="#F2C879"/>
+            <path d="M4 17 H22 C22 22 18.5 25 13 25 C7.5 25 4 22 4 17Z" fill="#B84A16"/>
+            <ellipse cx="13" cy="17" rx="9" ry="1.8" fill="#D9A441"/>
+          </svg>
+          <div style="flex:1">
+            <div class="hi">संकल्प के <span style="color:var(--gold-hi)" class="num">12</span> दिन</div>
+            <div class="cap">सबसे लंबा संकल्प: 15 दिन · Your sankalp streak</div>
+          </div>
+          <div class="num" style="font-size:32px;font-weight:800;color:var(--gold-hi)">12</div>
+        </div>
+        <div class="diya-row" id="diyarow"></div>
+        <div style="display:flex;align-items:baseline;gap:8px;margin-top:16px;border-top:1px solid var(--line);padding-top:13px">
+          <div style="flex:1">
+            <div class="cap">फ़िट पॉइंट्स · Fit Points</div>
+            <div class="num" id="points" style="font-size:19px;font-weight:800;color:var(--gold-hi)">1,240</div>
+          </div>
+          <div class="cap num" id="ptoday" style="color:var(--saffron);font-weight:700"></div>
+        </div>
+        <div class="pt-bar"><div class="pt-fill" id="ptfill"></div></div>
+        <div class="cap" style="margin-top:5px">3 दिन और — फिर +50 बोनस · next milestone</div>
+        <div class="act-strip">
+          <span class="cap" style="margin-right:2px">इस हफ़्ते</span>
+          <span class="act-dot on"></span><span class="act-dot on"></span><span class="act-dot"></span>
+          <span class="act-dot on"></span><span class="act-dot on"></span><span class="act-dot on"></span>
+          <span class="act-dot today" id="todaydot"></span>
+        </div>
+      </div>
+
+      <!-- blessing -->
+      <div class="flip reveal d4" id="blessing" style="margin-top:12px" role="button" tabindex="0" aria-label="आज का आशीर्वाद — खोलें">
+        <div class="flip-inner">
+          <div class="face glint">
+            <span style="font-size:26px">🪔</span>
+            <div style="flex:1">
+              <div class="eyebrow">आज का आशीर्वाद</div>
+              <div class="cap" style="margin-top:3px">खोलने के लिए दबाएँ · Tap to reveal</div>
+            </div>
+            <span class="chev">›</span>
+          </div>
+          <div class="face back">
+            <span style="font-size:26px">🙏</span>
+            <div style="flex:1">
+              <div class="hi" style="color:var(--gold-hi);font-size:15.5px">आपका दिन मंगलमय हो — बजरंगबली की कृपा सदा आप पर बनी रहे।</div>
+              <div class="cap" style="margin-top:4px">कल एक नया आशीर्वाद · A new blessing tomorrow</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════ BODY ═══════ -->
+  <section class="screen" id="scr-body">
+    <div class="scroll" style="display:flex;flex-direction:column">
+      <div class="pill-head reveal">
+        <h1 class="pg" style="color:var(--saffron)">तन <span style="font-size:14px;color:var(--muted);font-weight:600;letter-spacing:2px">BODY</span></h1>
+        <div class="sub">व्यायाम और आहार — आज का अभ्यास</div>
+      </div>
+      <div class="tiles">
+        <button class="tile press glint reveal d1" data-open="workout" id="tile-workout">
+          <div class="wash" style="background:linear-gradient(135deg,rgba(240,118,30,.16),transparent 65%)"></div>
+          <div class="row">
+            <span class="icslot" style="background:var(--saffron-wash)">🏋</span><span class="chev" style="font-size:22px">›</span>
+          </div>
+          <div><div class="t-hi">व्यायाम</div><div class="t-en">Exercise — घर या जिम, muscle-filter के साथ</div></div>
+          <span class="tick">✓</span>
+        </button>
+        <button class="tile press glint reveal d2" data-complete="diet" id="tile-diet">
+          <div class="wash" style="background:linear-gradient(135deg,rgba(240,118,30,.16),transparent 65%)"></div>
+          <div class="row">
+            <span class="icslot" style="background:var(--saffron-wash)">🍛</span><span class="chev" style="font-size:22px">›</span>
+          </div>
+          <div><div class="t-hi">आहार</div><div class="t-en">Diet — आपकी अपनी डाइट योजना</div></div>
+          <span class="tick">✓</span>
+        </button>
+      </div>
+      <button class="backbtn" data-go="home">‹ होम पर वापस</button>
+    </div>
+  </section>
+
+  <!-- ═══════ MIND ═══════ -->
+  <section class="screen" id="scr-mind">
+    <div class="scroll" style="display:flex;flex-direction:column">
+      <div class="pill-head reveal">
+        <h1 class="pg" style="color:var(--mind)">मन <span style="font-size:14px;color:var(--muted);font-weight:600;letter-spacing:2px">MIND</span></h1>
+        <div class="sub">ध्यान और ज्ञान — शांति के क्षण</div>
+      </div>
+      <div class="tiles">
+        <button class="tile press glint reveal d1" data-complete="meditation" id="tile-meditation">
+          <div class="wash" style="background:linear-gradient(135deg,rgba(143,163,232,.15),transparent 65%)"></div>
+          <div class="row">
+            <span class="icslot" style="background:var(--mind-wash)">🪷</span><span class="chev" style="font-size:22px">›</span>
+          </div>
+          <div><div class="t-hi">ध्यान</div><div class="t-en">Meditation — टाइमर और शांत ध्वनियाँ</div></div>
+          <span class="tick">✓</span>
+        </button>
+        <div class="tile soon reveal d2">
+          <div class="wash" style="background:linear-gradient(135deg,rgba(143,163,232,.12),transparent 65%)"></div>
+          <div class="row">
+            <span class="icslot" style="background:var(--mind-wash)">📜</span>
+            <span class="soon-chip">जल्द आ रहा है</span>
+          </div>
+          <div><div class="t-hi">दैनिक गीता</div><div class="t-en">Daily Gita — श्लोक, अर्थ और ज्ञान कार्ड</div></div>
+        </div>
+      </div>
+      <button class="backbtn" data-go="home">‹ होम पर वापस</button>
+    </div>
+  </section>
+
+  <!-- ═══════ SOUL ═══════ -->
+  <section class="screen" id="scr-soul">
+    <div class="scroll" style="display:flex;flex-direction:column">
+      <div class="pill-head reveal">
+        <h1 class="pg" style="color:var(--gold)">आत्मा <span style="font-size:14px;color:var(--muted);font-weight:600;letter-spacing:2px">SOUL</span></h1>
+        <div class="sub">जप और विश्राम — भक्ति का समय</div>
+      </div>
+      <div class="tiles">
+        <button class="tile press glint reveal d1" data-open="jap" id="tile-jap">
+          <div class="wash" style="background:linear-gradient(135deg,rgba(217,164,65,.16),transparent 65%)"></div>
+          <div class="row">
+            <span class="icslot" style="background:var(--gold-wash);color:var(--gold-hi);font-size:28px;font-weight:800">ॐ</span>
+            <span class="chev" style="font-size:22px">›</span>
+          </div>
+          <div><div class="t-hi">मंत्र जप</div><div class="t-en">Mantra Jap — अपने इष्ट का नाम जपें</div></div>
+          <span class="tick">✓</span>
+        </button>
+        <button class="tile press glint reveal d2" data-complete="sleep" id="tile-sleep">
+          <div class="wash" style="background:linear-gradient(135deg,rgba(217,164,65,.14),transparent 65%)"></div>
+          <div class="row">
+            <span class="icslot" style="background:var(--gold-wash)">🌙</span><span class="chev" style="font-size:22px">›</span>
+          </div>
+          <div><div class="t-hi">नींद की ध्वनियाँ</div><div class="t-en">Sleep — मंत्र, वर्षा, ओंकार ध्वनियाँ</div></div>
+          <span class="tick">✓</span>
+        </button>
+        <div style="display:flex;gap:12px">
+          <div class="tile soon" style="min-height:96px;flex:1">
+            <div class="row"><span class="icslot" style="background:var(--gold-wash);font-size:19px;width:42px;height:42px">🕉</span></div>
+            <div><div class="t-hi" style="font-size:16px">मंत्र उच्चारण</div><div class="t-en">जल्द आ रहा है</div></div>
+          </div>
+          <div class="tile soon" style="min-height:96px;flex:1">
+            <div class="row"><span class="icslot" style="background:var(--gold-wash);font-size:19px;width:42px;height:42px">🔔</span></div>
+            <div><div class="t-hi" style="font-size:16px">भजन अलार्म</div><div class="t-en">जल्द आ रहा है</div></div>
+          </div>
+        </div>
+      </div>
+      <button class="backbtn" data-go="home">‹ होम पर वापस</button>
+    </div>
+  </section>
+
+  <!-- ═══════ WORKOUT ═══════ -->
+  <section class="screen" id="scr-workout">
+    <div class="scroll">
+      <button class="backbtn reveal" data-go="body">‹ तन</button>
+      <h1 class="pg reveal">व्यायाम</h1>
+      <div class="chips reveal d1" id="modechips">
+        <button class="chip" type="button">घर पर</button>
+        <button class="chip" type="button">जिम</button>
+        <button class="chip on" type="button">अपनी पसंद</button>
+      </div>
+
+      <div class="card reveal d2" style="margin-top:14px" id="musclecard">
+        <div class="eyebrow">मांसपेशियाँ चुनें</div>
+        <div class="cap" style="margin-top:2px">एक से ज़्यादा चुन सकते हैं — model पर tap करें</div>
+        <div class="bodies">
+          <div class="bodyfig">
+            <svg width="118" height="238" viewBox="0 0 120 250" id="figFront">
+              <circle cx="60" cy="18" r="12" class="m-fill"/><rect x="54" y="29" width="12" height="11" rx="3" class="m-fill"/>
+              <rect x="42" y="46" width="36" height="80" rx="10" class="m-fill"/>
+              <rect x="44" y="124" width="32" height="17" rx="7" class="m-fill"/>
+              <circle cx="22" cy="138" r="5" class="m-fill"/><circle cx="98" cy="138" r="5" class="m-fill"/>
+              <rect x="41" y="233" width="17" height="8" rx="3" class="m-fill"/><rect x="62" y="233" width="17" height="8" rx="3" class="m-fill"/>
+              <ellipse cx="29" cy="52" rx="12" ry="9" class="m-reg" data-area="shoulders"/>
+              <ellipse cx="91" cy="52" rx="12" ry="9" class="m-reg" data-area="shoulders"/>
+              <rect x="43" y="47" width="16.5" height="28" rx="7" class="m-reg" data-area="chest"/>
+              <rect x="60.5" y="47" width="16.5" height="28" rx="7" class="m-reg" data-area="chest"/>
+              <rect x="15" y="58" width="13" height="72" rx="6.5" class="m-reg" data-area="arms"/>
+              <rect x="92" y="58" width="13" height="72" rx="6.5" class="m-reg" data-area="arms"/>
+              <rect x="46" y="79" width="28" height="43" rx="9" class="m-reg" data-area="core"/>
+              <rect x="42" y="144" width="17" height="87" rx="7.5" class="m-reg" data-area="legs"/>
+              <rect x="61" y="144" width="17" height="87" rx="7.5" class="m-reg" data-area="legs"/>
+            </svg>
+            <div class="lbl">सामने · FRONT</div>
+          </div>
+          <div class="bodyfig">
+            <svg width="118" height="238" viewBox="0 0 120 250" id="figBack">
+              <circle cx="60" cy="18" r="12" class="m-fill"/><rect x="54" y="29" width="12" height="11" rx="3" class="m-fill"/>
+              <circle cx="22" cy="138" r="5" class="m-fill"/><circle cx="98" cy="138" r="5" class="m-fill"/>
+              <rect x="41" y="233" width="17" height="8" rx="3" class="m-fill"/><rect x="62" y="233" width="17" height="8" rx="3" class="m-fill"/>
+              <ellipse cx="29" cy="52" rx="12" ry="9" class="m-reg" data-area="shoulders"/>
+              <ellipse cx="91" cy="52" rx="12" ry="9" class="m-reg" data-area="shoulders"/>
+              <rect x="42" y="46" width="36" height="62" rx="10" class="m-reg" data-area="back"/>
+              <rect x="46" y="110" width="28" height="15" rx="6" class="m-reg" data-area="back"/>
+              <rect x="15" y="58" width="13" height="72" rx="6.5" class="m-reg" data-area="arms"/>
+              <rect x="92" y="58" width="13" height="72" rx="6.5" class="m-reg" data-area="arms"/>
+              <rect x="44" y="127" width="32" height="18" rx="8" class="m-reg" data-area="legs"/>
+              <rect x="42" y="148" width="17" height="83" rx="7.5" class="m-reg" data-area="legs"/>
+              <rect x="61" y="148" width="17" height="83" rx="7.5" class="m-reg" data-area="legs"/>
+            </svg>
+            <div class="lbl">पीछे · BACK</div>
+          </div>
+        </div>
+        <div class="chips" id="areachips">
+          <button class="chip on" data-clear type="button">पूरा शरीर</button>
+          <button class="chip" data-area="chest" type="button">छाती</button>
+          <button class="chip" data-area="back" type="button">पीठ</button>
+          <button class="chip" data-area="shoulders" type="button">कंधे</button>
+          <button class="chip" data-area="arms" type="button">बाजू</button>
+          <button class="chip" data-area="core" type="button">कोर</button>
+          <button class="chip" data-area="legs" type="button">टाँगें</button>
+        </div>
+      </div>
+
+      <div class="eyebrow reveal d3" style="margin-top:18px">सभी व्यायाम</div>
+      <div class="exlist reveal d3" id="exlist"></div>
+      <button class="goldbtn glint" style="width:100%;margin-top:18px" id="wk-done">
+        व्यायाम पूर्ण करें<span class="en">COMPLETE WORKOUT · DEMO</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- ═══════ JAP ═══════ -->
+  <section class="screen" id="scr-jap">
+    <div class="jap-flash" id="japflash"></div>
+    <div class="scroll" style="display:flex;flex-direction:column">
+      <button class="backbtn reveal" data-go="soul">‹ आत्मा</button>
+      <div style="text-align:center;margin-top:2px" class="reveal">
+        <div class="eyebrow">मंत्र जप</div>
+        <div class="hi" style="margin-top:4px;color:var(--gold-hi)">जय बजरंगबली</div>
+      </div>
+      <div class="jap-stage">
+        <div class="jap-count num" id="japcount">0</div>
+        <div class="jap-of">/ 11 जप · एक छोटी माला</div>
+        <div class="mala" id="mala"></div>
+        <button class="japbtn glint" id="japbtn" aria-label="जप करें">ॐ</button>
+        <div class="jap-hint">बटन दबाएँ — हर जप पर एक मनका</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════ MODULE DEMO (diet/meditation/sleep) ═══════ -->
+  <section class="screen" id="scr-module">
+    <div class="scroll" style="display:flex;flex-direction:column">
+      <button class="backbtn reveal" id="mod-back">‹ वापस</button>
+      <div class="mod-stage">
+        <div class="mod-ic" id="mod-ic">🍛</div>
+        <h1 class="pg" id="mod-title">आहार</h1>
+        <div class="cap" id="mod-sub" style="max-width:250px"></div>
+        <button class="goldbtn glint" id="mod-done">
+          पूर्ण करें<span class="en">MARK COMPLETE · DEMO</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════ TABS ═══════ -->
+  <nav class="tabbar" id="tabbar" style="display:none">
+    <button class="tab on" data-go="home" style="--tab-c:var(--saffron)">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
+      होम
+    </button>
+    <button class="tab" data-go="body" style="--tab-c:var(--saffron)">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 12h3M19 12h3M7 8v8M17 8v8M7 12h10"/><rect x="5" y="9" width="2.5" height="6" rx="1"/><rect x="16.5" y="9" width="2.5" height="6" rx="1"/></svg>
+      तन
+    </button>
+    <button class="tab" data-go="mind" style="--tab-c:var(--mind)">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20c-2-2.8-2-6.5 0-10 2 3.5 2 7.2 0 10Z"/><path d="M12 20c-3.8.4-6.8-1.2-8.5-4.4 2.7-.8 5.4-.2 7.3 1.6M12 20c3.8.4 6.8-1.2 8.5-4.4-2.7-.8-5.4-.2-7.3 1.6"/></svg>
+      मन
+    </button>
+    <button class="tab" data-go="soul" style="--tab-c:var(--gold)">
+      <span class="g">ॐ</span>
+      आत्मा
+    </button>
+  </nav>
+</div>
+
+<div class="stage-cap" style="font-size:11.5px">
+  splash → home rings → तन / मन / आत्मा pages → muscle-filter workout → jap counter · sab clickable hai
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var buzz = function(ms){ if (navigator.vibrate) try{ navigator.vibrate(ms); }catch(e){} };
+
+  /* ── state ── */
+  var done = { workout:false, diet:false, meditation:false, jap:false, sleep:false };
+  var PILLARS = { body:["workout","diet"], mind:["meditation"], soul:["jap","sleep"] };
+  var points = 1240, todayPts = 0;
+  var C = 383.27;
+
+  /* ── screens ── */
+  var current = "home";
+  function show(id){
+    document.querySelectorAll(".screen").forEach(function(s){ s.classList.remove("active"); });
+    var el = document.getElementById("scr-"+id);
+    if (el){ el.classList.add("active"); el.querySelector(".scroll").scrollTop = 0; }
+    current = id;
+    var tabFor = { home:"home", body:"body", mind:"mind", soul:"soul", workout:"body", jap:"soul", module:"module" };
+    document.querySelectorAll(".tab").forEach(function(t){
+      t.classList.toggle("on", t.dataset.go === (tabFor[id] === "module" ? modReturn : tabFor[id]));
+    });
+    // wall-clock, not rAF: a background tab must still land in the right state
+    if (id === "home") setTimeout(renderRings, 40);
+  }
+
+  /* ── rings ── */
+  function renderRings(){
+    Object.keys(PILLARS).forEach(function(p){
+      var mods = PILLARS[p];
+      var n = mods.filter(function(m){ return done[m]; }).length;
+      var frac = n / mods.length;
+      var el = document.querySelector('[data-ring="'+p+'"]');
+      if (el) el.style.strokeDashoffset = (C * (1 - frac)).toFixed(2);
+      var f = document.querySelector('[data-frac="'+p+'"]');
+      if (f) f.textContent = n;
+      var btn = document.getElementById("ring-"+p);
+      if (btn) btn.classList.toggle("alldone", frac === 1);
+    });
+    var any = Object.keys(done).some(function(k){ return done[k]; });
+    document.getElementById("todaydot").classList.toggle("on", any);
+    document.getElementById("ptfill").style.width = (56 + todayPts) > 100 ? "100%" : (56 + todayPts/2) + "%";
+  }
+
+  /* ── sparks ── */
+  function burst(x, y, host, n){
+    if (reduced) return;
+    host = host || document.getElementById("phone");
+    var r = host.getBoundingClientRect();
+    for (var i = 0; i < (n||14); i++){
+      var s = document.createElement("span");
+      s.className = "spark";
+      var a = Math.random() * Math.PI * 2, d = 34 + Math.random() * 52;
+      s.style.left = (x - r.left) + "px"; s.style.top = (y - r.top) + "px";
+      s.style.setProperty("--dx", Math.cos(a)*d + "px");
+      s.style.setProperty("--dy", Math.sin(a)*d + "px");
+      host.appendChild(s);
+      setTimeout(function(el){ return function(){ el.remove(); }; }(s), 850);
+    }
+  }
+
+  /* ── press feel (scale dip + bloom + haptic) ── */
+  document.querySelectorAll(".press, .goldbtn, .japbtn, .chip, .tab, .backbtn").forEach(function(el){
+    el.addEventListener("pointerdown", function(){ el.classList.add("down"); buzz(8); });
+    ["pointerup","pointerleave","pointercancel"].forEach(function(ev){
+      el.addEventListener(ev, function(){ el.classList.remove("down"); });
+    });
+  });
+  function ringBloom(el){
+    var b = document.createElement("span");
+    b.className = "bloom-ring go";
+    el.appendChild(b);
+    setTimeout(function(){ b.remove(); }, 600);
+  }
+
+  /* ── completion ── */
+  function complete(mod, evt){
+    if (done[mod]) return;
+    done[mod] = true;
+    todayPts += 10; points += 10;
+    var pEl = document.getElementById("points");
+    pEl.textContent = points.toLocaleString("en-IN");
+    document.getElementById("ptoday").textContent = "आज +" + todayPts;
+    var t = document.getElementById("tile-" + mod);
+    if (t) t.classList.add("done");
+    if (evt) burst(evt.clientX, evt.clientY, null, 16);
+    buzz([12, 40, 18]);
+  }
+
+  /* ── navigation wires ── */
+  document.querySelectorAll("[data-go]").forEach(function(el){
+    el.addEventListener("click", function(){ show(el.dataset.go); });
+  });
+  var modReturn = "body";
+  var MODS = {
+    diet:{ ic:"🍛", t:"आहार", s:"आपकी प्रोफ़ाइल से बनी डाइट योजना — नाश्ता, दोपहर, रात। सामान्य मार्गदर्शन, चिकित्सीय सलाह नहीं।", back:"body" },
+    meditation:{ ic:"🪷", t:"ध्यान", s:"5–15 मिनट का निर्देशित ध्यान — शांत ध्वनियों और टाइमर के साथ।", back:"mind" },
+    sleep:{ ic:"🌙", t:"नींद की ध्वनियाँ", s:"ओंकार 432Hz, वर्षा, मंत्र लूप — शांत नींद की ओर।", back:"soul" }
+  };
+  var modKey = "diet";
+  document.querySelectorAll("[data-complete]").forEach(function(el){
+    el.addEventListener("click", function(){
+      modKey = el.dataset.complete;
+      var m = MODS[modKey]; modReturn = m.back;
+      document.getElementById("mod-ic").textContent = m.ic;
+      document.getElementById("mod-ic").style.background = modKey === "meditation" ? "var(--mind-wash)" : "var(--gold-wash)";
+      document.getElementById("mod-title").textContent = m.t;
+      document.getElementById("mod-sub").textContent = m.s;
+      show("module");
+    });
+  });
+  document.getElementById("mod-back").addEventListener("click", function(){ show(modReturn); });
+  document.getElementById("mod-done").addEventListener("click", function(e){
+    ringBloom(e.currentTarget);
+    complete(modKey, e);
+    setTimeout(function(){ show("home"); }, 700);
+  });
+  document.getElementById("tile-workout").addEventListener("click", function(){ show("workout"); });
+  document.getElementById("tile-jap").addEventListener("click", function(){ show("jap"); });
+  document.getElementById("wk-done").addEventListener("click", function(e){
+    ringBloom(e.currentTarget);
+    complete("workout", e);
+    setTimeout(function(){ show("home"); }, 700);
+  });
+
+  /* ── blessing flip ── */
+  var bless = document.getElementById("blessing");
+  function flipBless(e){
+    if (bless.classList.contains("open")) return;
+    bless.classList.add("open");
+    buzz([10, 30, 14]);
+    var r = bless.getBoundingClientRect();
+    burst(r.left + r.width/2, r.top + r.height/2, null, 12);
+  }
+  bless.addEventListener("click", flipBless);
+  bless.addEventListener("keydown", function(e){ if (e.key === "Enter" || e.key === " ") { e.preventDefault(); flipBless(); } });
+
+  /* ── diya row ── */
+  (function(){
+    var row = document.getElementById("diyarow");
+    var svg = document.querySelector(".diya").outerHTML;
+    for (var i = 0; i < 7; i++){
+      var d = document.createElement("span");
+      d.innerHTML = svg;
+      d.firstChild.classList.add("diya");
+      d.firstChild.style.width = "24px"; d.firstChild.style.height = "28px";
+      row.appendChild(d.firstChild);
+    }
+  })();
+
+  /* ── workout: muscle filter ── */
+  var EX = [
+    { n:"पुश-अप", e:"Push-Up", a:["chest","arms"] },
+    { n:"बेंच प्रेस", e:"Bench Press", a:["chest"] },
+    { n:"सीटेड फ्लाई", e:"Seated Fly", a:["chest","shoulders"] },
+    { n:"बेंट ओवर रो", e:"Bent Over Row", a:["back","arms"] },
+    { n:"डम्बल रियर फ्लाई", e:"Dumbbell Rear Fly", a:["back","shoulders"] },
+    { n:"शोल्डर प्रेस", e:"Shoulder Press", a:["shoulders"] },
+    { n:"ट्राइसेप डिप्स", e:"Chair Dips", a:["arms"] },
+    { n:"क्रंचेस", e:"Crunches", a:["core"] },
+    { n:"साइकिल क्रंच", e:"Bicycle Crunches", a:["core"] },
+    { n:"प्लैंक", e:"Plank", a:["core","shoulders"] },
+    { n:"स्क्वाट", e:"Squat", a:["legs"] },
+    { n:"दंड-बैठक", e:"Dand Baithak", a:["legs","chest"] },
+    { n:"हाई नी", e:"High Knee", a:["legs","core"] },
+    { n:"सूर्य नमस्कार", e:"Surya Namaskar", a:["chest","back","core","legs"] }
+  ];
+  var AREA_HI = { chest:"छाती", back:"पीठ", shoulders:"कंधे", arms:"बाजू", core:"कोर", legs:"टाँगें" };
+  var sel = [];
+  function renderEx(){
+    var list = document.getElementById("exlist");
+    var items = sel.length ? EX.filter(function(x){ return x.a.some(function(a){ return sel.indexOf(a) >= 0; }); }) : EX;
+    list.innerHTML = items.map(function(x){
+      return '<div class="exrow"><span class="dot">🏋</span><div><div class="nm">' + x.n +
+        ' <span class="cap">· ' + x.e + '</span></div><div class="ar">' +
+        x.a.map(function(a){ return AREA_HI[a]; }).join(" · ") + '</div></div></div>';
+    }).join("");
+    document.querySelectorAll(".m-reg").forEach(function(r){
+      r.classList.toggle("on", sel.indexOf(r.dataset.area) >= 0);
+    });
+    document.querySelectorAll("#areachips .chip").forEach(function(c){
+      if (c.hasAttribute("data-clear")) c.classList.toggle("on", sel.length === 0);
+      else c.classList.toggle("on", sel.indexOf(c.dataset.area) >= 0);
+    });
+  }
+  function toggleArea(a){
+    var i = sel.indexOf(a);
+    if (i >= 0) sel.splice(i, 1); else sel.push(a);
+    buzz(8);
+    renderEx();
+  }
+  document.querySelectorAll(".m-reg").forEach(function(r){
+    r.addEventListener("click", function(){ toggleArea(r.dataset.area); });
+  });
+  document.querySelectorAll("#areachips .chip").forEach(function(c){
+    c.addEventListener("click", function(){
+      if (c.hasAttribute("data-clear")){ sel = []; renderEx(); }
+      else toggleArea(c.dataset.area);
+    });
+  });
+  renderEx();
+
+  /* mode chips: Home / Gym show the plain library, Custom shows the model */
+  document.querySelectorAll("#modechips .chip").forEach(function(c, idx){
+    c.addEventListener("click", function(){
+      document.querySelectorAll("#modechips .chip").forEach(function(x){ x.classList.remove("on"); });
+      c.classList.add("on");
+      document.getElementById("musclecard").style.display = (idx === 2) ? "" : "none";
+    });
+  });
+
+  /* ── jap counter — the premium button ── */
+  var japN = 0, JAP_MAX = 11;
+  var mala = document.getElementById("mala");
+  for (var i = 0; i < JAP_MAX; i++){
+    var b = document.createElement("span"); b.className = "bead"; mala.appendChild(b);
+  }
+  var japBtn = document.getElementById("japbtn");
+  japBtn.addEventListener("click", function(e){
+    if (japN >= JAP_MAX) return;
+    japN++;
+    var c = document.getElementById("japcount");
+    c.textContent = japN;
+    c.classList.remove("pop"); void c.offsetWidth; c.classList.add("pop");
+    mala.children[japN-1].classList.add("on");
+    burst(e.clientX, e.clientY, null, 8);
+    buzz(12);
+    if (japN === JAP_MAX){
+      var fl = document.getElementById("japflash");
+      fl.classList.remove("go"); void fl.offsetWidth; fl.classList.add("go");
+      buzz([20, 60, 30, 60, 40]);
+      var r = japBtn.getBoundingClientRect();
+      burst(r.left + r.width/2, r.top + r.height/2, null, 26);
+      complete("jap", null);
+      setTimeout(function(){ show("home"); }, 1400);
+      setTimeout(function(){ japN = 0;
+        document.getElementById("japcount").textContent = "0";
+        Array.prototype.forEach.call(mala.children, function(bd){ bd.classList.remove("on"); });
+      }, 2000);
+    }
+  });
+
+  /* ── splash sequence ── */
+  var splash = document.getElementById("splash");
+  var petalHost = document.getElementById("petals");
+  (function buildPetals(){
+    var CX = 195, CY = 365, R = 152, LEN = 58, W = 46;
+    var COUNT = 9, span = 216, start = -108;
+    var svg = '<svg width="' + W + '" height="' + LEN + '" viewBox="0 0 44 54">' +
+      '<defs><radialGradient id="pf" cx="50%" cy="88%" r="90%">' +
+      '<stop offset="0" stop-color="#F2C879" stop-opacity=".95"/>' +
+      '<stop offset=".6" stop-color="#D9A441" stop-opacity=".8"/>' +
+      '<stop offset="1" stop-color="#B84A16" stop-opacity=".55"/></radialGradient></defs>' +
+      '<path d="M22 2 C36 19 37 39 22 52 C7 39 8 19 22 2 Z" fill="url(#pf)"/>' +
+      '<path d="M22 6 L22 46" stroke="#F2C879" stroke-width="1" stroke-opacity=".5"/></svg>';
+    for (var i = 0; i < COUNT; i++){
+      var ang = start + (span / (COUNT - 1)) * i;
+      var rank = Math.round(Math.abs(ang) / (span / (COUNT - 1)));
+      var reach = R + LEN;
+      var w = document.createElement("div");
+      w.className = "petal-w";
+      w.style.cssText = "left:" + (CX - W/2) + "px;top:" + (CY - reach) + "px;width:" + W +
+        "px;height:" + (reach*2) + "px;transform:rotate(" + ang + "deg)";
+      var inner = document.createElement("div");
+      inner.className = "petal-i";
+      inner.style.transitionDelay = (rank * 0.1) + "s," + (rank * 0.1) + "s";
+      inner.innerHTML = svg.replace('id="pf"', 'id="pf' + i + '"').replace('url(#pf)', 'url(#pf' + i + ')');
+      w.appendChild(inner);
+      petalHost.appendChild(w);
+    }
+  })();
+  (function buildMotes(){
+    var host = document.getElementById("motes");
+    for (var i = 0; i < 12; i++){
+      var m = document.createElement("span");
+      m.className = "mote";
+      m.style.left = (60 + Math.random() * 270) + "px";
+      m.style.top = (330 + Math.random() * 180) + "px";
+      m.style.animationDelay = (Math.random() * 6) + "s";
+      m.style.animationDuration = (5.5 + Math.random() * 3.5) + "s";
+      host.appendChild(m);
+    }
+  })();
+
+  var splashTimers = [];
+  function playSplash(){
+    splashTimers.forEach(clearTimeout); splashTimers = [];
+    splash.classList.remove("gone","p1","p2","p3","p4");
+    document.getElementById("tabbar").style.display = "none";
+    void splash.offsetWidth;
+    var t = reduced ? [0,0,0,0,900] : [250, 750, 1150, 2250, 3400];
+    splashTimers.push(setTimeout(function(){ splash.classList.add("p1"); }, t[0]));
+    splashTimers.push(setTimeout(function(){ splash.classList.add("p2"); }, t[1]));
+    splashTimers.push(setTimeout(function(){ splash.classList.add("p3"); }, t[2]));
+    splashTimers.push(setTimeout(function(){ splash.classList.add("p4"); }, t[3]));
+    splashTimers.push(setTimeout(endSplash, t[4]));
+  }
+  function endSplash(){
+    splashTimers.forEach(clearTimeout); splashTimers = [];
+    splash.classList.add("p1","p2","p3","p4","gone");
+    document.getElementById("tabbar").style.display = "flex";
+    show("home");
+  }
+  splash.addEventListener("click", endSplash);
+  document.getElementById("replay").addEventListener("click", function(){
+    document.querySelectorAll(".screen").forEach(function(s){ s.classList.remove("active"); });
+    playSplash();
+  });
+
+  playSplash();
+})();
+</script>

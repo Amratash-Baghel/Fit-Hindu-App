@@ -2,6 +2,54 @@
 
 One dated line per decision, with the why. Newest on top.
 
+- **2026-08-12** — **BMS redesign, phase-1 UI pass (owner demo build).** Applied
+  the reviewed proposals to the app, UI-only (haptics deferred to a later pass):
+  (1) a *time-of-day surface* — Home's greeting + a top wash follow the IST clock
+  (Brahma Muhurta / morning / afternoon / evening / night), washes added to
+  tokens (`daypart`), reusing existing hues so no new colours enter the system;
+  (2) *evening reorder* — after sunset the ring stack leads with Soul; (3) ring
+  *done-states* (a lit diya crowns a complete pillar) + a "N of 3 complete"
+  saadhana line; (4) *Purna* — a once-per-IST-day "all three done" moment
+  (celebrates the routine, never worship; not gated); (5) tab-bar *done-dots*;
+  (6) guest rings read "Begin", never a cold 0/2; (7) **My Path** replaces the
+  old `/progress` screen (rev-1 design: streak + record, weekly तन/मन/आत्मा grid,
+  Fit-Points milestone, one gentle nudge). Chose the *lighter rings + polish*
+  route over the mockup's 3D coins (low-end Android perf). `usePillars` became a
+  shared `PillarsProvider` so Home rings + tab-dots read one refreshing source.
+  Home "next-step task strip" deferred (needs a unified per-day task source).
+  Why: give the owner the new *feel* to review; nothing here needs a migration —
+  it renders data the app already collects.
+- **2026-08-12** — **Reflect, never ask (personalization principle).** The app
+  must never ask a user about their deity/devotion — no onboarding question,
+  picker, or survey. It mirrors the practice a person already chooses (reads
+  `activity_log` only). Why: owner steer during the redesign review; religious
+  preference is sensitive data and a question is both friction and liability.
+  Scope: the redesign's personalization surfaces; the optional onboarding deity
+  question (`q_deity`) is grandfathered but no new asking is added.
+- **2026-08-12 (reverses a founding rule)** — **English-first.** `en` is now the
+  default locale and copy is authored in English; Hindi stays in the catalog as
+  the second locale, and Devanagari is kept only for scripture (mantras,
+  shlokas, deity names) with romanisation beside it. Why: owner call during the
+  BMS redesign review. ⚠ This contradicts the Hindi-first audience thesis in
+  `docs/idea.md` ("Hindi-first, mid-range phone") and the research note that
+  Hindi-first UI with English as a toggle is Kuku FM's core insight — that
+  tension is real and unresolved. Older specs/decisions were left as dated
+  records; `CLAUDE.md` carries the live rule. Revisit before store launch:
+  if the seed audience is Herbal Deck's existing Hindi-speaking buyers, an
+  English default may cost activation.
+- **2026-08-12** — The splash meditator is our own vector art, redrawn from the
+  owner's reference, never the reference itself. Why: the reference is a
+  watermarked licensed stock image, so shipping a crop is a licensing problem;
+  vector also stays crisp at every density, animates in parts (chakras, gaze),
+  and adds no MB to the bundle.
+- **2026-08-12** — The awakened gaze is solid glowing white eyes only — no
+  forehead arrow or other character marks. Why: the arrow is a copyrighted
+  character's mark and a store-rejection/IP risk; the bare luminous gaze carries
+  the same "awakening" read and is ours.
+- **2026-08-12** — Each pillar's circle glows in its own colour (तन saffron,
+  मन blue, आत्मा gold) — ripples, aura and the tap-to-open bloom all take
+  `--rc`. Why: one app-wide gold made all three pillars feel like the same
+  action; colour is the cheapest way to tell them apart before the label is read.
 - **2026-08-11 (v1 preserved as a milestone before the redesign)** — tagged
   `v1-devotional-fitness` at 2dec26b (tip of `onboarding-auth-plan-engine`) and
   branched `redesign` from the same point; `onboarding-auth-plan-engine` is now

@@ -37,6 +37,82 @@ export const strings = {
   // non-medical per the health-claim rule.
   splash_tagline: { hi: "आपकी दैनिक साधना", en: "Your daily sadhana" },
 
+  // BMS redesign (docs/specs/redesign-bms.md) — splash tagline, pillars, tabs
+  bms_tagline: { hi: "तन, मन और आत्मा को जगाइए", en: "Unlock your Body, Mind & Soul" },
+  tab_body: { hi: "तन", en: "Body" },
+  tab_mind: { hi: "मन", en: "Mind" },
+  tab_soul: { hi: "आत्मा", en: "Soul" },
+  pillar_body: { hi: "तन", en: "Body" },
+  pillar_mind: { hi: "मन", en: "Mind" },
+  pillar_soul: { hi: "आत्मा", en: "Soul" },
+  pillar_body_sub: { hi: "व्यायाम और आहार", en: "Exercise & diet" },
+  pillar_mind_sub: { hi: "ध्यान और ज्ञान", en: "Meditation & wisdom" },
+  pillar_soul_sub: { hi: "जप और विश्राम", en: "Jap & rest" },
+  /** ring caption — {n}/{m} interpolated by the screen */
+  pillar_done: { hi: "{n}/{m} पूरा", en: "{n}/{m} done" },
+  pillar_complete: { hi: "आज पूरा 🙏", en: "Complete" },
+  today_saadhana: { hi: "आज की साधना", en: "Today's practice" },
+  /** {n}/{m} pillars complete — the one number that says whether today is done */
+  saadhana_count: { hi: "{m} में से {n} पूर्ण", en: "{n} of {m} complete" },
+  /** guest ring centre — an open door, never a cold 0/2 */
+  ring_begin: { hi: "शुरू", en: "Begin" },
+
+  // time-of-day greeting (redesign "surface that keeps time") — Home's greeting
+  // follows the IST clock. Brahma Muhurta is the pre-dawn devotional hour.
+  greet_brahma: { hi: "ब्रह्म मुहूर्त", en: "Brahma Muhurta" },
+  greet_morning: { hi: "सुप्रभात", en: "Good morning" },
+  greet_day: { hi: "नमस्ते", en: "Good afternoon" },
+  greet_evening: { hi: "शुभ संध्या", en: "Good evening" },
+  greet_night: { hi: "शुभ रात्रि", en: "Good night" },
+
+  // Purna — the once-a-day "all three pillars done" moment (redesign). Celebrates
+  // the ROUTINE (body·mind·soul), never worship, never a paywall — a quiet beat,
+  // then it rests until tomorrow. Non-medical by rule.
+  purna_title: { hi: "आज की साधना पूर्ण", en: "Your day is whole" },
+  purna_body: { hi: "तन, मन और आत्मा — आज तीनों।", en: "Body, mind and soul — all three, today." },
+  purna_tap: { hi: "जारी रखने के लिए दबाएँ", en: "Tap to continue" },
+
+  // My Path (redesign — the reflective progress screen). Gentle by rule: a quiet
+  // day is quiet, never "missed"; nudges stay effort-based, never a health claim.
+  mypath_title: { hi: "मेरी राह", en: "My Path" },
+  mypath_sub: { hi: "हर वह दिन जब आप आए", en: "Every day you showed up" },
+  mypath_current: { hi: "अभी", en: "Current" },
+  mypath_days_word: { hi: "दिन", en: "days" },
+  mypath_week: { hi: "इस सप्ताह", en: "This week" },
+  mypath_points: { hi: "फिट अंक → अगला पड़ाव", en: "Fit Points → next milestone" },
+  // {p} → the localized name of the quietest pillar, filled at the call site.
+  mypath_nudge: {
+    hi: "इस सप्ताह आपका सबसे शांत स्तंभ {p} रहा — कुछ मिनट भी उसका दीया जला देते हैं।",
+    en: "Your quietest pillar this week is {p} — even a few minutes lights its diya.",
+  },
+  mypath_nudge_all: {
+    hi: "तीनों स्तंभ इस सप्ताह जगमगाए — यही लय बनाए रखें।",
+    en: "All three pillars shone this week — keep the rhythm.",
+  },
+
+  // pillar pages — tiles
+  tile_exercise: { hi: "व्यायाम", en: "Exercise" },
+  tile_exercise_sub: { hi: "घर या जिम — आज का व्यायाम", en: "Home or gym — today's workout" },
+  tile_diet: { hi: "आहार", en: "Diet" },
+  tile_diet_sub: { hi: "आपका आहार, आपकी योजना", en: "Your diet, your plan" },
+  tile_meditation: { hi: "ध्यान", en: "Meditation" },
+  tile_meditation_sub: { hi: "शांति के कुछ क्षण", en: "A few quiet minutes" },
+  tile_gita: { hi: "दैनिक गीता", en: "Daily Gita" },
+  tile_gita_sub: { hi: "श्लोक, अर्थ और ज्ञान", en: "Shloka, meaning & wisdom" },
+  tile_jap: { hi: "मंत्र जप", en: "Mantra jap" },
+  tile_jap_sub: { hi: "अपने इष्ट का नाम जपें", en: "Chant your ishta's name" },
+  tile_sleep: { hi: "नींद की ध्वनियाँ", en: "Sleep sounds" },
+  tile_sleep_sub: { hi: "शांत नींद की ओर", en: "Toward restful sleep" },
+  tile_ucharan: { hi: "मंत्र उच्चारण", en: "Mantra ucharan" },
+  tile_alarm: { hi: "भजन अलार्म", en: "Bhajan alarm" },
+
+  // workout — muscle model filter
+  muscle_pick: { hi: "मांसपेशियाँ चुनें", en: "Tap muscles to filter" },
+  muscle_pick_hint: { hi: "एक से ज़्यादा चुन सकते हैं", en: "Select one or more" },
+  muscle_clear: { hi: "पूरा शरीर", en: "Full body" },
+  model_front: { hi: "सामने", en: "Front" },
+  model_back: { hi: "पीछे", en: "Back" },
+
   // shared
   coming_soon: { hi: "जल्द आ रहा है", en: "Coming soon" },
   continue: { hi: "आगे बढ़ें", en: "Continue" },
@@ -275,6 +351,7 @@ export const strings = {
   points_label: { hi: "फिट अंक", en: "Fit Points" },
   points_today: { hi: "आज +{n}", en: "+{n} today" },
   points_next_milestone: { hi: "{d} दिन और · {b} अंक बोनस", en: "{d} more days · {b} bonus" },
+  points_next_milestone_one: { hi: "1 दिन और · {b} अंक बोनस", en: "1 more day · {b} bonus" },
   points_milestone_max: { hi: "सभी पड़ाव पूरे 🎉", en: "All milestones reached 🎉" },
   sleep_needs_five: { hi: "अंक पाने के लिए 5 मिनट सुनें", en: "Listen 5 minutes to earn points" },
 

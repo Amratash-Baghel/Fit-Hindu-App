@@ -10,6 +10,22 @@ Format:
 
 <!-- entries added at each /ship, newest on top -->
 
+- **2026-08-12 — one shared context instead of two hooks fetching the same
+  thing** (BMS redesign: rings + tab-bar done-dots)
+  Home's three rings and the tab bar's gold done-dots show the SAME fact —
+  "which pillars are done today". If each surface called its own
+  `usePillars()` hook (the old shape), the app would fire two identical
+  Supabase reads and, worse, they could disagree for a moment: ring lit, dot
+  not. The fix is React **context**: `PillarsProvider`
+  ([src/lib/pillars.ts](../src/lib/pillars.ts)) wraps the whole tab group in
+  `app/(tabs)/_layout.tsx`, does the fetch ONCE, and every `usePillars()`
+  under it just reads the shared value. One network read, one truth, zero
+  drift — and a screen rendered outside the provider degrades to guest zeros
+  instead of crashing (the hook returns a fallback rather than throwing).
+  *Check yourself:* the Settings screen is a stack route OUTSIDE the tab
+  group — if it called `usePillars()` today, what would it see, and why is
+  that a design choice rather than a bug?
+
 - **2026-08-10 — deriving a per-event delta from a total you don't own**
   (Fit-Points reward popup)
   The reward says "you earned +10 फिट अंक" for one jap mala — but the app never

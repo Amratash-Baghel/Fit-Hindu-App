@@ -1,0 +1,829 @@
+<title>Fit Hindu — What We Build Next (UI & Structure)</title>
+<style>
+  /* ══════════════════════════════════════════════════════════════
+     Tokens — frozen from src/ui/tokens.ts. Nothing here is invented;
+     every colour below already exists in the design system.
+     This page is a preview of a DARK-ONLY app, so it deliberately
+     commits to one visual world and paints every ground explicitly.
+     ══════════════════════════════════════════════════════════════ */
+  :root{
+    --stage:#070503; --ink:#0F0B07; --surface:#1C1510; --surface2:#28201A;
+    --line:#3A2E24; --hairline:#4a3416; --ember1:#241407; --ember2:#1C1510;
+    --saffron:#F0761E; --saffron-wash:rgba(240,118,30,.14); --sindoor:#B84A16;
+    --gold:#D9A441; --gold-hi:#F2C879; --gold-deep:#B07E2B; --gold-wash:rgba(217,164,65,.14);
+    --mind:#8FA3E8; --mind-wash:rgba(143,163,232,.14);
+    --night:#0B0E1A; --night-surface:#151A2E; --night-line:#252D4A; --night-muted:#8E96B8;
+    --cream:#F6EDDD; --muted:#A8917A; --soft:#D9CBB8;
+    --metal:linear-gradient(180deg,#F9DA92 0%,#EFC066 26%,#D9A441 58%,#B07E2B 100%);
+    --bezel:conic-gradient(from 218deg,#8A5E1E,#F7D488 22%,#C9922F 46%,#8A5E1E 60%,#F2C879 84%,#8A5E1E);
+    --sans:"Segoe UI","Nirmala UI",system-ui,-apple-system,"Noto Sans Devanagari",sans-serif;
+    --maxw:980px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html{scroll-behavior:smooth}
+  @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+  body{
+    font-family:var(--sans);color:var(--cream);line-height:1.5;
+    background:
+      radial-gradient(62% 40% at 50% 0%,rgba(217,164,65,.06),transparent 68%),
+      radial-gradient(80% 50% at 84% 22%,rgba(240,118,30,.045),transparent 60%),
+      var(--stage);
+    min-height:100vh;padding:0 20px 96px;
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+  }
+  .wrap{max-width:var(--maxw);margin:0 auto}
+  ::selection{background:rgba(242,200,121,.24)}
+  a{color:var(--gold-hi);text-decoration:none}
+
+  /* ── shared type ── */
+  .eyebrow{font-size:11px;font-weight:700;letter-spacing:2.6px;text-transform:uppercase;color:var(--gold)}
+  .muted{color:var(--muted)}
+  .soft{color:var(--soft)}
+  h1,h2,h3{text-wrap:balance;letter-spacing:.2px}
+  .num{font-variant-numeric:tabular-nums}
+
+  /* ══════════════ MASTHEAD ══════════════ */
+  .masthead{padding:74px 0 26px;text-align:center;position:relative}
+  .trinity-mark{width:120px;height:120px;margin:0 auto 22px;display:block}
+  .spineline{stroke:url(#spineg);stroke-width:2.4;stroke-linecap:round}
+  .mm-ring{fill:none;stroke-width:5;opacity:.9}
+  .mm-core{opacity:.9}
+  .masthead h1{font-size:clamp(30px,6.4vw,50px);font-weight:800;line-height:1.05;
+    background:linear-gradient(180deg,#FCEFCF,#E9C578 62%,#C79338);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .masthead .dek{max-width:60ch;margin:18px auto 0;font-size:16.5px;color:var(--soft);line-height:1.62}
+  .masthead .dek b{color:var(--cream);font-weight:700}
+  .kicker{font-size:12px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--saffron);margin-bottom:16px}
+
+  /* palette legend — "built only from tokens.ts" */
+  .legend{display:flex;flex-wrap:wrap;gap:9px;justify-content:center;margin:30px auto 0;max-width:640px}
+  .sw{display:inline-flex;align-items:center;gap:8px;font-size:11.5px;color:var(--muted);
+    border:1px solid var(--line);border-radius:999px;padding:6px 12px 6px 7px;background:rgba(28,21,16,.5)}
+  .sw i{width:15px;height:15px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+  .sw b{color:var(--soft);font-weight:600}
+
+  /* ══════════════ CONTENTS ══════════════ */
+  .toc{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:52px 0 20px}
+  .toc-col{border:1px solid var(--line);border-radius:16px;padding:18px 18px 8px;background:linear-gradient(180deg,rgba(28,21,16,.7),rgba(15,11,7,.4))}
+  .toc-col h4{font-size:12px;letter-spacing:2.2px;text-transform:uppercase;margin-bottom:4px}
+  .toc-col p{font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.45}
+  .toc-col ol{list-style:none}
+  .toc-col li{font-size:13.5px;padding:8px 0;border-top:1px solid rgba(58,46,36,.55);display:flex;gap:10px;align-items:baseline}
+  .toc-col li a{color:var(--soft);font-weight:600}
+  .toc-col li a:hover{color:var(--cream)}
+  .toc-col li .n{font-size:11px;color:var(--muted);font-weight:700;font-variant-numeric:tabular-nums;min-width:18px}
+  .c-body h4{color:var(--saffron)} .c-gap h4{color:var(--mind)} .c-sys h4{color:var(--gold)}
+
+  /* ══════════════ MOVEMENT HEADERS ══════════════ */
+  .movement{display:flex;align-items:center;gap:16px;margin:76px 0 8px}
+  .movement .mv-n{font-size:13px;font-weight:800;letter-spacing:2px;color:var(--stage);
+    background:var(--metal);border-radius:8px;padding:5px 10px;flex:none}
+  .movement h2{font-size:23px;font-weight:800}
+  .movement .rule{flex:1;height:1px;background:linear-gradient(90deg,var(--hairline),transparent)}
+  .movement.m-body h2{color:var(--saffron)} .movement.m-body .mv-n{background:var(--metal)}
+  .movement.m-gap h2{color:var(--mind)}
+  .movement.m-sys h2{color:var(--gold)}
+
+  /* ══════════════ PLATE ══════════════ */
+  .plate{display:grid;grid-template-columns:1fr 340px;gap:34px;align-items:center;
+    padding:34px 0;border-top:1px solid rgba(58,46,36,.4)}
+  .plate.rev .p-copy{order:2}
+  .plate.rev .p-vis{order:1}
+  .plate.wide{grid-template-columns:1fr}
+  .p-head{display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+  .p-num{font-size:12px;font-weight:800;color:var(--gold-hi);font-variant-numeric:tabular-nums;
+    border:1px solid var(--hairline);border-radius:8px;padding:3px 9px;letter-spacing:1px}
+  .chip{font-size:10.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;border-radius:999px;padding:4px 10px;border:1px solid transparent}
+  .chip.body{color:var(--saffron);border-color:rgba(240,118,30,.45);background:var(--saffron-wash)}
+  .chip.mind{color:var(--mind);border-color:rgba(143,163,232,.45);background:var(--mind-wash)}
+  .chip.soul{color:var(--gold-hi);border-color:rgba(217,164,65,.45);background:var(--gold-wash)}
+  .chip.eff{color:var(--soft);border-color:var(--line);background:var(--surface2)}
+  .plate h3{font-size:23px;font-weight:800;margin-bottom:9px;line-height:1.18}
+  .thesis{font-size:15.5px;color:var(--gold-hi);font-weight:600;line-height:1.5;margin-bottom:13px;font-style:italic}
+  .p-copy p{font-size:14.5px;color:var(--soft);line-height:1.62;margin-bottom:11px}
+  .p-copy p.small{font-size:13px;color:var(--muted)}
+  .p-copy ul{list-style:none;margin:4px 0 12px}
+  .p-copy li{font-size:14px;color:var(--soft);line-height:1.5;padding:5px 0 5px 20px;position:relative}
+  .p-copy li::before{content:"";position:absolute;left:2px;top:12px;width:6px;height:6px;border-radius:50%;background:var(--gold);opacity:.8}
+  .rulekept{display:flex;gap:9px;align-items:flex-start;font-size:12.5px;color:var(--muted);
+    border-left:2px solid var(--sindoor);padding:3px 0 3px 12px;margin-top:4px;line-height:1.5}
+  .rulekept b{color:var(--soft);font-weight:600}
+  .p-vis{display:flex;justify-content:center}
+
+  /* ══════════════ PHONE ══════════════ */
+  .phone{position:relative;width:300px;flex:none;border-radius:40px;background:var(--ink);
+    border:1px solid #241a10;overflow:hidden;
+    box-shadow:0 0 0 7px #17110b,0 0 0 8px #2c2115,0 34px 70px rgba(0,0,0,.6),0 0 90px rgba(217,164,65,.05)}
+  .phone.tall{height:600px}
+  .statusbar{display:flex;justify-content:space-between;align-items:center;padding:14px 22px 8px;
+    font-size:11px;font-weight:600;color:rgba(246,237,221,.6);font-variant-numeric:tabular-nums}
+  .p-screen{padding:6px 16px 20px;height:100%;overflow:hidden}
+  .p-screen.night{background:radial-gradient(80% 40% at 50% 0%,rgba(37,45,74,.5),transparent 60%),var(--night)}
+
+  .home-head{display:flex;align-items:center;gap:9px;padding:2px 0 12px;border-bottom:1px solid rgba(58,46,36,.5)}
+  .home-head .wm{font-size:14px;font-weight:800;letter-spacing:2.6px;color:var(--gold-hi);line-height:1}
+  .home-head .date{font-size:10px;color:var(--muted);margin-top:4px;letter-spacing:.3px}
+  .deitychip{margin-left:auto;font-size:10px;color:var(--saffron);border:1px solid rgba(240,118,30,.5);
+    background:var(--saffron-wash);border-radius:999px;padding:4px 9px;font-weight:700}
+
+  /* saadhana line */
+  .saadhana{text-align:center;margin:16px 0 2px}
+  .saadhana .lbl{font-size:9px;font-weight:700;letter-spacing:3px;color:var(--muted);text-transform:uppercase}
+  .saadhana .cnt{margin-top:6px;font-size:12px;color:var(--muted)}
+  .saadhana .cnt b{font-size:24px;font-weight:800;color:var(--gold-hi);letter-spacing:0}
+  .saadhana .cnt .of{font-size:13px;color:var(--soft);font-weight:600}
+
+  /* ── the connected trinity: coins on a lit spine ── */
+  .trinity{position:relative;display:flex;flex-direction:column;align-items:center;gap:20px;margin:14px 0 6px}
+  .spine{position:absolute;top:14px;bottom:36px;left:50%;width:3px;transform:translateX(-50%);z-index:0;border-radius:3px;
+    background:linear-gradient(180deg,var(--saffron),var(--mind) 50%,var(--gold));opacity:.5;
+    box-shadow:0 0 12px rgba(217,164,65,.35)}
+  .spine.breathe{animation:spineB 3.6s ease-in-out infinite}
+  @keyframes spineB{0%,100%{opacity:.42}50%{opacity:.72}}
+  .coin{position:relative;width:104px;height:104px;border-radius:50%;background:var(--bezel);padding:6px;z-index:1;
+    box-shadow:0 10px 22px rgba(0,0,0,.5),inset 0 2px 3px rgba(255,244,214,.5),inset 0 -5px 9px rgba(0,0,0,.42)}
+  .coin-face{width:100%;height:100%;border-radius:50%;position:relative;display:grid;place-items:center;
+    background:radial-gradient(circle at 42% 34%,#2C2117 0%,#160F08 74%);
+    box-shadow:inset 0 6px 14px rgba(0,0,0,.72),inset 0 -3px 7px rgba(217,164,65,.1)}
+  .coin svg.ring{position:absolute;inset:-6px;transform:rotate(-90deg)}
+  .ring-fg{transition:stroke-dashoffset 1.2s cubic-bezier(.22,1,.36,1)}
+  .coin-c{display:flex;flex-direction:column;align-items:center;gap:1px;z-index:1}
+  .coin-c .ic{margin-bottom:1px}
+  .coin-c .frac{font-size:17px;font-weight:800}
+  .coin-c .frac small{font-size:11px;color:var(--muted)}
+  .m-lbl{text-align:center;margin-top:9px}
+  .m-lbl .nm{font-size:14px;font-weight:800;line-height:1.1}
+  .m-lbl .dv{font-size:12px;font-weight:700}
+  .m-lbl .en{font-size:9px;color:var(--muted);letter-spacing:1.6px;text-transform:uppercase;margin-top:2px}
+  .medallion{display:flex;flex-direction:column;align-items:center}
+  .chakra-node{position:absolute;left:50%;transform:translate(-50%,-50%);width:9px;height:9px;border-radius:50%;z-index:2;
+    box-shadow:0 0 8px 1px currentColor}
+
+  /* ── concentric tri-ring (compact alt) ── */
+  .concentric{display:flex;flex-direction:column;align-items:center;gap:14px;padding:8px 0}
+  .concentric svg{filter:drop-shadow(0 8px 20px rgba(0,0,0,.5))}
+  .cc-legend{display:flex;gap:14px;font-size:11px}
+  .cc-legend span{display:inline-flex;align-items:center;gap:6px;color:var(--soft)}
+  .cc-legend i{width:10px;height:10px;border-radius:3px}
+
+  /* ── ember cards ── */
+  .card{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px;overflow:hidden;margin-top:12px}
+  .ember{background:linear-gradient(125deg,var(--ember1),var(--ember2));border:1px solid var(--hairline)}
+  .card .eyebrow{font-size:10px;letter-spacing:2px}
+  .om-wm{position:absolute;right:-6px;top:-18px;font-size:74px;color:var(--gold);opacity:.08;font-weight:700;line-height:1;pointer-events:none}
+  .next-row{display:flex;align-items:center;gap:12px}
+  .icslot{width:44px;height:44px;border-radius:13px;display:grid;place-items:center;flex:none;
+    background:radial-gradient(circle at 40% 32%,#2C2117,#171009);
+    box-shadow:inset 0 2px 5px rgba(0,0,0,.6),inset 0 -2px 4px rgba(217,164,65,.12),0 2px 4px rgba(0,0,0,.35)}
+  .next-row .t{flex:1}
+  .next-row .t .h{font-size:15px;font-weight:800}
+  .next-row .t .s{font-size:11.5px;color:var(--muted);margin-top:2px}
+  .go{width:30px;height:30px;border-radius:50%;background:var(--metal);display:grid;place-items:center;flex:none;
+    box-shadow:0 3px 8px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,248,224,.7)}
+
+  /* slim streak ribbon */
+  .ribbon{display:flex;align-items:center;gap:10px;margin-top:12px;padding:11px 14px;border-radius:14px;
+    background:var(--surface);border:1px solid var(--line)}
+  .ribbon .diyas{display:flex;gap:5px;margin-left:auto}
+  .ribbon .d{width:7px;height:7px;border-radius:50%;background:var(--surface2);border:1px solid var(--line)}
+  .ribbon .d.on{background:var(--gold);border-color:var(--gold-hi);box-shadow:0 0 6px rgba(217,164,65,.4)}
+  .ribbon .big{font-size:20px;font-weight:800;color:var(--gold-hi);line-height:1}
+
+  /* changelist for the re-stack */
+  .changes{border:1px solid var(--line);border-radius:16px;overflow:hidden;background:rgba(28,21,16,.5);width:100%;max-width:360px}
+  .changes .row{display:flex;gap:12px;padding:13px 15px;border-top:1px solid rgba(58,46,36,.5);align-items:flex-start}
+  .changes .row:first-child{border-top:none}
+  .changes .mv{font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;padding:3px 8px;border-radius:6px;flex:none;margin-top:1px}
+  .mv.keep{color:var(--gold-hi);background:var(--gold-wash);border:1px solid rgba(217,164,65,.35)}
+  .mv.move{color:var(--mind);background:var(--mind-wash);border:1px solid rgba(143,163,232,.35)}
+  .mv.cut{color:var(--saffron);background:var(--saffron-wash);border:1px solid rgba(240,118,30,.35)}
+  .changes .row .tx{font-size:13px;color:var(--soft);line-height:1.45}
+  .changes .row .tx b{color:var(--cream);font-weight:700}
+
+  /* ── time-of-day strip ── */
+  .strip{display:flex;gap:14px;overflow-x:auto;padding:6px 2px 14px;scrollbar-width:thin}
+  .strip::-webkit-scrollbar{height:6px}
+  .strip::-webkit-scrollbar-thumb{background:var(--line);border-radius:6px}
+  .tcard{flex:none;width:214px;border-radius:20px;overflow:hidden;border:1px solid var(--hairline);position:relative}
+  .tcard .tinner{padding:16px 15px 17px;min-height:186px;display:flex;flex-direction:column}
+  .tcard .tt{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.6);
+    display:flex;justify-content:space-between;font-variant-numeric:tabular-nums}
+  .tcard .greet{font-size:19px;font-weight:800;margin-top:auto;letter-spacing:.2px}
+  .tcard .sub{font-size:12px;margin-top:4px;line-height:1.4;opacity:.85}
+  .tcard .todo{margin-top:13px;display:inline-flex;align-items:center;gap:8px;align-self:flex-start;
+    font-size:12px;font-weight:700;padding:7px 13px;border-radius:999px}
+  .t-brahma{background:linear-gradient(165deg,#1a1533 0%,#0F0B12 46%,#2a1c10 100%)}
+  .t-brahma .greet{color:#EAD9FF} .t-brahma .todo{background:rgba(143,163,232,.16);color:#c7d0f5;border:1px solid rgba(143,163,232,.4)}
+  .t-day{background:radial-gradient(120% 80% at 20% 0%,rgba(240,118,30,.14),transparent 55%),var(--ink)}
+  .t-day .greet{color:var(--cream)} .t-day .todo{background:var(--saffron-wash);color:var(--saffron);border:1px solid rgba(240,118,30,.45)}
+  .t-dusk{background:linear-gradient(165deg,#2A1808 0%,#1C1006 55%,#160a12 100%)}
+  .t-dusk .greet{color:var(--gold-hi)} .t-dusk .todo{background:var(--gold-wash);color:var(--gold-hi);border:1px solid rgba(217,164,65,.4)}
+  .t-night{background:radial-gradient(90% 60% at 50% 0%,rgba(37,45,74,.6),transparent 60%),var(--night)}
+  .t-night .greet{color:#cdd4ef} .t-night .sub{color:var(--night-muted)}
+  .t-night .todo{background:rgba(37,45,74,.5);color:#aeb7e0;border:1px solid var(--night-line)}
+  .t-night .tt{color:var(--night-muted)}
+
+  /* ── ceremony strip ── */
+  .cere{display:flex;gap:18px;align-items:center;flex-wrap:wrap;justify-content:center}
+  .cere-stage{position:relative;width:230px;height:230px;border-radius:24px;flex:none;overflow:hidden;
+    background:radial-gradient(circle at 50% 44%,rgba(36,20,7,.9),rgba(7,4,2,.98));border:1px solid var(--hairline);
+    display:grid;place-items:center}
+  .cere-bloom{position:absolute;width:180px;height:180px;border-radius:50%;
+    background:radial-gradient(circle,rgba(242,200,121,.35),rgba(240,118,30,.08) 50%,transparent 76%);
+    animation:bloom 3.4s ease-in-out infinite}
+  @keyframes bloom{0%,100%{opacity:.5;transform:scale(.92)}50%{opacity:.9;transform:scale(1.06)}}
+  .cere-in{position:relative;text-align:center;z-index:1}
+  .cere-in .diya{filter:drop-shadow(0 0 16px rgba(242,200,121,.5))}
+  .cere-in h4{font-size:16px;font-weight:800;color:var(--gold-hi);margin-top:8px}
+  .cere-in p{font-size:11px;color:var(--soft);margin-top:3px;max-width:170px;margin-left:auto;margin-right:auto}
+
+  /* ── My Path bits ── */
+  .grid7{display:flex;flex-direction:column;gap:8px;margin-top:4px}
+  .grid7 .grow{display:flex;align-items:center;gap:8px}
+  .grid7 .rl{width:44px;font-size:11px;font-weight:700}
+  .grid7 .cells{display:flex;gap:5px;flex:1}
+  .cell{flex:1;aspect-ratio:1;border-radius:5px;background:var(--surface2);border:1px solid var(--line)}
+  .cell.b{background:rgba(240,118,30,.85);border-color:var(--saffron)}
+  .cell.m{background:rgba(143,163,232,.85);border-color:var(--mind)}
+  .cell.s{background:rgba(217,164,65,.9);border-color:var(--gold-hi)}
+  .cell.half{opacity:.4}
+  .daylabels{display:flex;gap:5px;margin-left:52px}
+  .daylabels span{flex:1;text-align:center;font-size:9px;color:var(--muted)}
+  .stat2{display:flex;gap:10px;margin-top:14px}
+  .stat2 .s{flex:1;border:1px solid var(--line);border-radius:13px;padding:11px 12px;background:var(--surface)}
+  .stat2 .s .k{font-size:9px;letter-spacing:1.4px;text-transform:uppercase;color:var(--muted)}
+  .stat2 .s .v{font-size:22px;font-weight:800;color:var(--gold-hi);margin-top:3px;line-height:1}
+  .stat2 .s .v small{font-size:11px;color:var(--muted);font-weight:600}
+
+  /* ── onboarding deity grid ── */
+  .steps{display:flex;gap:6px;margin:4px 0 14px}
+  .steps .st{flex:1;height:4px;border-radius:3px;background:var(--surface2)}
+  .steps .st.on{background:var(--metal)}
+  .deitygrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:6px}
+  .deity{border:1px solid var(--line);border-radius:15px;padding:13px 6px;text-align:center;background:var(--surface);position:relative}
+  .deity.sel{border-color:var(--saffron);background:var(--saffron-wash);box-shadow:0 0 0 1px rgba(240,118,30,.4)}
+  .deity .disc{width:40px;height:40px;border-radius:50%;margin:0 auto 7px;display:grid;place-items:center;
+    background:radial-gradient(circle at 40% 32%,#2C2117,#160F08);box-shadow:inset 0 2px 5px rgba(0,0,0,.6)}
+  .deity .nm{font-size:11px;font-weight:700;color:var(--soft)}
+  .deity .dv{font-size:13px;font-weight:700;color:var(--gold-hi)}
+
+  /* ── component spec board ── */
+  .board{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;width:100%}
+  .spec{border:1px solid var(--line);border-radius:16px;padding:16px;background:linear-gradient(180deg,rgba(28,21,16,.7),rgba(15,11,7,.35));text-align:center}
+  .spec .demo{height:74px;display:grid;place-items:center;margin-bottom:12px}
+  .spec .nm{font-size:13px;font-weight:800}
+  .spec .ds{font-size:11px;color:var(--muted);margin-top:3px;line-height:1.4}
+  .demo-coin{width:56px;height:56px;border-radius:50%;background:var(--bezel);padding:4px;box-shadow:0 6px 14px rgba(0,0,0,.5)}
+  .demo-coin div{width:100%;height:100%;border-radius:50%;background:radial-gradient(circle at 42% 34%,#2C2117,#160F08);box-shadow:inset 0 4px 10px rgba(0,0,0,.7)}
+  .demo-ember{width:110px;height:56px;border-radius:12px;background:linear-gradient(125deg,var(--ember1),var(--ember2));border:1px solid var(--hairline);position:relative;overflow:hidden}
+  .demo-ember::after{content:"ॐ";position:absolute;right:6px;top:-6px;font-size:38px;color:var(--gold);opacity:.1}
+  .demo-slot{width:52px;height:52px;border-radius:15px;background:radial-gradient(circle at 40% 32%,#2C2117,#171009);box-shadow:inset 0 2px 5px rgba(0,0,0,.6),inset 0 -2px 4px rgba(217,164,65,.12);display:grid;place-items:center}
+  .demo-g3d{font:inherit;font-weight:800;color:#3a2205;border:none;border-radius:13px;padding:12px 20px;font-size:13px;background:var(--metal);
+    box-shadow:inset 0 1px 0 rgba(255,248,224,.85),inset 0 -5px 11px rgba(120,79,20,.5),0 8px 18px rgba(0,0,0,.4)}
+  .demo-haptic{display:flex;gap:5px;align-items:flex-end;height:34px}
+  .demo-haptic i{width:7px;border-radius:3px;background:var(--gold);opacity:.85}
+
+  /* ── muscle model ── */
+  .bodies{display:flex;justify-content:center;gap:16px;margin:2px 0 10px}
+  .bodyfig{text-align:center}
+  .bodyfig .lbl{font-size:10px;color:var(--muted);margin-top:2px;letter-spacing:1px;text-transform:uppercase}
+  .m-reg{fill:var(--surface2);stroke:var(--line);stroke-width:1.4;transition:fill .25s,stroke .25s}
+  .m-reg.on{fill:rgba(240,118,30,.6);stroke:var(--saffron)}
+  .m-fill{fill:#221912}
+  .exrow{display:flex;align-items:center;gap:11px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:9px 11px;margin-top:7px}
+  .exrow .dot{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;flex:none;background:radial-gradient(circle at 40% 32%,#2C2117,#171009);box-shadow:inset 0 2px 4px rgba(0,0,0,.5)}
+  .exrow .nm{font-weight:700;font-size:13px}
+  .exrow .ar{font-size:10.5px;color:var(--muted)}
+  .selrow{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:8px}
+  .selchip{font-size:11px;color:var(--saffron);background:var(--saffron-wash);border:1px solid rgba(240,118,30,.45);border-radius:999px;padding:4px 10px;font-weight:700}
+
+  /* toggles */
+  .toggle{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:3px;background:var(--surface);margin-bottom:16px}
+  .toggle button{font:inherit;font-size:12.5px;font-weight:700;color:var(--muted);background:none;border:none;cursor:pointer;
+    padding:7px 16px;border-radius:999px;transition:.2s}
+  .toggle button.on{color:var(--stage);background:var(--metal)}
+  .toggle button:focus-visible{outline:2px solid var(--gold-hi);outline-offset:2px}
+  .swap>*{display:none} .swap>.show{display:flex}
+
+  /* footer */
+  .foot{margin-top:80px;border-top:1px solid var(--line);padding-top:34px}
+  .foot h3{font-size:19px;font-weight:800;color:var(--gold-hi);margin-bottom:16px}
+  .foot .guards{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-bottom:26px}
+  .guard{border:1px solid var(--line);border-radius:13px;padding:13px 15px;background:rgba(28,21,16,.4)}
+  .guard .g{font-size:12.5px;font-weight:700;color:var(--soft)}
+  .guard .g::before{content:"✓";color:var(--gold);font-weight:800;margin-right:7px}
+  .guard p{font-size:11.5px;color:var(--muted);margin-top:4px;line-height:1.45}
+  .foot .close{font-size:13.5px;color:var(--muted);line-height:1.6;max-width:70ch}
+  .foot .close b{color:var(--soft)}
+  .sig{margin-top:22px;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)}
+
+  /* reveal */
+  .rev-in{opacity:0;transform:translateY(18px);transition:opacity .6s ease,transform .7s cubic-bezier(.22,1,.36,1)}
+  .rev-in.seen{opacity:1;transform:none}
+  @media (prefers-reduced-motion:reduce){
+    .rev-in{opacity:1;transform:none;transition:none}
+    .spine.breathe,.cere-bloom,.demo-flick{animation:none!important}
+  }
+
+  /* responsive */
+  @media (max-width:820px){
+    .plate{grid-template-columns:1fr;gap:24px}
+    .plate.rev .p-copy{order:1} .plate.rev .p-vis{order:2}
+    .toc{grid-template-columns:1fr}
+  }
+  @media (max-width:520px){
+    body{padding:0 14px 70px}
+    .masthead{padding:52px 0 18px}
+    .phone{width:270px}
+  }
+</style>
+
+<div class="wrap">
+
+  <!-- ══════════════ MASTHEAD ══════════════ -->
+  <header class="masthead">
+    <svg class="trinity-mark" viewBox="0 0 120 120" aria-hidden="true">
+      <defs>
+        <linearGradient id="spineg" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#F0761E"/><stop offset="0.5" stop-color="#8FA3E8"/><stop offset="1" stop-color="#F2C879"/>
+        </linearGradient>
+      </defs>
+      <line class="spineline" x1="60" y1="20" x2="60" y2="100"/>
+      <circle class="mm-ring" cx="60" cy="24" r="12" stroke="#F0761E"/>
+      <circle class="mm-ring" cx="60" cy="60" r="12" stroke="#8FA3E8"/>
+      <circle class="mm-ring" cx="60" cy="96" r="12" stroke="#F2C879"/>
+      <circle class="mm-core" cx="60" cy="24" r="4" fill="#F0761E"/>
+      <circle class="mm-core" cx="60" cy="60" r="4" fill="#8FA3E8"/>
+      <circle class="mm-core" cx="60" cy="96" r="4" fill="#F2C879"/>
+    </svg>
+    <div class="kicker">Fit Hindu · BMS · Design Direction</div>
+    <h1>What we build next</h1>
+    <p class="dek">The Body·Mind·Soul shell is approved and beautiful. These are the next moves —
+      to make it <b>feel alive</b>, <b>cohere as one system</b>, and <b>fill the structural gaps</b> —
+      every one inside the rules already on the wall.</p>
+
+    <div class="legend" aria-label="Palette — drawn only from src/ui/tokens.ts">
+      <span class="sw"><i style="background:#0F0B07"></i><b>ink</b> ground</span>
+      <span class="sw"><i style="background:#F0761E"></i><b>saffron</b> Body</span>
+      <span class="sw"><i style="background:#8FA3E8"></i><b>indigo</b> Mind</span>
+      <span class="sw"><i style="background:#D9A441"></i><b>gold</b> Soul</span>
+      <span class="sw"><i style="background:#F6EDDD"></i><b>cream</b> text</span>
+      <span class="sw"><i style="background:#0B0E1A"></i><b>night</b> rest</span>
+    </div>
+  </header>
+
+  <!-- ══════════════ CONTENTS ══════════════ -->
+  <nav class="toc">
+    <div class="toc-col c-body">
+      <h4>I · Feel alive</h4>
+      <p>Motion and time — the difference between a dashboard and a companion.</p>
+      <ol>
+        <li><span class="n">01</span><a href="#p1">The trinity, connected</a></li>
+        <li><span class="n">02</span><a href="#p2">A surface that keeps time</a></li>
+        <li><span class="n">03</span><a href="#p3">The day made whole</a></li>
+      </ol>
+    </div>
+    <div class="toc-col c-gap">
+      <h4>II · Fill the gaps</h4>
+      <p>The screens the shell implies but doesn't have yet.</p>
+      <ol>
+        <li><span class="n">04</span><a href="#p4">Home, re-stacked</a></li>
+        <li><span class="n">05</span><a href="#p5">My Path — the progress home</a></li>
+        <li><span class="n">06</span><a href="#p6">The Sankalp — onboarding</a></li>
+      </ol>
+    </div>
+    <div class="toc-col c-sys">
+      <h4>III · Cohere</h4>
+      <p>Make the beautiful pieces obviously one family.</p>
+      <ol>
+        <li><span class="n">07</span><a href="#p7">One material language</a></li>
+        <li><span class="n">08</span><a href="#p8">The body you train</a></li>
+      </ol>
+    </div>
+  </nav>
+
+  <!-- ══════════════ MOVEMENT I ══════════════ -->
+  <div class="movement m-body"><span class="mv-n">I</span><h2>Make it feel alive</h2><span class="rule"></span></div>
+
+  <!-- 01 — TRINITY CONNECTED -->
+  <section class="plate rev rev-in" id="p1">
+    <div class="p-copy">
+      <div class="p-head"><span class="p-num">01</span><span class="chip soul">Home hero</span><span class="chip eff">Effort · M</span></div>
+      <h3>The trinity, connected</h3>
+      <p class="thesis">Three separate rings read as three chores. One connected column reads as a path.</p>
+      <p>Today the three medallions float independently. Run a lit <b>sushumna</b> spine through them —
+        the same chakra channel the splash already animates — and the hero stops being a scoreboard and
+        becomes a body waking up, root to crown.</p>
+      <ul>
+        <li>The spine lights upward as pillars close — glanceable progress with no numbers to read.</li>
+        <li>One line above answers the only question that matters: <b>2 of 3 · today's saadhana</b>.</li>
+        <li>Toggle a compact <b>concentric</b> mode for small phones, widgets, a future watch face.</li>
+      </ul>
+      <div class="rulekept"><span>⚑</span><div><b>Rule kept:</b> rings count workout · meal · meditation · jap · sleep only. Worship (aarti/darshan) is never a ring — it stays outside the tally, per the fence-line.</div></div>
+    </div>
+    <div class="p-vis">
+      <div style="display:flex;flex-direction:column;align-items:center">
+        <div class="toggle" role="tablist" data-swap="t1">
+          <button class="on" data-i="0" role="tab">Connected</button>
+          <button data-i="1" role="tab">Concentric</button>
+        </div>
+        <div class="phone">
+          <div class="statusbar"><span>5:41</span><span>▮▮▮▯ ▪</span></div>
+          <div class="p-screen">
+            <div class="home-head">
+              <div><div class="wm">FIT HINDU</div><div class="date">Tuesday, 12 August</div></div>
+              <span class="deitychip">Hanuman Ji</span>
+            </div>
+            <div class="saadhana"><div class="lbl">Today's Saadhana</div>
+              <div class="cnt num"><b>2</b> <span class="of">of 3</span> complete</div></div>
+            <div class="swap" data-swap-body="t1">
+              <!-- connected -->
+              <div class="show">
+                <div class="trinity" style="width:100%">
+                  <span class="spine breathe"></span>
+                  <span class="chakra-node" style="top:52px;color:#F0761E;background:#F0761E"></span>
+                  <span class="chakra-node" style="top:172px;color:#8FA3E8;background:#8FA3E8"></span>
+                  <span class="chakra-node" style="top:292px;color:#F2C879;background:#F2C879"></span>
+                  <div class="medallion">
+                    <div class="coin">
+                      <svg class="ring" width="116" height="116" viewBox="0 0 116 116">
+                        <circle cx="58" cy="58" r="52" fill="none" stroke="rgba(240,118,30,.14)" stroke-width="5"/>
+                        <circle class="ring-fg" cx="58" cy="58" r="52" fill="none" stroke="#F0761E" stroke-width="5" stroke-linecap="round" stroke-dasharray="326.7" stroke-dashoffset="163" style="filter:drop-shadow(0 0 5px rgba(240,118,30,.4))"/>
+                      </svg>
+                      <div class="coin-face"><div class="coin-c">
+                        <span class="ic">
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F0761E" stroke-width="2" stroke-linecap="round"><path d="M6.5 7v10M17.5 7v10M4 9v6M20 9v6M6.5 12h11"/></svg>
+                        </span>
+                        <div class="frac num">1<small>/2</small></div></div></div>
+                    </div>
+                    <div class="m-lbl"><div class="nm" style="color:var(--saffron)">Body <span class="dv">तन</span></div><div class="en">Exercise · Diet</div></div>
+                  </div>
+                  <div class="medallion">
+                    <div class="coin">
+                      <svg class="ring" width="116" height="116" viewBox="0 0 116 116">
+                        <circle cx="58" cy="58" r="52" fill="none" stroke="rgba(143,163,232,.16)" stroke-width="5"/>
+                        <circle class="ring-fg" cx="58" cy="58" r="52" fill="none" stroke="#8FA3E8" stroke-width="5" stroke-linecap="round" stroke-dasharray="326.7" stroke-dashoffset="0" style="filter:drop-shadow(0 0 5px rgba(143,163,232,.45))"/>
+                      </svg>
+                      <div class="coin-face"><div class="coin-c">
+                        <span class="ic">
+                          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8FA3E8" stroke-width="1.7"><path d="M12 4c-2 2.5-2 5 0 7 2-2 2-4.5 0-7Z"/><path d="M6 9c-1 3 .5 5 3 6 1-3-.5-5-3-6Z"/><path d="M18 9c1 3-.5 5-3 6-1-3 .5-5 3-6Z"/></svg>
+                        </span>
+                        <div class="frac num">1<small>/1</small></div></div></div>
+                    </div>
+                    <div class="m-lbl"><div class="nm" style="color:var(--mind)">Mind <span class="dv">मन</span></div><div class="en">Meditation · Wisdom</div></div>
+                  </div>
+                  <div class="medallion">
+                    <div class="coin">
+                      <svg class="ring" width="116" height="116" viewBox="0 0 116 116">
+                        <circle cx="58" cy="58" r="52" fill="none" stroke="rgba(217,164,65,.16)" stroke-width="5"/>
+                        <circle class="ring-fg" cx="58" cy="58" r="52" fill="none" stroke="#F2C879" stroke-width="5" stroke-linecap="round" stroke-dasharray="326.7" stroke-dashoffset="163" style="filter:drop-shadow(0 0 5px rgba(242,200,121,.4))"/>
+                      </svg>
+                      <div class="coin-face"><div class="coin-c">
+                        <span class="ic" style="font-size:22px;color:var(--gold-hi);font-weight:700;line-height:1">ॐ</span>
+                        <div class="frac num">1<small>/2</small></div></div></div>
+                    </div>
+                    <div class="m-lbl"><div class="nm" style="color:var(--gold)">Soul <span class="dv">आत्मा</span></div><div class="en">Chanting · Rest</div></div>
+                  </div>
+                </div>
+              </div>
+              <!-- concentric -->
+              <div>
+                <div class="concentric" style="width:100%">
+                  <svg width="188" height="188" viewBox="0 0 188 188">
+                    <g transform="rotate(-90 94 94)">
+                      <circle cx="94" cy="94" r="82" fill="none" stroke="rgba(240,118,30,.14)" stroke-width="11"/>
+                      <circle cx="94" cy="94" r="82" fill="none" stroke="#F0761E" stroke-width="11" stroke-linecap="round" stroke-dasharray="515" stroke-dashoffset="257" style="filter:drop-shadow(0 0 5px rgba(240,118,30,.4))"/>
+                      <circle cx="94" cy="94" r="66" fill="none" stroke="rgba(143,163,232,.16)" stroke-width="11"/>
+                      <circle cx="94" cy="94" r="66" fill="none" stroke="#8FA3E8" stroke-width="11" stroke-linecap="round" stroke-dasharray="414.7" stroke-dashoffset="0" style="filter:drop-shadow(0 0 5px rgba(143,163,232,.45))"/>
+                      <circle cx="94" cy="94" r="50" fill="none" stroke="rgba(217,164,65,.16)" stroke-width="11"/>
+                      <circle cx="94" cy="94" r="50" fill="none" stroke="#F2C879" stroke-width="11" stroke-linecap="round" stroke-dasharray="314.2" stroke-dashoffset="157" style="filter:drop-shadow(0 0 5px rgba(242,200,121,.4))"/>
+                    </g>
+                    <text x="94" y="88" text-anchor="middle" fill="#F6EDDD" font-size="30" font-weight="800" font-family="var(--sans)">2</text>
+                    <text x="94" y="108" text-anchor="middle" fill="#A8917A" font-size="12" font-weight="700" font-family="var(--sans)">of 3 pillars</text>
+                  </svg>
+                  <div class="cc-legend">
+                    <span><i style="background:#F0761E"></i>Body</span>
+                    <span><i style="background:#8FA3E8"></i>Mind</span>
+                    <span><i style="background:#F2C879"></i>Soul</span>
+                  </div>
+                  <p class="muted" style="font-size:11px;text-align:center;max-width:210px;line-height:1.4">
+                    Same data, one glance — for the lock screen widget and above-the-fold on short phones.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 02 — LIVING SURFACE -->
+  <section class="plate wide rev-in" id="p2">
+    <div class="p-copy">
+      <div class="p-head"><span class="p-num">02</span><span class="chip soul">System-wide</span><span class="chip eff">Effort · S</span></div>
+      <h3>A surface that keeps time</h3>
+      <p class="thesis">A devotional app should not feel the same at 5&nbsp;a.m. as it does at 10&nbsp;p.m.</p>
+      <p>Let Home breathe with the IST day. The ground, the greeting, and the one suggested action shift across
+        four moods — anchored to the devotional clock, so <b>Brahma Muhurta</b> is a felt moment, not a label.
+        It's a slow gradient and a copy swap, nothing heavier, and the night mood already exists in your tokens.</p>
+    </div>
+    <div class="p-vis" style="width:100%">
+      <div class="strip" style="width:100%">
+        <div class="tcard t-brahma"><div class="tinner"><div class="tt"><span>Brahma&nbsp;Muhurta</span><span>04:30</span></div>
+          <div class="greet">The quiet hour</div><div class="sub soft">Begin before the world wakes.</div>
+          <span class="todo">Meditate · 5 min</span></div></div>
+        <div class="tcard t-day"><div class="tinner"><div class="tt"><span>Morning</span><span>08:00</span></div>
+          <div class="greet">Good morning</div><div class="sub soft">Strength for the day ahead.</div>
+          <span class="todo">Today's workout →</span></div></div>
+        <div class="tcard t-dusk"><div class="tinner"><div class="tt"><span>Evening</span><span>18:30</span></div>
+          <div class="greet">Sandhya</div><div class="sub soft">Turn inward as the light fades.</div>
+          <span class="todo">Mantra jap · 108</span></div></div>
+        <div class="tcard t-night"><div class="tinner"><div class="tt"><span>Night</span><span>22:30</span></div>
+          <div class="greet">Rest well</div><div class="sub">Let the day settle.</div>
+          <span class="todo">Sleep sounds</span></div></div>
+      </div>
+      <p class="muted" style="font-size:12px;margin-top:6px;text-align:center">Four moods from the same tokens — <b class="soft">night</b> reuses the sleep palette you already ship.</p>
+    </div>
+  </section>
+
+  <!-- 03 — DAY COMPLETE -->
+  <section class="plate rev-in" id="p3">
+    <div class="p-copy">
+      <div class="p-head"><span class="p-num">03</span><span class="chip soul">Delight</span><span class="chip eff">Effort · S</span></div>
+      <h3>The day made whole</h3>
+      <p class="thesis">The best habit apps make finishing feel like an event, once a day.</p>
+      <p>When all three pillars close, the spine floods crown-up and a single diya blooms at centre:
+        <b>"Your day is whole."</b> One earned moment — like today's blessing — that rewards showing up.</p>
+      <div class="rulekept"><span>⚑</span><div><b>Rule kept:</b> this celebrates the <b>routine</b> (body·mind·soul done), never worship, and it's never a paywall or a points-farm. A quiet aarti-lit beat, then it's gone till tomorrow.</div></div>
+    </div>
+    <div class="p-vis">
+      <div class="cere">
+        <div class="cere-stage">
+          <div class="cere-bloom"></div>
+          <div class="cere-in">
+            <svg class="diya" width="60" height="46" viewBox="0 0 60 46" aria-hidden="true">
+              <path d="M30 4c1.6 5 1.6 9 0 13-1.6-4-1.6-8 0-13Z" fill="#F2C879"/>
+              <path d="M30 6c1 3.4 1 6 0 9-1-3-1-5.6 0-9Z" fill="#FFF3D6"/>
+              <path d="M8 26c4 8 40 8 44 0 2 6-6 12-22 12S6 32 8 26Z" fill="url(#dg)"/>
+              <ellipse cx="30" cy="26" rx="22" ry="5" fill="#B07E2B"/>
+              <defs><linearGradient id="dg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F2C879"/><stop offset="1" stop-color="#B07E2B"/></linearGradient></defs>
+            </svg>
+            <h4>Your day is whole</h4>
+            <p>Body, mind and soul — all three, today.</p>
+          </div>
+        </div>
+        <div style="max-width:200px">
+          <p class="muted" style="font-size:12.5px;line-height:1.55">Triggered once when the third ring closes.
+            Uses the reward overlay you already built for jap — no new engine, just a new occasion.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════ MOVEMENT II ══════════════ -->
+  <div class="movement m-gap"><span class="mv-n">II</span><h2>Fill the structural gaps</h2><span class="rule"></span></div>
+
+  <!-- 04 — HOME RE-STACKED -->
+  <section class="plate rev rev-in" id="p4">
+    <div class="p-copy">
+      <div class="p-head"><span class="p-num">04</span><span class="chip mind">Home structure</span><span class="chip eff">Effort · M</span></div>
+      <h3>Home, re-stacked</h3>
+      <p class="thesis">Home is four full-width cards deep. Lead with the one question that matters, then get out of the way.</p>
+      <p>This is the answer to your own open question — <span class="muted">"rings-only, or keep the devotional content?"</span>
+        A middle path: keep the soul of the screen, cut the scroll. The hero carries the day; one <b>Next step</b> card
+        tells you what to do right now; everything else demotes or moves to where it belongs.</p>
+      <p class="small">The verse moves into Mind's Daily Gita, where reading actually lives — so it gets a home instead of being a scroll-past.</p>
+    </div>
+    <div class="p-vis" style="flex-direction:column;gap:16px">
+      <div class="phone" style="width:280px">
+        <div class="statusbar"><span>8:02</span><span>▮▮▮▯ ▪</span></div>
+        <div class="p-screen">
+          <div class="home-head"><div><div class="wm">FIT HINDU</div><div class="date">Good morning · 12 Aug</div></div><span class="deitychip">Hanuman Ji</span></div>
+          <div class="saadhana" style="margin:12px 0 0"><div class="lbl">Today's Saadhana</div><div class="cnt num"><b>1</b> <span class="of">of 3</span> complete</div></div>
+          <div class="trinity" style="gap:2px;margin:10px 0 4px">
+            <div style="display:flex;gap:16px;justify-content:center">
+              <div class="coin" style="width:58px;height:58px;padding:4px"><div class="coin-face"><span style="color:#F0761E"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F0761E" stroke-width="2.2" stroke-linecap="round"><path d="M6.5 7v10M17.5 7v10M4 9v6M20 9v6M6.5 12h11"/></svg></span></div></div>
+              <div class="coin" style="width:58px;height:58px;padding:4px"><div class="coin-face"><span style="color:#8FA3E8;font-weight:800">✓</span></div></div>
+              <div class="coin" style="width:58px;height:58px;padding:4px"><div class="coin-face"><span style="color:var(--gold-hi);font-weight:700">ॐ</span></div></div>
+            </div>
+          </div>
+          <div class="card ember" style="margin-top:10px">
+            <div class="eyebrow" style="color:var(--saffron)">Next step</div>
+            <div class="next-row" style="margin-top:9px">
+              <span class="icslot"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F0761E" stroke-width="2" stroke-linecap="round"><path d="M6.5 7v10M17.5 7v10M4 9v6M20 9v6M6.5 12h11"/></svg></span>
+              <div class="t"><div class="h">Today's workout</div><div class="s">Full body · 20 min · 14 exercises</div></div>
+              <span class="go"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3a2205" stroke-width="3" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></span>
+            </div>
+          </div>
+          <div class="ribbon"><svg width="20" height="16" viewBox="0 0 60 46"><path d="M30 4c1.6 5 1.6 9 0 13-1.6-4-1.6-8 0-13Z" fill="#F2C879"/><path d="M8 26c4 8 40 8 44 0 2 6-6 12-22 12S6 32 8 26Z" fill="#B07E2B"/></svg>
+            <div><div style="font-size:12.5px;font-weight:700">12-day vow</div><div style="font-size:10px;color:var(--muted)">1,240 Fit Points</div></div>
+            <div class="diyas"><i class="d on"></i><i class="d on"></i><i class="d on"></i><i class="d on"></i><i class="d on"></i><i class="d"></i><i class="d"></i></div>
+          </div>
+          <div class="ribbon" style="justify-content:flex-start"><span style="opacity:.7"><svg width="16" height="16" viewBox="0 0 60 46"><path d="M30 4c1.6 5 1.6 9 0 13-1.6-4-1.6-8 0-13Z" fill="#B07E2B"/><path d="M8 26c4 8 40 8 44 0 2 6-6 12-22 12S6 32 8 26Z" fill="#5a4020"/></svg></span>
+            <div style="font-size:12px;color:var(--muted)">Today's blessing — <span class="soft">tap to reveal</span></div>
+            <span style="margin-left:auto;color:var(--muted)">›</span></div>
+        </div>
+      </div>
+      <div class="changes">
+        <div class="row"><span class="mv keep">Keep</span><div class="tx"><b>Trinity hero + saadhana count</b> — the reason to open the app.</div></div>
+        <div class="row"><span class="mv keep">New</span><div class="tx"><b>Next step card</b> — one contextual action (a.m. → workout, p.m. → jap).</div></div>
+        <div class="row"><span class="mv cut">Slim</span><div class="tx">Streak, points &amp; blessing collapse into <b>two thin ribbons</b>.</div></div>
+        <div class="row"><span class="mv move">Move</span><div class="tx">Today's <b>verse → Mind · Daily Gita</b>, where reading belongs.</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 05 — MY PATH -->
+  <section class="plate rev-in" id="p5">
+    <div class="p-copy">
+      <div class="p-head"><span class="p-num">05</span><span class="chip mind">New screen</span><span class="chip eff">Effort · L</span></div>
+      <h3>My Path</h3>
+      <p class="thesis">The sankalp card promises a story. Give it a screen to tell it.</p>
+      <p>The streak card already taps through to <code style="color:var(--gold-hi)">/progress</code> — but that destination is thin.
+        Make it the reflective home: a <b>weekly BMS grid</b> that shows at a glance which pillar you keep and which one slips,
+        the streak and its record, and the Fit-Points milestone track.</p>
+      <ul>
+        <li>Per-pillar consistency, so guidance can be specific: "your Soul is steady; Body is where today's win is."</li>
+        <li>Framed gently — a broken streak reads as a fresh beginning, never as loss.</li>
+      </ul>
+      <div class="rulekept"><span>⚑</span><div><b>Rule kept:</b> IST day boundaries, streak logic and points all come from the server functions you already ship (migration 0012). This screen only <b>renders</b> them.</div></div>
+    </div>
+    <div class="p-vis">
+      <div class="phone" style="width:284px">
+        <div class="statusbar"><span>9:12</span><span>▮▮▮▯ ▪</span></div>
+        <div class="p-screen">
+          <div style="padding:4px 0 10px"><h3 style="font-size:20px;color:var(--gold-hi);margin:0">My Path</h3><div style="font-size:11px;color:var(--muted);margin-top:2px">Every day you showed up</div></div>
+          <div class="stat2" style="margin-top:2px">
+            <div class="s"><div class="k">Current</div><div class="v num">12 <small>days</small></div></div>
+            <div class="s"><div class="k">Longest</div><div class="v num">28 <small>days</small></div></div>
+          </div>
+          <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin:16px 0 8px">This week</div>
+          <div class="daylabels"><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span></div>
+          <div class="grid7" style="margin-top:6px">
+            <div class="grow"><span class="rl" style="color:var(--saffron)">तन</span><div class="cells"><i class="cell b"></i><i class="cell b"></i><i class="cell"></i><i class="cell b"></i><i class="cell b"></i><i class="cell b half"></i><i class="cell"></i></div></div>
+            <div class="grow"><span class="rl" style="color:var(--mind)">मन</span><div class="cells"><i class="cell m"></i><i class="cell m"></i><i class="cell m"></i><i class="cell m"></i><i class="cell m"></i><i class="cell m half"></i><i class="cell"></i></div></div>
+            <div class="grow"><span class="rl" style="color:var(--gold-hi)">आत्मा</span><div class="cells"><i class="cell s"></i><i class="cell s"></i><i class="cell s"></i><i class="cell"></i><i class="cell s"></i><i class="cell s half"></i><i class="cell"></i></div></div>
+          </div>
+          <div class="card" style="margin-top:16px;padding:13px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline"><div style="font-size:11px;color:var(--muted)">Fit Points → next milestone</div><div style="font-size:12px;font-weight:800;color:var(--gold-hi)" class="num">1,240</div></div>
+            <div style="height:7px;border-radius:4px;background:var(--surface2);margin-top:9px;overflow:hidden;box-shadow:inset 0 1px 3px rgba(0,0,0,.5)"><div style="height:100%;width:72%;border-radius:4px;background:linear-gradient(90deg,var(--gold-deep),var(--gold-hi))"></div></div>
+            <div style="font-size:10.5px;color:var(--muted);margin-top:7px">3 more days to the 15-day milestone · +200</div>
+          </div>
+          <div style="font-size:11px;color:var(--soft);margin-top:14px;line-height:1.5;padding-left:11px;border-left:2px solid var(--mind)">Your <b style="color:var(--mind)">Mind</b> is steady this week. Today's easiest win is a <b style="color:var(--saffron)">Body</b> session.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 06 — ONBOARDING -->
+  <section class="plate rev rev-in" id="p6">
+    <div class="p-copy">
+      <div class="p-head"><span class="p-num">06</span><span class="chip mind">New flow</span><span class="chip eff">Effort · L</span></div>
+      <h3>The Sankalp</h3>
+      <p class="thesis">First run sets the emotional contract. Make it a vow, not a form.</p>
+      <p>A three-beat opening that ends on the awakening you already animate:</p>
+      <ul>
+        <li><b>Choose your ishta.</b> The deity you'll walk with — this seeds the whole devotional layer.</li>
+        <li><b>Set your intention.</b> Strength · calm · devotion · discipline — a chip, not an essay.</li>
+        <li><b>Your rhythm.</b> Days and time → mapped to a team-authored plan.</li>
+      </ul>
+      <div class="rulekept"><span>⚑</span><div><b>Rule kept:</b> the mapping is <b>rule-based</b> (questionnaire → authored templates). AI generation stays scoped to the diet custom-plan carve-out only — nothing here generates health advice.</div></div>
+    </div>
+    <div class="p-vis">
+      <div class="phone" style="width:284px">
+        <div class="statusbar"><span>9:41</span><span>▮▮▮▯ ▪</span></div>
+        <div class="p-screen">
+          <div class="steps"><span class="st on"></span><span class="st"></span><span class="st"></span></div>
+          <div style="padding:2px 0 4px"><div class="eyebrow" style="color:var(--saffron)">Step 1 of 3</div>
+            <h3 style="font-size:19px;margin:7px 0 2px">Who do you walk with?</h3>
+            <div style="font-size:11.5px;color:var(--muted)">Your ishta devता shapes your daily darshan.</div></div>
+          <div class="deitygrid">
+            <div class="deity sel"><div class="disc"><span style="color:var(--gold-hi);font-weight:700;font-size:17px">ॐ</span></div><div class="dv">Hanuman</div></div>
+            <div class="deity"><div class="disc"><span style="color:var(--saffron);font-weight:700;font-size:15px">श्री</span></div><div class="nm">Rama</div></div>
+            <div class="deity"><div class="disc"><span style="color:var(--gold-hi);font-weight:700;font-size:15px">कृ</span></div><div class="nm">Krishna</div></div>
+            <div class="deity"><div class="disc"><span style="color:var(--mind);font-weight:700;font-size:15px">शि</span></div><div class="nm">Shiva</div></div>
+            <div class="deity"><div class="disc"><span style="color:var(--saffron);font-weight:700;font-size:15px">दु</span></div><div class="nm">Durga</div></div>
+            <div class="deity"><div class="disc"><span style="color:var(--gold-hi);font-weight:700;font-size:15px">ग</span></div><div class="nm">Ganesha</div></div>
+          </div>
+          <button class="demo-g3d" style="width:100%;margin-top:16px;padding:14px">Continue<span style="font-size:9px;font-weight:700;letter-spacing:1.4px;display:block;color:rgba(58,34,5,.7);margin-top:1px">आगे बढ़ें</span></button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════ MOVEMENT III ══════════════ -->
+  <div class="movement m-sys"><span class="mv-n">III</span><h2>Cohere as one system</h2><span class="rule"></span></div>
+
+  <!-- 07 — MATERIAL LANGUAGE -->
+  <section class="plate wide rev-in" id="p7">
+    <div class="p-copy">
+      <div class="p-head"><span class="p-num">07</span><span class="chip soul">Design system</span><span class="chip eff">Effort · M</span></div>
+      <h3>One material language</h3>
+      <p class="thesis">The pieces are already beautiful. Make it obvious they're the same family.</p>
+      <p style="max-width:66ch">Codify the vocabulary every screen is built from — the coin, the ember card, the embossed icon slot, the
+        gold button, the 3D press dip and the haptic that rides it. Name them, document the one true light source and
+        line weight, and no screen ever invents a one-off again.</p>
+    </div>
+    <div class="p-vis" style="width:100%">
+      <div class="board">
+        <div class="spec"><div class="demo"><div class="demo-coin"><div></div></div></div><div class="nm">Coin / medallion</div><div class="ds">Bezel + inset face. Every ring, every pillar door.</div></div>
+        <div class="spec"><div class="demo"><div class="demo-ember"></div></div><div class="nm">Ember card</div><div class="ds">The warm surface for verse, streak, blessing.</div></div>
+        <div class="spec"><div class="demo"><div class="demo-slot"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#D9A441" stroke-width="1.8"><path d="M12 3l2.5 5.5L20 9l-4 4 1 6-5-3-5 3 1-6-4-4 5.5-.5Z"/></svg></div></div><div class="nm">Icon slot</div><div class="ds">Embossed disc — one line weight, everywhere.</div></div>
+        <div class="spec"><div class="demo"><button class="demo-g3d">Begin</button></div><div class="nm">Gold action</div><div class="ds">The one primary button. Never more than one per screen.</div></div>
+        <div class="spec"><div class="demo"><div class="demo-haptic"><i class="demo-flick" style="height:14px"></i><i class="demo-flick" style="height:26px"></i><i class="demo-flick" style="height:20px"></i><i style="height:34px;opacity:1"></i></div></div><div class="nm">Haptic map</div><div class="ds">Light tick on select · success chime on complete.</div></div>
+        <div class="spec"><div class="demo"><div style="display:flex;gap:6px"><span style="width:14px;height:14px;border-radius:50%;background:#F0761E"></span><span style="width:14px;height:14px;border-radius:50%;background:#8FA3E8"></span><span style="width:14px;height:14px;border-radius:50%;background:#D9A441"></span></div></div><div class="nm">Pillar colour law</div><div class="ds">Saffron·indigo·gold map to Body·Mind·Soul — always.</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 08 — MUSCLE MODEL -->
+  <section class="plate rev-in" id="p8">
+    <div class="p-copy">
+      <div class="p-head"><span class="p-num">08</span><span class="chip body">Workout</span><span class="chip eff">Effort · M</span></div>
+      <h3>The body you train</h3>
+      <p class="thesis">Let people point at the muscle, not read a word for it.</p>
+      <p>The muscle-model filter is already in the shell — finish it. A paired <b>front + back</b> figure, tap regions to
+        multi-select (saffron fill), and the exercise grid filters to the union. Empty selection means full body.
+        Premade workouts still lead; this is the "make your own" path.</p>
+      <div class="rulekept"><span>⚑</span><div><b>Next input:</b> align the geometry with the bajrangvati.in selector — ask the web team to share the SVG source so app and web train off one body.</div></div>
+    </div>
+    <div class="p-vis">
+      <div class="phone" style="width:284px">
+        <div class="statusbar"><span>7:30</span><span>▮▮▮▯ ▪</span></div>
+        <div class="p-screen">
+          <div style="padding:4px 0 8px"><h3 style="font-size:18px;color:var(--saffron);margin:0">Build your workout</h3><div style="font-size:11px;color:var(--muted);margin-top:2px">Tap the muscles you want to train</div></div>
+          <div class="bodies">
+            <div class="bodyfig">
+              <svg width="86" height="150" viewBox="0 0 86 150" aria-label="Front body">
+                <ellipse cx="43" cy="15" rx="9" ry="10" class="m-fill"/>
+                <path class="m-reg on" d="M28 30h30v16c-6 4-24 4-30 0Z"/>
+                <path class="m-reg" d="M24 32c-3 4-4 14-4 22l6 1c1-9 2-16 3-21Z"/>
+                <path class="m-reg" d="M62 32c3 4 4 14 4 22l-6 1c-1-9-2-16-3-21Z"/>
+                <path class="m-reg on" d="M30 50h26c-1 10-2 18-4 24H34c-2-6-3-14-4-24Z"/>
+                <path class="m-reg" d="M32 78h9l-2 34h-6Z"/>
+                <path class="m-reg" d="M54 78h-9l2 34h6Z"/>
+              </svg>
+              <div class="lbl">Front</div>
+            </div>
+            <div class="bodyfig">
+              <svg width="86" height="150" viewBox="0 0 86 150" aria-label="Back body">
+                <ellipse cx="43" cy="15" rx="9" ry="10" class="m-fill"/>
+                <path class="m-reg on" d="M28 30h30v20c-6 4-24 4-30 0Z"/>
+                <path class="m-reg" d="M24 32c-3 4-4 14-4 22l6 1c1-9 2-16 3-21Z"/>
+                <path class="m-reg" d="M62 32c3 4 4 14 4 22l-6 1c-1-9-2-16-3-21Z"/>
+                <path class="m-reg" d="M31 52h24c-1 9-2 17-3 22H34c-1-5-2-13-3-22Z"/>
+                <path class="m-reg" d="M32 78h9l-2 34h-6Z"/>
+                <path class="m-reg" d="M54 78h-9l2 34h6Z"/>
+              </svg>
+              <div class="lbl">Back</div>
+            </div>
+          </div>
+          <div class="selrow"><span class="selchip">Chest ✕</span><span class="selchip">Core ✕</span><span class="selchip">Upper back ✕</span></div>
+          <div class="exrow"><span class="dot"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F0761E" stroke-width="2" stroke-linecap="round"><path d="M6.5 7v10M17.5 7v10M4 9v6M20 9v6M6.5 12h11"/></svg></span><div><div class="nm">Push-ups</div><div class="ar">Chest · 3 × 12</div></div></div>
+          <div class="exrow"><span class="dot"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F0761E" stroke-width="2" stroke-linecap="round"><path d="M6.5 7v10M17.5 7v10M4 9v6M20 9v6M6.5 12h11"/></svg></span><div><div class="nm">Plank hold</div><div class="ar">Core · 3 × 40s</div></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════ FOOTER ══════════════ -->
+  <footer class="foot rev-in">
+    <h3>Every idea here fits inside the rules already on the wall</h3>
+    <div class="guards">
+      <div class="guard"><div class="g">English-first copy</div><p>UI in English; Devanagari kept only for scripture and deity names, shown alongside.</p></div>
+      <div class="guard"><div class="g">No health claims</div><p>Copy stays descriptive — "supports your routine", "energising", never curative.</p></div>
+      <div class="guard"><div class="g">Worship never gamified</div><p>Aarti/darshan is never a ring, never a paywall. Completion celebrates the routine.</p></div>
+      <div class="guard"><div class="g">Tokens only</div><p>Every colour above already lives in <b>src/ui/tokens.ts</b>. Nothing new invented.</p></div>
+      <div class="guard"><div class="g">Programs platform</div><p>Deities, plans and Gita cards stay admin-authored content — nothing hardcoded.</p></div>
+      <div class="guard"><div class="g">v1 scope</div><p>No payments, no community, no AI health-plan generation (diet carve-out aside).</p></div>
+    </div>
+    <p class="close">A suggested order to prototype on the <b>redesign</b> branch: the two <b class="soft">Effort · S</b> wins first
+      (<b>living surface</b> and <b>day-complete</b>) — they're near-free and change the whole feel — then <b>the trinity spine</b>
+      and <b>Home re-stack</b> as the reviewable slice for the owner. My&nbsp;Path, the Sankalp and the muscle model are the deeper
+      Phase-2 builds. None of them breaks a line in CLAUDE.md.</p>
+    <div class="sig">Fit Hindu · तन · मन · आत्मा · design exploration · 12 Aug 2026</div>
+  </footer>
+
+</div>
+
+<script>
+  // Segmented toggle (connected ↔ concentric)
+  document.querySelectorAll('.toggle').forEach(function(tg){
+    var target = document.querySelector('[data-swap-body="'+tg.dataset.swap+'"]');
+    if(!target) return;
+    var panes = target.children;
+    tg.querySelectorAll('button').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        tg.querySelectorAll('button').forEach(function(b){ b.classList.remove('on'); });
+        btn.classList.add('on');
+        var i = +btn.dataset.i;
+        for(var k=0;k<panes.length;k++){ panes[k].classList.toggle('show', k===i); }
+      });
+    });
+  });
+
+  // Scroll reveal
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('seen'); io.unobserve(e.target); } });
+  }, {threshold:0.12});
+  document.querySelectorAll('.rev-in').forEach(function(el){ io.observe(el); });
+</script>

@@ -20,6 +20,12 @@
       "port": 8083
     },
     {
+      "name": "mockups",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["--yes", "serve", "docs/mockups", "-l", "5500"],
+      "port": 5500
+    },
+    {
       "name": "admin",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev", "--prefix", "admin"],

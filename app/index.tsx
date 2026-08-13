@@ -15,7 +15,7 @@ import { View } from "react-native";
 import { Redirect } from "expo-router";
 import { useAuth } from "../src/lib/auth";
 import { hasOnboarded, isFlushPending } from "../src/lib/onboarding";
-import { ceremony } from "../src/ui";
+import { color } from "../src/ui";
 
 export default function Index() {
   const { session, loading } = useAuth();
@@ -37,11 +37,11 @@ export default function Index() {
 
   // Hold the frame rather than flashing onboarding at a signed-in user. This is
   // the C4 "dead frame on cold start": the animated splash overlay (rendered by
-  // the root layout, on top) covers this window, but we paint the ceremony field
-  // rather than a bare `null` so there is never a black/white flash if the
+  // the root layout, on top) covers this window, but we paint the splash's ink
+  // field rather than a bare `null` so there is never a black/white flash if the
   // overlay has already faded but the redirect target hasn't mounted yet.
   if (loading || onboarded === null || pending === null)
-    return <View style={{ flex: 1, backgroundColor: ceremony.field }} />;
+    return <View style={{ flex: 1, backgroundColor: color.ink }} />;
 
   // Signed in with answers that were never flushed: the ceremony was cut short
   // — a kill mid-write, or a failure the user never retried. `hasOnboarded()`

@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, FlatList, View } from "react-native";
 import { useRouter } from "expo-router";
-import { Screen, Card, Chip, T, Button, AvatarTile, ChevronRight, DumbbellIcon, color, space } from "../../src/ui";
+import { Screen, Card, Chip, T, Button, AvatarTile, BodyModel, ChevronRight, DumbbellIcon, color, space, type MuscleArea } from "../../src/ui";
 import { useI18n, type StringKey } from "../../src/lib/i18n";
 import {
   listExercisesByMode,
@@ -13,7 +13,7 @@ import {
   type UserWorkoutSummary,
 } from "../../src/lib/content";
 import { posterUrl } from "../../src/lib/media";
-import type { BodyArea, WorkoutMode } from "../../src/types/db";
+import type { WorkoutMode } from "../../src/types/db";
 
 type Tab = WorkoutMode | "custom";
 const MODES: { tab: Tab; k: StringKey }[] = [
@@ -21,8 +21,7 @@ const MODES: { tab: Tab; k: StringKey }[] = [
   { tab: "gym", k: "mode_gym" },
   { tab: "custom", k: "mode_custom" },
 ];
-const AREAS: { area: BodyArea; k: StringKey }[] = [
-  { area: "full_body", k: "area_full_body" },
+const MUSCLES: { area: MuscleArea; k: StringKey }[] = [
   { area: "chest", k: "area_chest" },
   { area: "back", k: "area_back" },
   { area: "shoulders", k: "area_shoulders" },
@@ -45,7 +44,8 @@ const LEVEL_KEY: Record<string, StringKey> = {
 export default function Workout() {
   const { t } = useI18n();
   const [tab, setTab] = useState<Tab>("home");
-  const [area, setArea] = useState<BodyArea>("full_body");
+  // Multi-select muscle filter (redesign): empty = no filter = full body.
+  const [areas, setAreas] = useState<MuscleArea[]>([]);
   const [items, setItems] = useState<ExerciseWithMedia[]>([]);
   const [templates, setTemplates] = useState<WorkoutTemplateSummary[]>([]);
   const [mine, setMine] = useState<UserWorkoutSummary[] | null | undefined>(undefined);
@@ -63,7 +63,17 @@ export default function Workout() {
     try {
       if (tab === "custom") {
         setTemplates([]);
-        setItems(await listExercisesByArea(area));
+        if (areas.length === 0) {
+          setItems(await listExercisesByArea("full_body"));
+        } else {
+          // Union of the selected muscle groups, deduped (an exercise can be
+          // tagged with several areas), selection order preserved.
+          const lists = await Promise.all(areas.map((a) => listExercisesByArea(a)));
+          const seen = new Set<string>();
+          setItems(
+            lists.flat().filter((e) => (seen.has(e.id) ? false : (seen.add(e.id), true))),
+          );
+        }
       } else {
         const [tpl, ex] = await Promise.all([listWorkoutTemplates(tab), listExercisesByMode(tab)]);
         setTemplates(tpl);
@@ -73,7 +83,10 @@ export default function Workout() {
     } catch {
       setStatus("error");
     }
-  }, [tab, area]);
+  }, [tab, areas]);
+
+  const toggleArea = (a: MuscleArea) =>
+    setAreas((prev) => (prev.includes(a) ? prev.filter((x) => x !== a) : [...prev, a]));
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: load() flips to "loading" then immediately suspends on the fetch; the reset on tab/area change is a one-shot transition, not a cascading render.
@@ -110,19 +123,37 @@ export default function Workout() {
             <View>
               {tab === "custom" ? (
                 <View style={{ marginTop: space.md }}>
-                  <T variant="eyebrow" tone="gold" style={{ marginBottom: space.sm }}>
-                    {t("pick_area")}
+                  <T variant="eyebrow" tone="gold">
+                    {t("muscle_pick")}
                   </T>
-                  <FlatList
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    data={AREAS}
-                    keyExtractor={(a) => a.area}
-                    contentContainerStyle={{ gap: space.sm, paddingRight: space.lg }}
-                    renderItem={({ item }) => (
-                      <Chip label={t(item.k)} active={area === item.area} onPress={() => setArea(item.area)} />
-                    )}
-                  />
+                  <T variant="caption" tone="muted" style={{ marginBottom: space.md }}>
+                    {t("muscle_pick_hint")}
+                  </T>
+                  {/* the figure is the delight; the chips below are the
+                      labelled, accessible tap targets for the same filter */}
+                  <BodyModel selected={areas} onToggle={toggleArea} />
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      flexWrap: "wrap",
+                      gap: space.sm,
+                      marginTop: space.md,
+                    }}
+                  >
+                    <Chip
+                      label={t("muscle_clear")}
+                      active={areas.length === 0}
+                      onPress={() => setAreas([])}
+                    />
+                    {MUSCLES.map((m) => (
+                      <Chip
+                        key={m.area}
+                        label={t(m.k)}
+                        active={areas.includes(m.area)}
+                        onPress={() => toggleArea(m.area)}
+                      />
+                    ))}
+                  </View>
                 </View>
               ) : templates.length > 0 ? (
                 <TemplatesSection templates={templates} />

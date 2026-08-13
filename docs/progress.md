@@ -3,6 +3,32 @@
 Running build log — one entry per shipped item, newest on top. This is the
 standup doc for the owner and the resume-from-home lifeline.
 
+- **2026-08-13 — BMS redesign shell + "new feel" pass (owner demo build,
+  `redesign` branch).** The app now looks and behaves like the approved
+  clickable mockup (docs/mockups/bms-redesign-v2.html) plus the reviewed
+  proposal decks. Shipped, UI-only (haptics deliberately deferred to the next
+  pass): **BMS structure** — 4 tabs (Home · तन · मन · आत्मा), pillar pages,
+  hidden module routes, BmsSplash, muscle-model workout filter; **3D coin
+  rings** on Home (static-SVG bezel/face/aura port of the mockup's medallions —
+  cheap on low-end Android); **a surface that keeps time** — greeting + ink
+  wash follow the IST clock (Brahma Muhurta → night), evening reorders the
+  stack Soul-first; **saadhana count** ("N of 3 complete"); **pillar
+  done-states** (diya crown + tab-bar gold dots); **Purna** — once-a-day
+  all-three-complete moment; **guest rings say "Begin"**; **My Path** replaces
+  /progress (streak + record, weekly तन/मन/आत्मा grid, Fit-Points milestone
+  track, one gentle nudge). Under the hood: shared `PillarsProvider` (one
+  read feeds rings + tab dots), `daypart.ts`, `pillar`/`daypart` tokens,
+  "1 more day" plural fix. Verified: typecheck ✓ lint ✓ `expo export` ✓ +
+  web click-through of Home (evening state live) and My Path. Nothing needs
+  a migration. `/code-review` (medium): 8 findings, all fixed pre-commit —
+  ring order + saadhana total now derive from PILLAR_ORDER, one shared
+  istDayKey in daypart.ts, IST-safe week window, memoized pillars context,
+  dead RingProgress deleted, coin/ember/scrim palettes promoted to tokens,
+  web-safe ring rotation. Next: haptics pass; deferred UI: next-step task
+  strip, tile meta-rows, weekly practice mirror, reward-grammar
+  consolidation; legacy sweep: istDayKey copies in session/content/progress,
+  ember hexes in older screens, art.tsx splash ramp into tokens.
+
 - **2026-08-11 — MILESTONE: v1 preserved, redesign starts.** Tagged
   `v1-devotional-fitness` at 2dec26b — the full first build: onboarding +
   guest-first auth, rule-based plan engine, workout (home/gym/custom, session

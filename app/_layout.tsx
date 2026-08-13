@@ -11,7 +11,7 @@ import { reconcile, watchForFlush } from "../src/lib/session";
 import { reconcileSleepRun } from "../src/lib/sleepRun";
 import { watchCheckIn } from "../src/lib/points";
 import { watchNotificationTaps } from "../src/lib/push";
-import { AudioStopPill, CeremonySplash, color } from "../src/ui";
+import { AudioStopPill, BmsSplash, color } from "../src/ui";
 
 // Hold the native splash from the very first module evaluation so there is zero
 // flash of white before the animated ceremony paints (slice 3). The animated
@@ -27,7 +27,7 @@ function SplashGate() {
   const { loading } = useAuth();
   const [done, setDone] = useState(false);
   if (done) return null;
-  return <CeremonySplash ready={!loading} onFinish={() => setDone(true)} />;
+  return <BmsSplash ready={!loading} onFinish={() => setDone(true)} />;
 }
 
 export default function RootLayout() {

@@ -40,6 +40,29 @@ export const color = {
  *  flat `gold` is the fallback). */
 export const goldGradient = ["#F2C879", "#D9A441", "#B07E2B"] as const;
 
+/** The ember-card treatment — the warm hero cards (today's shloka, streak hero,
+ *  blessing). Promoted from screen-level literals so new surfaces stop copying
+ *  hexes (design-system rule); legacy screens migrate as they're touched. */
+export const ember = {
+  gradient: ["#241407", "#1C1510"] as const,
+  line: "#4a3416", // hairline border on ember surfaces
+} as const;
+
+/** Full-screen overlay scrim (Purna, future modals) — the mockup's stage black. */
+export const scrim = "rgba(7,5,3,0.94)";
+
+/** The Home medallions' metal + face ramps (PillarCoin), ported from the
+ *  mockup's --metal/--bezel/coin-face. Namespaced like `ceremony`: art
+ *  surfaces own their ramp, but the values live HERE, not inline. */
+export const coin = {
+  metal: ["#F9DA92", "#EFC066", "#D9A441", "#B07E2B"] as const,
+  faceHi: "#2C2117", // face highlight (lit from upper left)
+  face: "#160F08",
+  faceEdge: "#120C06",
+  embossHi: "rgba(255,244,214,0.30)", // bezel outer hairline
+  embossShade: "rgba(0,0,0,0.45)", // face inner shadow line
+} as const;
+
 /**
  * Ceremony palette — the deep oxblood + antique-gold ritual look, namespaced so
  * it stays OUT of the everyday app surfaces (owner decision 4, 2026-07-28). Used
@@ -59,6 +82,41 @@ export const ceremony = {
   terracottaHi: "#E2703A",
   cream: "#F2EDE6", // cream negative space / corners
   charcoal: "#2B2B2B", // base band
+} as const;
+
+/**
+ * BMS pillar palette (redesign 2026-08-11, docs/specs/redesign-bms.md).
+ * The three rings of the home screen and everything that keys off a pillar.
+ * body = saffron (energy), mind = serene indigo (harmonizes with the night
+ * palette; the one cool accent in the app), soul = devotional gold (amends the
+ * "gold = button+streak only" guidance — pending owner sign-off).
+ * Wash values are the fills at ring-track/selected-surface strength.
+ */
+export const pillar = {
+  body: "#F0761E",
+  bodyWash: "rgba(240,118,30,0.14)",
+  mind: "#8FA3E8",
+  mindWash: "rgba(143,163,232,0.14)",
+  soul: "#D9A441",
+  soulWash: "rgba(217,164,65,0.14)",
+} as const;
+
+export type PillarKey = "body" | "mind" | "soul";
+
+/**
+ * Time-of-day Home washes (redesign — "a surface that keeps time",
+ * docs/specs/redesign-bms.md). Each is a top-anchored gradient painted over the
+ * ink ground so Home breathes with the IST day. Every stop reuses an existing
+ * hue — mind indigo (pre-dawn), saffron (day), gold + sindoor (dusk), the sleep
+ * night-line (night) — fading to the ground's alpha-0 so nothing new is
+ * introduced and the wash dissolves into the same black. Ordered by the day.
+ */
+export const daypart = {
+  brahma: ["rgba(143,163,232,0.16)", "rgba(240,118,30,0.08)", "rgba(15,11,7,0)"],
+  morning: ["rgba(240,118,30,0.14)", "rgba(15,11,7,0)"],
+  day: ["rgba(240,118,30,0.07)", "rgba(15,11,7,0)"],
+  sandhya: ["rgba(217,164,65,0.15)", "rgba(184,74,22,0.05)", "rgba(15,11,7,0)"],
+  night: ["rgba(37,45,74,0.55)", "rgba(11,14,26,0)"],
 } as const;
 
 export const space = {

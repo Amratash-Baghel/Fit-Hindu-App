@@ -43,8 +43,14 @@ See docs/idea.md (v1, 2026-07-12 pivot) for the full vision.
   political wording is a store-rejection + ad-law risk — keep that to internal
   strategy and ad campaigns). Never gate core worship (aarti/mantra) behind a
   paywall. See docs/idea.md "Compliance & trust fence-lines".
-- **Hindi-first.** All user-facing strings go through the i18n layer from day
-  one (hi + en). Never hardcode display text in components.
+- **English-first (owner decision, 2026-08-12).** All user-facing strings still
+  go through the i18n layer (en + hi) — never hardcode display text in
+  components — but `en` is the default locale and copy is authored in English
+  first. Devanagari is kept only for scripture itself (mantras, shlokas, deity
+  names), shown alongside its romanisation. This reverses the earlier
+  Hindi-first rule; older specs and `docs/idea.md` still describe the
+  Hindi-first audience thesis and have deliberately NOT been rewritten (they
+  are dated records) — this line wins where they conflict.
 - **Design system only.** Screens are assembled from the tokens + base
   components in `src/ui/`. No one-off colors, fonts, or spacing values.
   (Expo Router owns `app/` as the routes folder; all non-route source lives
