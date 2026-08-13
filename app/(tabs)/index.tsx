@@ -1,9 +1,9 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, View } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Screen, Card, Chip, T, AnimatedNumber, Reveal, ProgressBar, Shimmer, FlipCard, PressableScale, PillarCoin, Purna, color, pillar, radius, space, type PillarKey } from "../../src/ui";
+import { Screen, Card, Chip, T, AnimatedNumber, Reveal, ProgressBar, Shimmer, FlipCard, PressableScale, PillarCoin, CoinHalo, CoinSplash, Purna, duration, useMotion, color, pillar, radius, space, type PillarKey } from "../../src/ui";
 import { feedback } from "../../src/lib/feedback";
 import {
   DumbbellIcon,
@@ -258,14 +258,37 @@ function PillarRing({
   guest: boolean;
 }) {
   const { t } = useI18n();
+  const motion = useMotion();
   const tint = pillar[k];
   const wash = pillar[`${k}Wash`];
   const nameKey = `pillar_${k}` as const;
   const subKey = `pillar_${k}_sub` as const;
+
+  // Tap = the mockup's splash: pillar ripple + gold wash open first, the page
+  // follows one beat later so the moment reads. Immediate under reduce-motion/
+  // web. The timer is cleared on unmount so a fast tab-away never double-fires.
+  const [splash, setSplash] = useState(0);
+  const navTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (navTimer.current) clearTimeout(navTimer.current);
+    },
+    [],
+  );
+  const handlePress = () => {
+    if (!motion) {
+      onPress();
+      return;
+    }
+    setSplash((n) => n + 1);
+    if (navTimer.current) clearTimeout(navTimer.current);
+    navTimer.current = setTimeout(onPress, duration.base);
+  };
+
   return (
     <Reveal delay={delay}>
       <PressableScale
-        onPress={onPress}
+        onPress={handlePress}
         scaleTo={0.97}
         accessibilityLabel={
           guest
@@ -277,6 +300,9 @@ function PillarRing({
         style={{ alignItems: "center" }}
       >
         <View>
+          {/* the coin's living layer — ambient pillar-colored ripples behind,
+              the tap splash above (mockup .ripples / .tapripple / .goldwash) */}
+          <CoinHalo size={168} tint={tint} />
           <PillarCoin
             size={168}
             progress={guest ? 0 : progress.total ? progress.done / progress.total : 0}
@@ -299,6 +325,7 @@ function PillarRing({
               )}
             </View>
           </PillarCoin>
+          <CoinSplash size={168} tint={tint} trigger={splash} />
           {/* a lit diya crowns a pillar that's fully done today */}
           {done ? (
             <View style={{ position: "absolute", top: 2, right: 10 }}>

@@ -38,6 +38,8 @@ export const duration = {
   slow: 360,
   count: 800, // number count-up
   sheen: 1200, // one shine sweep
+  splash: 680, // one tap-ripple opening out (mockup .tapripple)
+  ripple: 3900, // one ambient coin-ripple breath (mockup .rw/.rg cycle)
 } as const;
 
 export const easing = {

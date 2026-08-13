@@ -19,6 +19,7 @@ export { Screen } from "./Screen";
 export { CeremonySplash } from "./CeremonySplash";
 export { BmsSplash } from "./BmsSplash";
 export { PillarCoin } from "./PillarCoin";
+export { CoinHalo, CoinSplash } from "./CoinHalo";
 export { Purna } from "./Purna";
 export { PillarTile } from "./PillarTile";
 export { BodyModel, type MuscleArea } from "./BodyModel";

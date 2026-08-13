@@ -28,6 +28,14 @@ standup doc for the owner and the resume-from-home lifeline.
   strip, tile meta-rows, weekly practice mirror, reward-grammar
   consolidation; legacy sweep: istDayKey copies in session/content/progress,
   ember hexes in older screens, art.tsx splash ramp into tokens.
+  **Follow-up (same day):** the mockup's living medallions — `CoinHalo`
+  (ambient pillar-colored ripples: soft bloom + two thin rings breathing
+  outward, 3 UI-thread transform/opacity nodes per coin) and `CoinSplash`
+  (tap = pillar ripple opening over a gold wash; navigation follows one beat
+  behind so the moment reads). New motion tokens `ripple`/`splash`. NOTE:
+  these animate on DEVICE only — the project's motion gate renders a static
+  faint frame on web/reduce-motion, so demo the feel in Expo Go, not the
+  web preview.
 
 - **2026-08-11 — MILESTONE: v1 preserved, redesign starts.** Tagged
   `v1-devotional-fitness` at 2dec26b — the full first build: onboarding +
