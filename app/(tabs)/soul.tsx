@@ -5,16 +5,19 @@ import { Screen, PillarTile, B, T, pillar, space } from "../../src/ui";
 import { MalaIcon, MoonIcon, OmGlyph, BellIcon } from "../../src/ui/icons";
 import { useI18n } from "../../src/lib/i18n";
 import { countMantras, countSleepSounds } from "../../src/lib/content";
+import { usePillars } from "../../src/lib/pillars";
 
 /**
  * आत्मा / Soul (docs/specs/redesign-bms.md) — Mantra Jap and Sleep sounds
  * today; Mantra Ucharan and the Bhajan Alarm are the planned additions,
  * teased small beneath the two live doors. Both live tiles speak (meta rows):
- * live counts of published mantras and sleep sounds.
+ * live counts of published mantras and sleep sounds, and carry a tick once
+ * today's practice is logged.
  */
 export default function Soul() {
   const router = useRouter();
   const { t } = useI18n();
+  const { todayTypes } = usePillars();
   const [mantras, setMantras] = useState<number | null>(null);
   const [sounds, setSounds] = useState<number | null>(null);
 
@@ -28,22 +31,22 @@ export default function Soul() {
   }, []);
 
   return (
-    <Screen scroll={false}>
+    <Screen>
       <View style={{ paddingTop: space.sm, paddingBottom: space.sm }}>
         <B k="pillar_soul" variant="h1" noSub style={{ color: pillar.soul }} />
         <T variant="caption" tone="muted">
           {t("pillar_soul_sub")}
         </T>
       </View>
-      <View style={{ flex: 1, gap: space.md }}>
+      <View style={{ gap: space.md }}>
         <PillarTile
           titleK="tile_jap"
           subK="tile_jap_sub"
           icon={<MalaIcon size={28} color={pillar.soul} />}
           wash={pillar.soulWash}
           onPress={() => router.push("/(tabs)/jap")}
+          done={todayTypes.includes("jap")}
           meta={[mantras != null ? `${mantras} ${t("mantras_word")}` : null, t("meta_mala")]}
-          style={{ flex: 1 }}
         />
         <PillarTile
           titleK="tile_sleep"
@@ -51,8 +54,8 @@ export default function Soul() {
           icon={<MoonIcon size={28} color={pillar.soul} />}
           wash={pillar.soulWash}
           onPress={() => router.push("/(tabs)/sleep")}
+          done={todayTypes.includes("sleep_sound")}
           meta={[sounds != null ? `${sounds} ${t("sounds_word")}` : null, t("meta_sleep_timer")]}
-          style={{ flex: 1 }}
         />
         <View style={{ flexDirection: "row", gap: space.md }}>
           <PillarTile

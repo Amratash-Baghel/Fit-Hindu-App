@@ -3,6 +3,26 @@
 Running build log — one entry per shipped item, newest on top. This is the
 standup doc for the owner and the resume-from-home lifeline.
 
+- **2026-08-13 — v2 mockup delta pass: twin-point gaze, content-sized tiles,
+  hero saadhana count, English-first verse (`redesign` branch).** Caught up
+  the app to the refreshed app-native mockup (artifact c0604591): **splash**
+  — the gaze is now a twin-point flare (two round halos, one per eye) instead
+  of one wide bar, eyes tightened and given pinpoint catchlights, ambient
+  glow/halo/floor dimmed to match; **pillar tiles** (Body/Mind/Soul) —
+  content-sized instead of flex-split (a tile with no meta row used to leave
+  half the card empty), screens scroll now, each tile carries a gold tick
+  once today's practice is logged (new `PillarTile` `done` prop, wired from
+  `usePillars().todayTypes`); **Home** — the frozen decorative ring backdrop
+  behind the coins removed (redundant with CoinHalo's live ambient rings), a
+  divider under the header, the saadhana count now reads as a hero number
+  (split around the `{n}` token so English's and Hindi's reversed word order
+  both land correctly), the streak number gained a "days" caption, the verse
+  card is English-first — the translation leads, the Devanagari source sits
+  secondary below a divider (Hindi mode still leads with the scripture, since
+  there is no English to read). Verified: typecheck ✓ lint ✓ + web
+  click-through (Home, Body/Soul tiles with ticks, My Path guest state), no
+  console errors. No migrations.
+
 - **2026-08-13 — Concept completion pass: chakra splash, one glow grammar,
   Purna ceremony, month of diyas (`redesign` branch).** Everything the three
   proposal artifacts still called for, applied: **chakra-awakening splash** —

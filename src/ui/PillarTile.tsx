@@ -18,7 +18,7 @@ import { Chip } from "./Card";
 import { B, T } from "./Text";
 import { ChevronRight } from "./icons";
 import { IconSlot } from "./IconSlot";
-import { color, radius, space } from "./tokens";
+import { color, coin, radius, space } from "./tokens";
 import { useI18n, type StringKey } from "../lib/i18n";
 
 interface Props {
@@ -30,13 +30,15 @@ interface Props {
   onPress?: () => void;
   /** coming-soon teaser: dimmed, chip instead of chevron, not tappable */
   soon?: boolean;
+  /** already logged today — shows a tick in place of the chevron */
+  done?: boolean;
   /** "what's inside" stats, already localised — null entries are skipped so a
    *  count that hasn't landed (or failed) simply doesn't show */
   meta?: (string | null)[];
   style?: StyleProp<ViewStyle>;
 }
 
-export function PillarTile({ titleK, subK, icon, wash, onPress, soon, meta, style }: Props) {
+export function PillarTile({ titleK, subK, icon, wash, onPress, soon, done, meta, style }: Props) {
   const { t } = useI18n();
   const metaShown = (meta ?? []).filter((m): m is string => !!m);
 
@@ -50,7 +52,15 @@ export function PillarTile({ titleK, subK, icon, wash, onPress, soon, meta, styl
       />
       <View style={styles.top}>
         <IconSlot>{icon}</IconSlot>
-        {soon ? <Chip label={t("coming_soon")} /> : <ChevronRight />}
+        {soon ? (
+          <Chip label={t("coming_soon")} />
+        ) : done ? (
+          <View style={styles.tickDot}>
+            <T style={{ fontSize: 14, fontWeight: "800", color: coin.face }}>✓</T>
+          </View>
+        ) : (
+          <ChevronRight />
+        )}
       </View>
       <View style={{ gap: metaShown.length ? space.md : 0 }}>
         <View>
@@ -97,15 +107,24 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   tile: {
-    flex: 1,
+    // Content-sized, not flex-filled — a stretched tile used to leave a
+    // module with no meta row mostly empty. Screens carrying these should
+    // scroll (default Screen behaviour) rather than force-fit the column.
     padding: space.lg,
-    justifyContent: "space-between",
-    minHeight: 150,
+    gap: space.md,
   },
   top: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
+  },
+  tickDot: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: color.gold,
+    alignItems: "center",
+    justifyContent: "center",
   },
   metaRow: {
     flexDirection: "row",

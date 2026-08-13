@@ -312,8 +312,9 @@ export function CrownFlareArt({ width }: { width: number }) {
 }
 
 /**
- * The awakened gaze: solid white light, no iris, bleeding past the lids and
- * streaking outward. Cropped tight around the face (figure x 94–206, y 44–82).
+ * The awakened gaze: two solid-white eyes, no iris, each with its own round
+ * halo of light bleeding past the lids — a twin-point gaze, not a single
+ * glowing bar. Cropped tight around the face (figure x 94–206, y 44–82).
  */
 export const EYES_VB = { x: 94, y: 44, w: 112, h: 38 } as const;
 
@@ -331,17 +332,19 @@ export function EyesArt({ width }: { width: number }) {
           <Stop offset="1" stopColor="#EAF2FF" stopOpacity="0" />
         </RadialGradient>
       </Defs>
-      <Ellipse cx="137" cy="63" rx="16" ry="10.5" fill="url(#eyeGlow)" />
-      <Ellipse cx="163" cy="63" rx="16" ry="10.5" fill="url(#eyeGlow)" />
-      <Path d="M129 63 C132.8 56.8 140.2 56.8 144 63 C140.2 68.6 132.8 68.6 129 63 Z" fill="#FFFFFF" />
-      <Path d="M156 63 C159.8 56.8 167.2 56.8 171 63 C167.2 68.6 159.8 68.6 156 63 Z" fill="#FFFFFF" />
-      <Path d="M129 63 C123 61.4 117 61.4 111 63 C117 64.6 123 64.6 129 63 Z" fill="#FFF8E8" opacity="0.5" />
-      <Path d="M171 63 C177 61.4 183 61.4 189 63 C183 64.6 177 64.6 171 63 Z" fill="#FFF8E8" opacity="0.5" />
+      <Ellipse cx="137" cy="63" rx="13" ry="9" fill="url(#eyeGlow)" />
+      <Ellipse cx="163" cy="63" rx="13" ry="9" fill="url(#eyeGlow)" />
+      <Path d="M129 63 C132.6 57.4 141.4 57.4 145 63 C141.4 68.2 132.6 68.2 129 63 Z" fill="#FFFFFF" />
+      <Path d="M155 63 C158.6 57.4 167.4 57.4 171 63 C167.4 68.2 158.6 68.2 155 63 Z" fill="#FFFFFF" />
+      {/* a pinpoint catchlight in each eye — keeps the gaze from reading flat */}
+      <Circle cx="137" cy="62" r="2.4" fill="#FFFFFF" />
+      <Circle cx="163" cy="62" r="2.4" fill="#FFFFFF" />
     </Svg>
   );
 }
 
-/** The wide flare thrown by the ignited gaze (animates scale separately). */
+/** The twin flares the ignited gaze throws — one round halo per eye, not a
+ *  single wide bar (the earlier shape read as a glowing visor). */
 export function EyeFlareArt({ width }: { width: number }) {
   return (
     <Svg width={width} height={(width * 38) / 112} viewBox="0 0 112 38">
@@ -352,7 +355,8 @@ export function EyeFlareArt({ width }: { width: number }) {
           <Stop offset="1" stopColor="#EAF2FF" stopOpacity="0" />
         </RadialGradient>
       </Defs>
-      <Ellipse cx="56" cy="19" rx="56" ry="19" fill="url(#eyeFlareG)" />
+      <Circle cx="43" cy="19" r="20" fill="url(#eyeFlareG)" />
+      <Circle cx="69" cy="19" r="20" fill="url(#eyeFlareG)" />
     </Svg>
   );
 }
@@ -420,9 +424,9 @@ export function AmbientGlow({ width, height }: { width: number; height: number }
     <Svg width={width} height={height} viewBox="0 0 100 102" preserveAspectRatio="none">
       <Defs>
         <RadialGradient id="ambGlowG" cx="50%" cy="50%" r="50%">
-          <Stop offset="0" stopColor="#F7D89C" stopOpacity="0.23" />
-          <Stop offset="0.38" stopColor="#E49248" stopOpacity="0.095" />
-          <Stop offset="0.62" stopColor="#964216" stopOpacity="0.038" />
+          <Stop offset="0" stopColor="#F7D89C" stopOpacity="0.17" />
+          <Stop offset="0.38" stopColor="#E49248" stopOpacity="0.072" />
+          <Stop offset="0.62" stopColor="#964216" stopOpacity="0.028" />
           <Stop offset="1" stopColor="#000000" stopOpacity="0" />
         </RadialGradient>
       </Defs>
@@ -439,14 +443,14 @@ export function HeadHalo({ size, cool }: { size: number; cool?: boolean }) {
       <Defs>
         {cool ? (
           <RadialGradient id={id} cx="50%" cy="50%" r="50%">
-            <Stop offset="0" stopColor="#FFFEFA" stopOpacity="0.4" />
-            <Stop offset="0.46" stopColor="#D8E4FF" stopOpacity="0.11" />
+            <Stop offset="0" stopColor="#FFFEFA" stopOpacity="0.3" />
+            <Stop offset="0.46" stopColor="#D8E4FF" stopOpacity="0.08" />
             <Stop offset="1" stopColor="#D8E4FF" stopOpacity="0" />
           </RadialGradient>
         ) : (
           <RadialGradient id={id} cx="50%" cy="50%" r="50%">
-            <Stop offset="0" stopColor="#FFF7E5" stopOpacity="0.29" />
-            <Stop offset="0.48" stopColor={color.goldHi} stopOpacity="0.1" />
+            <Stop offset="0" stopColor="#FFF7E5" stopOpacity="0.22" />
+            <Stop offset="0.48" stopColor={color.goldHi} stopOpacity="0.075" />
             <Stop offset="1" stopColor={color.goldHi} stopOpacity="0" />
           </RadialGradient>
         )}
@@ -462,8 +466,8 @@ export function FloorPool({ width, height }: { width: number; height: number }) 
     <Svg width={width} height={height} viewBox="0 0 100 34" preserveAspectRatio="none">
       <Defs>
         <RadialGradient id="floorG" cx="50%" cy="50%" r="50%">
-          <Stop offset="0" stopColor="#F7D89C" stopOpacity="0.19" />
-          <Stop offset="0.52" stopColor="#E49248" stopOpacity="0.055" />
+          <Stop offset="0" stopColor="#F7D89C" stopOpacity="0.14" />
+          <Stop offset="0.52" stopColor="#E49248" stopOpacity="0.04" />
           <Stop offset="1" stopColor="#000000" stopOpacity="0" />
         </RadialGradient>
       </Defs>

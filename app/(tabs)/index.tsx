@@ -3,7 +3,6 @@ import { ScrollView, View } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import Svg, { Circle } from "react-native-svg";
 import { Screen, Card, Chip, EmberCard, GoldWash, IconSlot, T, AnimatedNumber, Reveal, ProgressBar, Shimmer, FlipCard, PressableScale, PillarCoin, CoinHalo, CoinSplash, Purna, duration, useMotion, color, ember, pillar, radius, space, type PillarKey } from "../../src/ui";
 import { feedback } from "../../src/lib/feedback";
 import {
@@ -155,7 +154,16 @@ export default function Home() {
   return (
     <Screen wash={dp.wash} overlay={<GoldWash trigger={washTick} />}>
       {/* greeting + deity of the day */}
-      <View style={{ flexDirection: "row", alignItems: "center", paddingTop: space.sm }}>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          paddingTop: space.sm,
+          paddingBottom: space.md,
+          borderBottomWidth: 1,
+          borderBottomColor: "rgba(58,46,36,0.55)",
+        }}
+      >
         <View style={{ flex: 1 }}>
           <T variant="h1">{t(dp.greetingKey)}</T>
           <T variant="caption" tone="muted">
@@ -177,22 +185,18 @@ export default function Home() {
       {/* the day's standing — the one number that says whether today is done.
           Guests see Begin-rings + the sign-in invitation instead. */}
       {!guest ? (
-        <View style={{ alignItems: "center", marginTop: space.xs }}>
+        <View style={{ alignItems: "center", marginTop: space.lg }}>
           <T variant="eyebrow" tone="gold">
             {t("today_saadhana")}
           </T>
           {complete >= PILLAR_ORDER.length ? (
             // the day is whole — the hero rests in a quiet gold until midnight
             // IST (the same boundary that resets the rings and Purna).
-            <T variant="caption" tone="gold" style={{ marginTop: 2, fontWeight: "700" }}>
+            <T variant="caption" tone="gold" style={{ marginTop: space.sm, fontWeight: "700" }}>
               {t("saadhana_settled")}
             </T>
           ) : (
-            <T variant="caption" tone="muted" style={{ marginTop: 2 }}>
-              {t("saadhana_count")
-                .replace("{n}", String(complete))
-                .replace("{m}", String(PILLAR_ORDER.length))}
-            </T>
+            <SaadhanaCount n={complete} m={PILLAR_ORDER.length} />
           )}
         </View>
       ) : null}
@@ -203,20 +207,10 @@ export default function Home() {
       {/* the BMS hero — Body · Mind · Soul rings (docs/specs/redesign-bms.md).
           Each circle is the door to its pillar page; the ring is today's
           completion (e.g. mind 1/1 once meditation is logged). After sunset the
-          order flips so Soul leads — the day turns inward (dp.soulFirst). The
-          faint mandala behind is the mockup's ambient geometry, held still. */}
+          order flips so Soul leads — the day turns inward (dp.soulFirst). No
+          static backdrop behind the coins — it read as a frozen ripple sitting
+          behind the live ambient ones CoinHalo already animates. */}
       <View style={{ alignItems: "center", gap: space.xl, paddingVertical: space.md }}>
-        <Svg
-          width={340}
-          height={340}
-          viewBox="0 0 340 340"
-          pointerEvents="none"
-          style={{ position: "absolute", top: -6, alignSelf: "center", opacity: 0.5 }}
-        >
-          <Circle cx={170} cy={170} r={92} stroke={color.gold} strokeWidth={1} fill="none" opacity={0.5} />
-          <Circle cx={170} cy={170} r={132} stroke={color.gold} strokeWidth={1} fill="none" opacity={0.34} />
-          <Circle cx={170} cy={170} r={168} stroke={color.gold} strokeWidth={1} fill="none" opacity={0.2} />
-        </Svg>
         {ringOrder(dp.soulFirst).map((k, i) => (
           <PillarRing
             key={k}
@@ -242,16 +236,37 @@ export default function Home() {
           </T>
         ) : dev.shloka ? (
           <>
-            <T variant="body" style={{ color: color.goldHi, marginTop: space.sm, fontWeight: "600", lineHeight: 26 }}>
-              {dev.shloka.text_hi}
+            {/* English-first (CLAUDE.md): the reading leads; the Devanagari
+                stays present as the scripture source, secondary underneath —
+                never dropped, never leading. Hindi mode keeps the scripture
+                itself as the lead line since there is no English to read. */}
+            <T
+              style={{
+                color: color.goldHi,
+                marginTop: space.sm,
+                fontWeight: "600",
+                lineHeight: 26,
+                fontSize: mode === "hindi" || !dev.shloka.text_en ? 16 : 15.5,
+              }}
+            >
+              {mode === "hindi" || !dev.shloka.text_en ? dev.shloka.text_hi : dev.shloka.text_en}
             </T>
             {mode !== "hindi" && dev.shloka.text_en ? (
-              <T variant="caption" tone="muted" style={{ marginTop: space.sm }}>
-                {dev.shloka.text_en}
-              </T>
+              <View
+                style={{
+                  marginTop: space.sm + 2,
+                  paddingTop: space.sm,
+                  borderTopWidth: 1,
+                  borderTopColor: ember.line,
+                }}
+              >
+                <T variant="caption" tone="muted" style={{ lineHeight: 22, opacity: 0.9 }}>
+                  {dev.shloka.text_hi}
+                </T>
+              </View>
             ) : null}
             {dev.shloka.source ? (
-              <T variant="caption" tone="muted" style={{ marginTop: 4, fontStyle: "italic" }}>
+              <T variant="caption" tone="muted" style={{ marginTop: space.sm - 2, fontStyle: "italic" }}>
                 — {dev.shloka.source}
               </T>
             ) : null}
@@ -275,6 +290,45 @@ export default function Home() {
       {/* the day made whole — fires once when all three pillars close */}
       <Purna visible={purnaVisible} onDismiss={dismissPurna} />
     </Screen>
+  );
+}
+
+/**
+ * The day's standing, hero-sized: the count is the number people check first,
+ * so it reads bigger and bolder than the surrounding words — not just another
+ * caption. Splits the localized template around the `{n}` token so English's
+ * "{n} of {m} complete" and Hindi's reversed "{m} में से {n} पूर्ण" both land
+ * their own words in the right place around the one number that gets the
+ * hero treatment.
+ */
+function SaadhanaCount({ n, m }: { n: number; m: number }) {
+  const { t } = useI18n();
+  const [before, after] = t("saadhana_count").replace("{m}", String(m)).split("{n}");
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "baseline",
+        flexWrap: "wrap",
+        justifyContent: "center",
+        marginTop: space.sm,
+        gap: 6,
+      }}
+    >
+      {before ? (
+        <T variant="body" tone="soft" style={{ fontWeight: "600" }}>
+          {before}
+        </T>
+      ) : null}
+      <T variant="display" tone="gold" style={{ fontSize: 30, lineHeight: 34, fontWeight: "800" }}>
+        {n}
+      </T>
+      {after ? (
+        <T variant="body" tone="soft" style={{ fontWeight: "600" }}>
+          {after}
+        </T>
+      ) : null}
+    </View>
   );
 }
 
@@ -574,7 +628,17 @@ function StreakCard() {
           ) : null}
         </View>
         {active ? (
-          <AnimatedNumber value={count} variant="display" tone="gold" style={{ fontWeight: "800" }} />
+          <View style={{ alignItems: "flex-end" }}>
+            <AnimatedNumber
+              value={count}
+              variant="display"
+              tone="gold"
+              style={{ fontWeight: "800", lineHeight: 34 }}
+            />
+            <T variant="caption" tone="muted" style={{ fontSize: 10.5, letterSpacing: 1.6, textTransform: "uppercase" }}>
+              {t("mypath_days_word")}
+            </T>
+          </View>
         ) : null}
       </View>
       <View
