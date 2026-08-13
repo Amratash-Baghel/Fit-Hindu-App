@@ -26,6 +26,10 @@ export interface DaypartInfo {
   soulFirst: boolean;
 }
 
+/** One absolute day in ms — the safe step for walking IST dates (IST has no
+ *  DST, so 24h of real time is always exactly one IST day). */
+export const DAY_MS = 86_400_000;
+
 /**
  * IST calendar day (YYYY-MM-DD) — THE day-boundary key. Streaks, rings, the
  * blessing and Purna all roll over on this string changing; it is defined

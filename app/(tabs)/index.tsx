@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Pressable, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Screen, Card, Chip, T, AnimatedNumber, Reveal, ProgressBar, Shimmer, FlipCard, PressableScale, PillarCoin, CoinHalo, CoinSplash, Purna, duration, useMotion, color, pillar, radius, space, type PillarKey } from "../../src/ui";
+import Svg, { Circle } from "react-native-svg";
+import { Screen, Card, Chip, EmberCard, IconSlot, T, AnimatedNumber, Reveal, ProgressBar, Shimmer, FlipCard, PressableScale, PillarCoin, CoinHalo, CoinSplash, Purna, duration, useMotion, color, ember, pillar, radius, space, type PillarKey } from "../../src/ui";
 import { feedback } from "../../src/lib/feedback";
 import {
   DumbbellIcon,
@@ -12,8 +13,11 @@ import {
   ChevronRight,
   DiyaIcon,
   SettingsIcon,
+  BowlIcon,
+  MalaIcon,
+  MoonIcon,
 } from "../../src/ui/icons";
-import { useI18n } from "../../src/lib/i18n";
+import { useI18n, type StringKey } from "../../src/lib/i18n";
 import { getTodayDevotional, type DevotionalToday } from "../../src/lib/content";
 import { useAuth } from "../../src/lib/auth";
 import { currentDaypart, istDayKey, type DaypartInfo } from "../../src/lib/daypart";
@@ -21,13 +25,34 @@ import { useStreak } from "../../src/lib/streak";
 import { usePoints } from "../../src/lib/points";
 import {
   usePillars,
+  useWeekPillars,
   pillarComplete,
   pillarsCompleteCount,
   ringOrder,
   PILLAR_ORDER,
   type PillarProgress,
 } from "../../src/lib/pillars";
-import type { PointsSummary } from "../../src/types/db";
+import type { ActivityType, PointsSummary } from "../../src/types/db";
+
+/**
+ * The day's concrete practices (redesign — "name the next step"): one chip per
+ * activity type, done-state from the SAME daily_activity read that feeds the
+ * rings, each a deep link into its module. Types are the platform's own enum —
+ * nothing product-specific is hardcoded; titles come from the i18n catalog.
+ */
+const STRIP_ITEMS: {
+  type: ActivityType;
+  pillar: PillarKey;
+  titleK: StringKey;
+  route: "/(tabs)/workout" | "/(tabs)/diet" | "/(tabs)/meditation" | "/(tabs)/jap" | "/(tabs)/sleep";
+  icon: (c: string) => React.ReactNode;
+}[] = [
+  { type: "workout", pillar: "body", titleK: "tile_exercise", route: "/(tabs)/workout", icon: (c) => <DumbbellIcon size={18} color={c} /> },
+  { type: "meal", pillar: "body", titleK: "tile_diet", route: "/(tabs)/diet", icon: (c) => <BowlIcon size={18} color={c} /> },
+  { type: "meditation", pillar: "mind", titleK: "tile_meditation", route: "/(tabs)/meditation", icon: (c) => <LotusIcon size={18} color={c} /> },
+  { type: "jap", pillar: "soul", titleK: "tile_jap", route: "/(tabs)/jap", icon: (c) => <MalaIcon size={18} color={c} /> },
+  { type: "sleep_sound", pillar: "soul", titleK: "tile_sleep", route: "/(tabs)/sleep", icon: (c) => <MoonIcon size={18} color={c} /> },
+];
 
 /** Icon for each pillar's ring centre, tinted to the pillar. */
 const PILLAR_ICON: Record<PillarKey, (c: string) => React.ReactNode> = {
@@ -59,7 +84,7 @@ export default function Home() {
   const { session } = useAuth();
   const guest = !session;
   const [dev, setDev] = useState<DevotionalToday | null>(null);
-  const { pillars, refresh: refreshPillars } = usePillars();
+  const { pillars, todayTypes, refresh: refreshPillars } = usePillars();
   // The daypart is re-read on every focus so crossing a boundary (e.g. into the
   // evening) re-washes Home and re-orders the rings — Home stays mounted as a
   // tab, so a mount-only read would go stale.
@@ -161,11 +186,26 @@ export default function Home() {
         </View>
       ) : null}
 
+      {/* the day's concrete practices — tap one, do it, come back to a lit ring */}
+      {!guest ? <TaskStrip todayTypes={todayTypes} soulFirst={dp.soulFirst} /> : null}
+
       {/* the BMS hero — Body · Mind · Soul rings (docs/specs/redesign-bms.md).
           Each circle is the door to its pillar page; the ring is today's
           completion (e.g. mind 1/1 once meditation is logged). After sunset the
-          order flips so Soul leads — the day turns inward (dp.soulFirst). */}
+          order flips so Soul leads — the day turns inward (dp.soulFirst). The
+          faint mandala behind is the mockup's ambient geometry, held still. */}
       <View style={{ alignItems: "center", gap: space.xl, paddingVertical: space.md }}>
+        <Svg
+          width={340}
+          height={340}
+          viewBox="0 0 340 340"
+          pointerEvents="none"
+          style={{ position: "absolute", top: -6, alignSelf: "center", opacity: 0.5 }}
+        >
+          <Circle cx={170} cy={170} r={92} stroke={color.gold} strokeWidth={1} fill="none" opacity={0.5} />
+          <Circle cx={170} cy={170} r={132} stroke={color.gold} strokeWidth={1} fill="none" opacity={0.34} />
+          <Circle cx={170} cy={170} r={168} stroke={color.gold} strokeWidth={1} fill="none" opacity={0.2} />
+        </Svg>
         {ringOrder(dp.soulFirst).map((k, i) => (
           <PillarRing
             key={k}
@@ -180,52 +220,46 @@ export default function Home() {
         ))}
       </View>
 
-      {/* today's shloka — ember card with ॐ watermark (mockup) */}
-      <View style={{ borderRadius: 18, overflow: "hidden", borderWidth: 1, borderColor: "#4a3416" }}>
-        <LinearGradient colors={["#241407", "#1C1510"]} start={{ x: 0, y: 0 }} end={{ x: 0.9, y: 1 }}>
-          <View style={{ padding: space.lg }}>
-            <View style={{ position: "absolute", right: -6, top: -26, opacity: 0.08 }}>
-              <OmGlyph size={86} color={color.gold} />
-            </View>
-            <T variant="eyebrow" tone="gold">
-              {t("todays_shloka")}
+      {/* today's shloka — the ember material with ॐ watermark + sheen */}
+      <EmberCard watermark sheen>
+        <T variant="eyebrow" tone="gold">
+          {t("todays_shloka")}
+        </T>
+        {dev === null ? (
+          <T variant="body" tone="muted" style={{ marginTop: space.sm }}>
+            {t("loading")}
+          </T>
+        ) : dev.shloka ? (
+          <>
+            <T variant="body" style={{ color: color.goldHi, marginTop: space.sm, fontWeight: "600", lineHeight: 26 }}>
+              {dev.shloka.text_hi}
             </T>
-            {dev === null ? (
-              <T variant="body" tone="muted" style={{ marginTop: space.sm }}>
-                {t("loading")}
+            {mode !== "hindi" && dev.shloka.text_en ? (
+              <T variant="caption" tone="muted" style={{ marginTop: space.sm }}>
+                {dev.shloka.text_en}
               </T>
-            ) : dev.shloka ? (
-              <>
-                <T variant="body" style={{ color: color.goldHi, marginTop: space.sm, fontWeight: "600", lineHeight: 26 }}>
-                  {dev.shloka.text_hi}
-                </T>
-                {mode !== "hindi" && dev.shloka.text_en ? (
-                  <T variant="caption" tone="muted" style={{ marginTop: space.sm }}>
-                    {dev.shloka.text_en}
-                  </T>
-                ) : null}
-                {dev.shloka.source ? (
-                  <T variant="caption" tone="muted" style={{ marginTop: 4, fontStyle: "italic" }}>
-                    — {dev.shloka.source}
-                  </T>
-                ) : null}
-              </>
-            ) : (
-              <T variant="body" tone="muted" style={{ marginTop: space.sm }}>
-                ॐ
+            ) : null}
+            {dev.shloka.source ? (
+              <T variant="caption" tone="muted" style={{ marginTop: 4, fontStyle: "italic" }}>
+                — {dev.shloka.source}
               </T>
-            )}
-          </View>
-        </LinearGradient>
-        {/* a slow, faint gold sheen so the day's hero card feels alive */}
-        <Shimmer mode="sheen" tint={color.goldHi} peak={0.09} />
-      </View>
+            ) : null}
+          </>
+        ) : (
+          <T variant="body" tone="muted" style={{ marginTop: space.sm }}>
+            ॐ
+          </T>
+        )}
+      </EmberCard>
 
       {/* sankalp / streak */}
       <StreakCard />
 
       {/* today's blessing — the gentle come-back-tomorrow reveal */}
       <DailyBlessing />
+
+      {/* the week, reflected — practice mirrored, never asked about */}
+      {!guest ? <MirrorCard /> : null}
 
       {/* the day made whole — fires once when all three pillars close */}
       <Purna visible={purnaVisible} onDismiss={dismissPurna} />
@@ -343,6 +377,120 @@ function PillarRing({
         </View>
       </PressableScale>
     </Reveal>
+  );
+}
+
+/**
+ * The task strip (redesign — "name the next step"): the rings say how much,
+ * this says WHAT. One chip per practice, done-state from the same read as the
+ * rings, each a door into its module. Order follows the daypart — evenings
+ * bring Soul's practices forward, same as the ring stack.
+ */
+function TaskStrip({
+  todayTypes,
+  soulFirst,
+}: {
+  todayTypes: readonly ActivityType[];
+  soulFirst: boolean;
+}) {
+  const router = useRouter();
+  const { t } = useI18n();
+  const order = ringOrder(soulFirst);
+  const items = [...STRIP_ITEMS].sort((a, b) => order.indexOf(a.pillar) - order.indexOf(b.pillar));
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      style={{ marginHorizontal: -space.lg }}
+      contentContainerStyle={{ gap: space.sm, paddingHorizontal: space.lg, paddingVertical: space.xs }}
+    >
+      {items.map((it) => {
+        const done = todayTypes.includes(it.type);
+        const tint = pillar[it.pillar];
+        return (
+          <PressableScale
+            key={it.type}
+            onPress={() => router.push(it.route)}
+            scaleTo={0.96}
+            accessibilityLabel={t(it.titleK)}
+            style={{
+              width: 126,
+              borderRadius: 14,
+              borderWidth: 1,
+              borderColor: done ? color.gold : color.line,
+              backgroundColor: color.surface,
+              padding: space.sm + 2,
+              gap: space.sm,
+            }}
+          >
+            <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" }}>
+              <IconSlot size={34} radius={11}>
+                {it.icon(tint)}
+              </IconSlot>
+              {done ? <DiyaIcon size={16} /> : null}
+            </View>
+            <View>
+              <T variant="caption" style={{ fontWeight: "700", fontSize: 13 }}>
+                {t(it.titleK)}
+              </T>
+              <T variant="caption" tone={done ? "gold" : "muted"} style={{ fontSize: 11 }}>
+                {done ? t("pillar_complete") : t(`pillar_${it.pillar}` as StringKey)}
+              </T>
+            </View>
+          </PressableScale>
+        );
+      })}
+    </ScrollView>
+  );
+}
+
+/**
+ * The week, reflected (redesign — "reflect, never ask"): a mirror of the
+ * practice the user already chose, per pillar, over the last seven IST days.
+ * Nothing here was asked — no deity question, no survey — it only reads what
+ * was practised. Hidden until there is a week worth reflecting (guests and
+ * brand-new users see nothing, never a wall of zeros).
+ */
+function MirrorCard() {
+  const { t } = useI18n();
+  const { week, refresh } = useWeekPillars();
+
+  useFocusEffect(
+    useCallback(() => {
+      refresh();
+    }, [refresh]),
+  );
+
+  if (!week || week.activeDays === 0) return null;
+  const lead = PILLAR_ORDER.reduce((a, b) => (week.days[b] > week.days[a] ? b : a));
+
+  return (
+    <EmberCard>
+      <T variant="eyebrow" tone="gold">
+        {t("mirror_title")}
+      </T>
+      <T variant="body" tone="soft" style={{ marginTop: space.sm }}>
+        {t("mirror_lead").replace("{p}", t(`pillar_${lead}` as StringKey))}
+      </T>
+      <View style={{ flexDirection: "row", marginTop: space.md, gap: space.md }}>
+        {PILLAR_ORDER.map((k) => (
+          <View key={k} style={{ flex: 1, alignItems: "center", gap: 2 }}>
+            <T variant="h2" style={{ color: pillar[k], fontVariant: ["tabular-nums"] }}>
+              {week.days[k]}
+              <T variant="caption" tone="muted">
+                /7
+              </T>
+            </T>
+            <T variant="caption" tone="muted" style={{ fontSize: 11 }}>
+              {t(`pillar_${k}` as StringKey)}
+            </T>
+          </View>
+        ))}
+      </View>
+      <T variant="caption" tone="muted" style={{ marginTop: space.md, fontStyle: "italic" }}>
+        {t("mirror_footer")}
+      </T>
+    </EmberCard>
   );
 }
 
@@ -558,7 +706,7 @@ function DailyBlessing() {
     gap: space.md,
   };
   const front = (
-    <LinearGradient colors={["#241407", "#1C1510"]} start={{ x: 0, y: 0 }} end={{ x: 0.9, y: 1 }} style={face}>
+    <LinearGradient colors={[...ember.gradient]} start={{ x: 0, y: 0 }} end={{ x: 0.9, y: 1 }} style={face}>
       <DiyaIcon size={30} dim />
       <View style={{ flex: 1 }}>
         <T variant="eyebrow" tone="gold">
@@ -572,7 +720,7 @@ function DailyBlessing() {
     </LinearGradient>
   );
   const back = (
-    <LinearGradient colors={["#2A1808", "#1C1510"]} start={{ x: 0, y: 0 }} end={{ x: 0.9, y: 1 }} style={face}>
+    <LinearGradient colors={[...ember.gradientLit]} start={{ x: 0, y: 0 }} end={{ x: 0.9, y: 1 }} style={face}>
       <DiyaIcon size={30} />
       <View style={{ flex: 1 }}>
         <T variant="bodyBold" style={{ color: color.goldHi }}>
@@ -591,7 +739,7 @@ function DailyBlessing() {
         borderRadius: radius.card,
         overflow: "hidden",
         borderWidth: 1,
-        borderColor: "#4a3416",
+        borderColor: ember.line,
         backgroundColor: color.surface, // shows on-brand at the flip's edge-on instant
       }}
     >

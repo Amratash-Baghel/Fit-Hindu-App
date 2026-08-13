@@ -4,6 +4,8 @@ export { T, B } from "./Text";
 export { Button, FooterAction } from "./Button";
 export { PressableScale } from "./PressableScale";
 export { Card, Chip } from "./Card";
+export { EmberCard } from "./EmberCard";
+export { IconSlot } from "./IconSlot";
 export { Shimmer } from "./Shimmer";
 export { AnimatedNumber } from "./AnimatedNumber";
 export { CelebrationBurst, CompletionDiya } from "./CelebrationBurst";

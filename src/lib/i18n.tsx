@@ -414,6 +414,22 @@ export const strings = {
   all_exercises: { hi: "सभी व्यायाम", en: "All exercises" },
   exercises_word: { hi: "व्यायाम", en: "exercises" },
 
+  // tile meta rows (redesign "tiles that speak") — the "what's inside" stats.
+  // Numbers come from content counts at the call site; these are the words.
+  sounds_word: { hi: "ध्वनियाँ", en: "sounds" },
+  mantras_word: { hi: "मंत्र", en: "mantras" },
+  meta_home_gym: { hi: "घर और जिम", en: "Home & gym" },
+  meta_guided: { hi: "टाइमर के साथ", en: "With a timer" },
+  meta_mala: { hi: "१०८ जप की माला", en: "108-bead mala" },
+  meta_sleep_timer: { hi: "स्लीप टाइमर", en: "Sleep timer" },
+
+  // the week mirror (redesign "reflect — never ask"): the app never asks about
+  // anyone's devotion; it reflects the practice they already chose. {p} is the
+  // localised pillar name, filled at the call site.
+  mirror_title: { hi: "आपका सप्ताह", en: "Your week, reflected" },
+  mirror_lead: { hi: "इस सप्ताह आपकी साधना {p} की ओर झुकी।", en: "This week your practice leaned into {p}." },
+  mirror_footer: { hi: "पूछा नहीं — बस देखा गया।", en: "Noticed, never asked." },
+
   // session player (workout spec v2)
   set_word: { hi: "सेट", en: "Set" },
   set_done: { hi: "सेट पूरा हुआ", en: "Set done" },

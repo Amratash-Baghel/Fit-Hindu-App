@@ -30,11 +30,19 @@ export default function TabsLayout() {
  * A pillar's tab icon, crowned with a small gold point once that pillar is done
  * for the day — the nav becomes a summary of the day you can read with a thumb.
  */
-function PillarTabIcon({ k, children }: { k: PillarKey; children: React.ReactNode }) {
+function PillarTabIcon({
+  k,
+  focused,
+  children,
+}: {
+  k: PillarKey;
+  focused: boolean;
+  children: React.ReactNode;
+}) {
   const { pillars } = usePillars();
   const done = pillarComplete(pillars[k]);
   return (
-    <View>
+    <TabLift focused={focused}>
       {children}
       {done ? (
         <View
@@ -49,6 +57,16 @@ function PillarTabIcon({ k, children }: { k: PillarKey; children: React.ReactNod
           }}
         />
       ) : null}
+    </TabLift>
+  );
+}
+
+/** The mockup's active-tab lift: the icon rises 2dp and grows a touch when its
+ *  tab is focused — enough to feel alive, cheap enough to be free. */
+function TabLift({ focused, children }: { focused: boolean; children: React.ReactNode }) {
+  return (
+    <View style={{ transform: [{ translateY: focused ? -2 : 0 }, { scale: focused ? 1.08 : 1 }] }}>
+      {children}
     </View>
   );
 }
@@ -81,7 +99,11 @@ function TabsInner() {
         name="index"
         options={{
           title: t("tab_home"),
-          tabBarIcon: ({ color: c }) => <HomeIcon color={c} />,
+          tabBarIcon: ({ color: c, focused }) => (
+            <TabLift focused={focused}>
+              <HomeIcon color={c} />
+            </TabLift>
+          ),
         }}
       />
       <Tabs.Screen
@@ -89,8 +111,8 @@ function TabsInner() {
         options={{
           title: t("tab_body"),
           tabBarActiveTintColor: pillar.body,
-          tabBarIcon: ({ color: c }) => (
-            <PillarTabIcon k="body">
+          tabBarIcon: ({ color: c, focused }) => (
+            <PillarTabIcon k="body" focused={focused}>
               <DumbbellIcon color={c} />
             </PillarTabIcon>
           ),
@@ -101,8 +123,8 @@ function TabsInner() {
         options={{
           title: t("tab_mind"),
           tabBarActiveTintColor: pillar.mind,
-          tabBarIcon: ({ color: c }) => (
-            <PillarTabIcon k="mind">
+          tabBarIcon: ({ color: c, focused }) => (
+            <PillarTabIcon k="mind" focused={focused}>
               <LotusIcon color={c} />
             </PillarTabIcon>
           ),
@@ -113,8 +135,8 @@ function TabsInner() {
         options={{
           title: t("tab_soul"),
           tabBarActiveTintColor: pillar.soul,
-          tabBarIcon: ({ color: c }) => (
-            <PillarTabIcon k="soul">
+          tabBarIcon: ({ color: c, focused }) => (
+            <PillarTabIcon k="soul" focused={focused}>
               <OmGlyph color={c} size={20} />
             </PillarTabIcon>
           ),

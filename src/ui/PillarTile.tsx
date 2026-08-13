@@ -4,14 +4,20 @@
  * door into a module. A tile can also be a `soon` teaser (dimmed, chip, no
  * press) for modules the redesign has planned but not built (Daily Gita,
  * Mantra Ucharan, Bhajan Alarm).
+ *
+ * Redesign "tiles that speak": an optional `meta` footer tells you what's
+ * behind the door before you tap — "24 exercises · Home & gym" — numbers
+ * from content data (the countPublished helpers), never hardcoded. The icon
+ * sits in the embossed IconSlot so every door shares one material language.
  */
 import React from "react";
 import { StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { PressableScale } from "./PressableScale";
 import { Chip } from "./Card";
-import { B } from "./Text";
+import { B, T } from "./Text";
 import { ChevronRight } from "./icons";
+import { IconSlot } from "./IconSlot";
 import { color, radius, space } from "./tokens";
 import { useI18n, type StringKey } from "../lib/i18n";
 
@@ -19,16 +25,20 @@ interface Props {
   titleK: StringKey;
   subK?: StringKey;
   icon: React.ReactNode;
-  /** pillar accent — used for the wash gradient + icon slot */
+  /** pillar accent — used for the wash gradient */
   wash: string;
   onPress?: () => void;
   /** coming-soon teaser: dimmed, chip instead of chevron, not tappable */
   soon?: boolean;
+  /** "what's inside" stats, already localised — null entries are skipped so a
+   *  count that hasn't landed (or failed) simply doesn't show */
+  meta?: (string | null)[];
   style?: StyleProp<ViewStyle>;
 }
 
-export function PillarTile({ titleK, subK, icon, wash, onPress, soon, style }: Props) {
+export function PillarTile({ titleK, subK, icon, wash, onPress, soon, meta, style }: Props) {
   const { t } = useI18n();
+  const metaShown = (meta ?? []).filter((m): m is string => !!m);
 
   const inner = (
     <View style={[styles.tile, soon && { opacity: 0.55 }]}>
@@ -39,12 +49,26 @@ export function PillarTile({ titleK, subK, icon, wash, onPress, soon, style }: P
         style={StyleSheet.absoluteFill}
       />
       <View style={styles.top}>
-        <View style={[styles.iconSlot, { backgroundColor: wash }]}>{icon}</View>
+        <IconSlot>{icon}</IconSlot>
         {soon ? <Chip label={t("coming_soon")} /> : <ChevronRight />}
       </View>
-      <View>
-        <B k={titleK} variant="h1" noSub />
-        {subK ? <B k={subK} variant="caption" tone="muted" noSub /> : null}
+      <View style={{ gap: metaShown.length ? space.md : 0 }}>
+        <View>
+          <B k={titleK} variant="h1" noSub />
+          {subK ? <B k={subK} variant="caption" tone="muted" noSub /> : null}
+        </View>
+        {metaShown.length ? (
+          <View style={styles.metaRow}>
+            {metaShown.map((m, i) => (
+              <React.Fragment key={m}>
+                {i > 0 ? <View style={styles.metaDot} /> : null}
+                <T variant="caption" tone="soft" style={{ fontSize: 12 }}>
+                  {m}
+                </T>
+              </React.Fragment>
+            ))}
+          </View>
+        ) : null}
       </View>
     </View>
   );
@@ -83,11 +107,19 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "flex-start",
   },
-  iconSlot: {
-    width: 54,
-    height: 54,
-    borderRadius: 15,
+  metaRow: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    flexWrap: "wrap",
+    gap: space.sm,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(58,46,36,0.7)",
+    paddingTop: space.sm + 2,
+  },
+  metaDot: {
+    width: 3,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: color.line,
   },
 });

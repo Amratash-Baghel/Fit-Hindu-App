@@ -149,6 +149,47 @@ export async function listMantras(deityId?: string | null): Promise<MantraWithDe
   );
 }
 
+/**
+ * Head-counts for the pillar tiles' meta rows (redesign — "tiles that speak"):
+ * the numbers a tile shows before you walk through the door. One round trip
+ * each, no rows shipped; filters mirror the list functions above exactly so a
+ * tile never promises content its module won't show. `null` (error) hides the
+ * number rather than showing a wrong one.
+ */
+export async function countExercises(): Promise<number | null> {
+  const { count, error } = await supabase
+    .from("exercises")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "published");
+  return error ? null : count;
+}
+
+export async function countMantras(): Promise<number | null> {
+  const { count, error } = await supabase
+    .from("mantras")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "published");
+  return error ? null : count;
+}
+
+export async function countMeditationSounds(): Promise<number | null> {
+  const { count, error } = await supabase
+    .from("sounds")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "published")
+    .in("kind", ["chant", "ambient"]);
+  return error ? null : count;
+}
+
+export async function countSleepSounds(): Promise<number | null> {
+  const { count, error } = await supabase
+    .from("sounds")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "published")
+    .eq("kind", "sleep");
+  return error ? null : count;
+}
+
 export async function getSound(id: string): Promise<SoundWithMedia | null> {
   const { data, error } = await supabase
     .from("sounds")

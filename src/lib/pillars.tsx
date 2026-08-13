@@ -22,7 +22,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useS
 import { AppState } from "react-native";
 import { supabase } from "./supabase";
 import { useAuth } from "./auth";
-import { istDayKey } from "./daypart";
+import { istDayKey, DAY_MS } from "./daypart";
 import type { ActivityType } from "../types/db";
 import type { PillarKey } from "../ui/tokens";
 
@@ -77,11 +77,16 @@ export function pillarsCompleteCount(pillars: PillarsToday): number {
   return PILLAR_ORDER.filter((k) => pillarComplete(pillars[k])).length;
 }
 
-const sameCounts = (a: PillarsToday, b: PillarsToday) =>
-  PILLAR_ORDER.every((k) => a[k].done === b[k].done);
+const sameTypes = (a: ActivityType[], b: ActivityType[]) =>
+  a.length === b.length && a.every((t) => b.includes(t));
+
+const NO_TYPES: readonly ActivityType[] = [];
 
 interface PillarsCtxValue {
   pillars: PillarsToday;
+  /** today's raw distinct activity types — the task strip's done-states read
+   *  these directly, from the same fetch that feeds the rings */
+  todayTypes: readonly ActivityType[];
   loading: boolean;
   refresh: () => void;
 }
@@ -100,7 +105,10 @@ const PillarsCtx = createContext<PillarsCtxValue | null>(null);
 export function PillarsProvider({ children }: { children: React.ReactNode }) {
   const { session } = useAuth();
   const uid = session?.user.id ?? null;
-  const [pillars, setPillars] = useState<PillarsToday>(EMPTY);
+  const [today, setToday] = useState<{ pillars: PillarsToday; types: ActivityType[] }>({
+    pillars: EMPTY,
+    types: [],
+  });
   const [loading, setLoading] = useState(!!uid);
 
   // Guests are DERIVED as zeros on the way out (below), never written into
@@ -118,8 +126,10 @@ export function PillarsProvider({ children }: { children: React.ReactNode }) {
       .maybeSingle()
       .then(({ data, error }) => {
         if (!alive) return;
-        const next = error || !data ? EMPTY : foldPillars((data.types ?? []) as ActivityType[]);
-        setPillars((prev) => (sameCounts(prev, next) ? prev : next));
+        const types = error || !data ? [] : ((data.types ?? []) as ActivityType[]);
+        setToday((prev) =>
+          sameTypes(prev.types, types) ? prev : { pillars: foldPillars(types), types },
+        );
         setLoading(false);
       });
     return () => {
@@ -141,8 +151,11 @@ export function PillarsProvider({ children }: { children: React.ReactNode }) {
   // user's rings after a sign-out. Memoized so a provider re-render with
   // unchanged parts hands consumers the same reference (no cascade).
   const value = useMemo<PillarsCtxValue>(
-    () => (uid ? { pillars, loading, refresh } : { pillars: EMPTY, loading: false, refresh }),
-    [uid, pillars, loading, refresh],
+    () =>
+      uid
+        ? { pillars: today.pillars, todayTypes: today.types, loading, refresh }
+        : { pillars: EMPTY, todayTypes: NO_TYPES, loading: false, refresh },
+    [uid, today, loading, refresh],
   );
 
   return <PillarsCtx.Provider value={value}>{children}</PillarsCtx.Provider>;
@@ -156,5 +169,55 @@ export function PillarsProvider({ children }: { children: React.ReactNode }) {
 export function usePillars(): PillarsCtxValue {
   const ctx = useContext(PillarsCtx);
   if (ctx) return ctx;
-  return { pillars: EMPTY, loading: false, refresh: () => {} };
+  return { pillars: EMPTY, todayTypes: NO_TYPES, loading: false, refresh: () => {} };
+}
+
+/**
+ * The last seven IST days folded to per-pillar active-day counts — the Home
+ * "week, reflected" mirror (redesign, "reflect — never ask"). One small read
+ * of rows the server already keeps; a pillar counts a day when ANY of its
+ * activity types was logged. `null` until the read lands; guests stay `null`
+ * (nothing was practised, so nothing is mirrored — never a wall of zeros).
+ */
+export interface WeekPillars {
+  days: Record<PillarKey, number>;
+  /** how many of the 7 days had any activity at all */
+  activeDays: number;
+}
+
+export function useWeekPillars(): { week: WeekPillars | null; refresh: () => void } {
+  const { session } = useAuth();
+  const uid = session?.user.id ?? null;
+  const [fetched, setFetched] = useState<{ uid: string; week: WeekPillars } | null>(null);
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    if (!uid) return;
+    let alive = true;
+    const since = istDayKey(new Date(Date.now() - 6 * DAY_MS));
+    supabase
+      .from("daily_activity")
+      .select("ist_date, types")
+      .eq("user_id", uid)
+      .gte("ist_date", since)
+      .then(({ data, error }) => {
+        if (!alive || error) return;
+        const rows = (data ?? []) as { ist_date: string; types: ActivityType[] }[];
+        const days = Object.fromEntries(
+          PILLAR_ORDER.map((k) => [
+            k,
+            rows.filter((r) => PILLAR_TYPES[k].some((t) => (r.types ?? []).includes(t))).length,
+          ]),
+        ) as Record<PillarKey, number>;
+        setFetched({ uid, week: { days, activeDays: rows.length } });
+      });
+    return () => {
+      alive = false;
+    };
+  }, [uid, tick]);
+
+  return {
+    week: uid && fetched?.uid === uid ? fetched.week : null,
+    refresh: useCallback(() => setTick((t) => t + 1), []),
+  };
 }

@@ -1,18 +1,32 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { View } from "react-native";
 import { useRouter } from "expo-router";
 import { Screen, PillarTile, B, T, pillar, space } from "../../src/ui";
 import { MalaIcon, MoonIcon, OmGlyph, BellIcon } from "../../src/ui/icons";
 import { useI18n } from "../../src/lib/i18n";
+import { countMantras, countSleepSounds } from "../../src/lib/content";
 
 /**
  * आत्मा / Soul (docs/specs/redesign-bms.md) — Mantra Jap and Sleep sounds
  * today; Mantra Ucharan and the Bhajan Alarm are the planned additions,
- * teased small beneath the two live doors.
+ * teased small beneath the two live doors. Both live tiles speak (meta rows):
+ * live counts of published mantras and sleep sounds.
  */
 export default function Soul() {
   const router = useRouter();
   const { t } = useI18n();
+  const [mantras, setMantras] = useState<number | null>(null);
+  const [sounds, setSounds] = useState<number | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    void countMantras().then((n) => alive && setMantras(n));
+    void countSleepSounds().then((n) => alive && setSounds(n));
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   return (
     <Screen scroll={false}>
       <View style={{ paddingTop: space.sm, paddingBottom: space.sm }}>
@@ -28,6 +42,7 @@ export default function Soul() {
           icon={<MalaIcon size={28} color={pillar.soul} />}
           wash={pillar.soulWash}
           onPress={() => router.push("/(tabs)/jap")}
+          meta={[mantras != null ? `${mantras} ${t("mantras_word")}` : null, t("meta_mala")]}
           style={{ flex: 1 }}
         />
         <PillarTile
@@ -36,6 +51,7 @@ export default function Soul() {
           icon={<MoonIcon size={28} color={pillar.soul} />}
           wash={pillar.soulWash}
           onPress={() => router.push("/(tabs)/sleep")}
+          meta={[sounds != null ? `${sounds} ${t("sounds_word")}` : null, t("meta_sleep_timer")]}
           style={{ flex: 1 }}
         />
         <View style={{ flexDirection: "row", gap: space.md }}>

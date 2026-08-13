@@ -1,18 +1,30 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { View } from "react-native";
 import { useRouter } from "expo-router";
 import { Screen, PillarTile, B, T, pillar, space } from "../../src/ui";
 import { LotusIcon, OmGlyph } from "../../src/ui/icons";
 import { useI18n } from "../../src/lib/i18n";
+import { countMeditationSounds } from "../../src/lib/content";
 
 /**
  * मन / Mind (docs/specs/redesign-bms.md) — Meditation today; Daily Gita
  * (shloka cards with meaning & wisdom) is the planned second door, shown as a
- * coming-soon teaser so the pillar's shape is already visible.
+ * coming-soon teaser so the pillar's shape is already visible. The meditation
+ * tile speaks (meta row): a live count of its published sounds.
  */
 export default function Mind() {
   const router = useRouter();
   const { t } = useI18n();
+  const [sounds, setSounds] = useState<number | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    void countMeditationSounds().then((n) => alive && setSounds(n));
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   return (
     <Screen scroll={false}>
       <View style={{ paddingTop: space.sm, paddingBottom: space.sm }}>
@@ -28,6 +40,7 @@ export default function Mind() {
           icon={<LotusIcon size={28} color={pillar.mind} />}
           wash={pillar.mindWash}
           onPress={() => router.push("/(tabs)/meditation")}
+          meta={[sounds != null ? `${sounds} ${t("sounds_word")}` : null, t("meta_guided")]}
           style={{ flex: 1 }}
         />
         <PillarTile

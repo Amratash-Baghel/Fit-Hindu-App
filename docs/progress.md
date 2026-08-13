@@ -28,6 +28,22 @@ standup doc for the owner and the resume-from-home lifeline.
   strip, tile meta-rows, weekly practice mirror, reward-grammar
   consolidation; legacy sweep: istDayKey copies in session/content/progress,
   ember hexes in older screens, art.tsx splash ramp into tokens.
+  **Follow-up 2 (same day) — the "complete the concept" pass.** Everything
+  outstanding from the three reviewed decks, in one sweep: **named next step**
+  (Home task strip — one chip per practice from the platform's own activity
+  types, done-states from the rings' read, deep links into modules,
+  daypart-ordered); **tiles that speak** (PillarTile meta rows fed by live
+  published-content head-counts: countExercises/Mantras/MeditationSounds/
+  SleepSounds — verified live: "61 exercises · Home & gym", "4 mantras ·
+  108-bead mala"); **the week mirror** ("reflect, never ask": per-pillar
+  active-day counts over 7 IST days, mirrored on Home, hidden for guests/
+  empty weeks); **one material language** (new `EmberCard` + embossed
+  `IconSlot` shared components; Home/My Path/blessing swept onto ember
+  tokens — zero gradient hexes left in screens); tab icons now lift when
+  active; a still gold mandala sits behind the ring stack (mockup ambience).
+  usePillars additionally exposes today's raw types (one fetch feeds rings,
+  tab dots AND the strip). Typecheck/lint/export green; guest + pillar pages
+  DOM-verified.
   **Follow-up (same day):** the mockup's living medallions — `CoinHalo`
   (ambient pillar-colored ripples: soft bloom + two thin rings breathing
   outward, 3 UI-thread transform/opacity nodes per coin) and `CoinSplash`

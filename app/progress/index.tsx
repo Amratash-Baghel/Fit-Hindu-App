@@ -16,19 +16,17 @@
 import React, { useCallback, useMemo } from "react";
 import { View } from "react-native";
 import { Stack, useFocusEffect, useRouter } from "expo-router";
-import { LinearGradient } from "expo-linear-gradient";
 import {
   Screen,
   Card,
   Button,
+  EmberCard,
   ProgressBar,
   AnimatedNumber,
-  Shimmer,
   B,
   T,
   DiyaIcon,
   color,
-  ember,
   pillar,
   space,
   radius,
@@ -169,36 +167,33 @@ export default function MyPath() {
       <B k="mypath_sub" variant="caption" tone="muted" noSub />
 
       {/* the sankalp — current streak given the hero treatment, its record beside */}
-      <View style={{ borderRadius: radius.card, overflow: "hidden", borderWidth: 1, borderColor: ember.line }}>
-        <LinearGradient colors={[...ember.gradient]} start={{ x: 0, y: 0 }} end={{ x: 0.9, y: 1 }}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: space.md, padding: space.lg }}>
-            <DiyaIcon size={34} dim={(streak?.current_streak ?? 0) === 0} />
-            <View style={{ flex: 1 }}>
-              <T variant="eyebrow" tone="gold">
-                {t("mypath_current")}
-              </T>
-              <View style={{ flexDirection: "row", alignItems: "baseline", gap: space.xs, marginTop: 2 }}>
-                <AnimatedNumber
-                  value={streak?.current_streak ?? 0}
-                  variant="display"
-                  tone="gold"
-                  style={{ fontSize: 40, fontWeight: "800", fontVariant: ["tabular-nums"] }}
-                />
-                <T variant="caption" tone="muted">
-                  {t("mypath_days_word")}
-                </T>
-              </View>
-            </View>
-            <View style={{ alignItems: "flex-end" }}>
+      <EmberCard sheen>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: space.md }}>
+          <DiyaIcon size={34} dim={(streak?.current_streak ?? 0) === 0} />
+          <View style={{ flex: 1 }}>
+            <T variant="eyebrow" tone="gold">
+              {t("mypath_current")}
+            </T>
+            <View style={{ flexDirection: "row", alignItems: "baseline", gap: space.xs, marginTop: 2 }}>
+              <AnimatedNumber
+                value={streak?.current_streak ?? 0}
+                variant="display"
+                tone="gold"
+                style={{ fontSize: 40, fontWeight: "800", fontVariant: ["tabular-nums"] }}
+              />
               <T variant="caption" tone="muted">
-                {t("progress_longest")}
+                {t("mypath_days_word")}
               </T>
-              <AnimatedNumber value={streak?.longest_streak ?? 0} variant="h2" style={{ fontVariant: ["tabular-nums"] }} />
             </View>
           </View>
-        </LinearGradient>
-        <Shimmer mode="sheen" tint={color.goldHi} peak={0.08} />
-      </View>
+          <View style={{ alignItems: "flex-end" }}>
+            <T variant="caption" tone="muted">
+              {t("progress_longest")}
+            </T>
+            <AnimatedNumber value={streak?.longest_streak ?? 0} variant="h2" style={{ fontVariant: ["tabular-nums"] }} />
+          </View>
+        </View>
+      </EmberCard>
 
       {/* the week, Body·Mind·Soul — which pillar you keep, which one slips */}
       <Card style={{ gap: space.sm }}>

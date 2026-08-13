@@ -45,6 +45,8 @@ export const goldGradient = ["#F2C879", "#D9A441", "#B07E2B"] as const;
  *  hexes (design-system rule); legacy screens migrate as they're touched. */
 export const ember = {
   gradient: ["#241407", "#1C1510"] as const,
+  /** the revealed/lit face (blessing back) — one shade warmer */
+  gradientLit: ["#2A1808", "#1C1510"] as const,
   line: "#4a3416", // hairline border on ember surfaces
 } as const;
 
