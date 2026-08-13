@@ -39,6 +39,7 @@ export const strings = {
 
   // BMS redesign (docs/specs/redesign-bms.md) — splash tagline, pillars, tabs
   bms_tagline: { hi: "तन, मन और आत्मा को जगाइए", en: "Unlock your Body, Mind & Soul" },
+  splash_skip: { hi: "छोड़ने के लिए टैप करें", en: "Tap to skip" },
   tab_body: { hi: "तन", en: "Body" },
   tab_mind: { hi: "मन", en: "Mind" },
   tab_soul: { hi: "आत्मा", en: "Soul" },
@@ -71,6 +72,8 @@ export const strings = {
   purna_title: { hi: "आज की साधना पूर्ण", en: "Your day is whole" },
   purna_body: { hi: "तन, मन और आत्मा — आज तीनों।", en: "Body, mind and soul — all three, today." },
   purna_tap: { hi: "जारी रखने के लिए दबाएँ", en: "Tap to continue" },
+  /** the hero's quiet settled state once all three rings have closed */
+  saadhana_settled: { hi: "पूर्ण — मध्यरात्रि तक स्वर्णिम", en: "Purna — settled in gold till midnight" },
 
   // My Path (redesign — the reflective progress screen). Gentle by rule: a quiet
   // day is quiet, never "missed"; nudges stay effort-based, never a health claim.
@@ -79,6 +82,12 @@ export const strings = {
   mypath_current: { hi: "अभी", en: "Current" },
   mypath_days_word: { hi: "दिन", en: "days" },
   mypath_week: { hi: "इस सप्ताह", en: "This week" },
+  // the month of diyas — a constellation, never a scoreboard. Days are
+  // "quiet", never "missed"; the dim dot is dim, never red.
+  mypath_month: { hi: "दीयों का महीना", en: "A month of diyas" },
+  legend_full: { hi: "पूर्ण दिन", en: "full day" },
+  legend_part: { hi: "आंशिक दिन", en: "part day" },
+  legend_quiet: { hi: "शांत", en: "quiet" },
   mypath_points: { hi: "फिट अंक → अगला पड़ाव", en: "Fit Points → next milestone" },
   // {p} → the localized name of the quietest pillar, filled at the call site.
   mypath_nudge: {

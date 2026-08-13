@@ -3,6 +3,33 @@
 Running build log — one entry per shipped item, newest on top. This is the
 standup doc for the owner and the resume-from-home lifeline.
 
+- **2026-08-13 — Concept completion pass: chakra splash, one glow grammar,
+  Purna ceremony, month of diyas (`redesign` branch).** Everything the three
+  proposal artifacts still called for, applied: **chakra-awakening splash** —
+  BmsSplash rebuilt to the app-native mockup's sequence (obsidian meditator
+  redrawn as vector in bms/art.tsx, sushumna fills root→crown, seven chakras
+  ignite with pulse + body-spill, crown overflow, awakened white gaze, the
+  gaze-light takes the screen, wordmark, tap-to-skip, haptic beats; same
+  engineering contract — min beat, 6s hard timeout, reduce-motion/web gets
+  the finished composition). **One glow grammar** — new `GoldWash` (the
+  mockup's full-screen gold bloom) fires on every earned moment: workout and
+  meditation completions, the jap/sleep RewardOverlay, the blessing reveal
+  (via a new Screen `overlay` slot) and Purna. **Purna is now a ceremony** —
+  the three pillar rings draw together into the interlocked trinity, ॐ lands,
+  the bloom breathes, sparks radiate, the reward-burst haptic rides it; after
+  dismissal Home's saadhana line settles into quiet gold "till midnight".
+  **Haptic gaps closed** — tab presses tick (screenListeners), the Home
+  settings gear presses like everything else, splash beats ride the chakras.
+  **Jap count pops** on every strike (mockup .jap-count.pop). **Month of
+  diyas** on My Path — a 28-day weekday-aligned constellation from the same
+  30-day fetch (bright gold full days, pillar-tinted part days, dim quiet
+  days — never "missed", no red), legend + three monthly balance bars.
+  Coin tap-ripple widened to the mockup's open-across-the-screen feel.
+  New i18n keys (en+hi): splash_skip, saadhana_settled, mypath_month,
+  legend_full/part/quiet. Verified: typecheck ✓ lint ✓ + web click-through
+  (splash composition + skip, onboarding → Home evening state, blessing
+  flip, jap 108→106, Body tile meta "61 exercises", workout muscle filter,
+  My Path guest state). No migrations.
 - **2026-08-13 — BMS redesign shell + "new feel" pass (owner demo build,
   `redesign` branch).** The app now looks and behaves like the approved
   clickable mockup (docs/mockups/bms-redesign-v2.html) plus the reviewed

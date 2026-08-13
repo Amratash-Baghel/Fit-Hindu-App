@@ -31,6 +31,7 @@ import {
   T,
   VideoHero,
   CompletionDiya,
+  GoldWash,
   PointsEarned,
   AnimatedNumber,
   color,
@@ -330,7 +331,7 @@ export default function WorkoutSession() {
   // completion
   if (phase === "done" && summary) {
     return (
-      <Screen scroll={false}>
+      <Screen scroll={false} overlay={<GoldWash />}>
         <Stack.Screen options={{ headerShown: false }} />
         {/* warm backdrop so the reward glows out of depth instead of flat black */}
         <LinearGradient

@@ -19,6 +19,7 @@ import { B, T } from "./Text";
 import { Button } from "./Button";
 import { AnimatedNumber } from "./AnimatedNumber";
 import { CompletionDiya } from "./CelebrationBurst";
+import { GoldWash } from "./GoldWash";
 import { color, radius, space } from "./tokens";
 import { useI18n, type StringKey } from "../lib/i18n";
 
@@ -119,6 +120,8 @@ export function RewardOverlay({ visible, titleKey, bodyKey, earned, total, onDon
           gap: space.md,
         }}
       >
+        {/* the app-wide completion glow — the modal opening is the trigger */}
+        <GoldWash />
         <CompletionDiya diyaSize={72} burstSize={210} celebrate />
         <B k={titleKey} variant="h1" center />
         {bodyKey ? <B k={bodyKey} variant="body" tone="muted" center /> : null}

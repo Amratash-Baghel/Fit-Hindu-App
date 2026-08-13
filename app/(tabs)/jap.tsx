@@ -10,6 +10,7 @@ import Animated, {
   withSequence,
   withSpring,
   withTiming,
+  type SharedValue,
 } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
 import {
@@ -109,6 +110,11 @@ export default function Jap() {
 
   const done = left === 0;
 
+  // The count POPS on every strike (mockup .jap-count.pop) — a quick scale
+  // overshoot that makes the number feel struck, not merely re-rendered.
+  const motion = useMotion();
+  const pop = useSharedValue(1);
+
   const tap = useCallback(() => {
     if (countRef.current === 0) {
       feedback.select(); // tapping the lit diya to start a fresh mala
@@ -118,6 +124,12 @@ export default function Jap() {
     const next = countRef.current - 1;
     countRef.current = next;
     setLeft(next);
+    if (motion) {
+      pop.value = withSequence(
+        withTiming(1.13, { duration: 90, easing: Easing.out(Easing.quad) }),
+        withTiming(1, { duration: 170, easing: Easing.out(Easing.quad) }),
+      );
+    }
     if (next === 0) {
       // Mala complete (108) — a distinct "yes" you HEAR, not just another tick.
       feedback.success();
@@ -145,7 +157,9 @@ export default function Jap() {
       // count, not 108 chimes. The quarter markers ride the same heavy hit.
       feedback.japTap();
     }
-  }, [mantra, resetMala]);
+    // pop is a stable shared value; motion gates whether it animates.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mantra, resetMala, motion]);
 
   if (status === "loading") {
     return (
@@ -205,11 +219,13 @@ export default function Jap() {
           <View style={{ height: space.md }} />
         )}
 
-        {/* counter — top, counting 108 down */}
+        {/* counter — top, counting 108 down; pops on every strike */}
         <View style={{ alignItems: "center", gap: 2 }}>
-          <T variant="display" tone="gold" style={{ fontSize: 56, fontVariant: ["tabular-nums"] }}>
-            {left}
-          </T>
+          <PopNumber pop={pop}>
+            <T variant="display" tone="gold" style={{ fontSize: 56, fontVariant: ["tabular-nums"] }}>
+              {left}
+            </T>
+          </PopNumber>
           <T variant="eyebrow" tone="muted">
             {done ? t("jap_complete") : `${t("jap_remaining")} · ${MALA}`}
           </T>
@@ -258,6 +274,12 @@ export default function Jap() {
       />
     </Screen>
   );
+}
+
+/** The struck-number wrapper — scales with the shared pop value (UI thread). */
+function PopNumber({ pop, children }: { pop: SharedValue<number>; children: React.ReactNode }) {
+  const style = useAnimatedStyle(() => ({ transform: [{ scale: pop.value }] }));
+  return <Animated.View style={style}>{children}</Animated.View>;
 }
 
 /**

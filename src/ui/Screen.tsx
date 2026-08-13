@@ -20,9 +20,13 @@ interface Props {
    *  stops come from the `daypart` tokens; it fades to the ground's own alpha-0,
    *  so it dissolves into the same black and never becomes a hard band. */
   wash?: readonly [string, string, ...string[]];
+  /** Full-screen decoration ABOVE the content (a GoldWash, a celebration) —
+   *  rendered outside the scroll so it never scrolls away or clips. The node
+   *  itself must be non-interactive (pointerEvents none). */
+  overlay?: React.ReactNode;
 }
 
-export function Screen({ children, night, scroll = true, entrance = true, wash }: Props) {
+export function Screen({ children, night, scroll = true, entrance = true, wash, overlay }: Props) {
   const insets = useSafeAreaInsets();
   const bg = night ? color.night : color.ink;
   // Android renders edge-to-edge from Expo SDK 54 on — content sits BEHIND the
@@ -63,6 +67,7 @@ export function Screen({ children, night, scroll = true, entrance = true, wash }
     <>
       {washEl}
       {inner}
+      {overlay}
     </>
   );
 

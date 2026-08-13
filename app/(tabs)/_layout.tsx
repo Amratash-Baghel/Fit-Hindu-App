@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { color, pillar, type PillarKey } from "../../src/ui";
 import { HomeIcon, DumbbellIcon, LotusIcon, OmGlyph } from "../../src/ui/icons";
 import { useI18n } from "../../src/lib/i18n";
+import { feedback } from "../../src/lib/feedback";
 import { PillarsProvider, usePillars, pillarComplete } from "../../src/lib/pillars";
 
 /**
@@ -81,6 +82,9 @@ function TabsInner() {
   const insets = useSafeAreaInsets();
   return (
     <Tabs
+      // The mockup wires a selection tick on every tab press — the nav is a
+      // tappable surface like any other, so it speaks the same haptic language.
+      screenListeners={{ tabPress: () => feedback.select() }}
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: color.saffron,

@@ -50,22 +50,25 @@ interface WeekDay {
 const DAY_MS = 86_400_000;
 
 /**
- * The last seven IST days, oldest first, each with a one-letter weekday.
+ * The last `n` IST days, oldest first, each with a one-letter weekday.
  * Steps are absolute 24h intervals, NOT local setDate() calendar steps — IST
  * has no DST, so 24h of real time is always exactly one IST day, whereas a
  * local-calendar step is 23/25h across a DST switch (an NRI user's week would
- * duplicate one IST date and skip another). One formatter for all seven days.
+ * duplicate one IST date and skip another). One formatter for all the days.
  */
-function lastSevenDays(locale: string): WeekDay[] {
+function lastDays(locale: string, n: number): WeekDay[] {
   const fmt = new Intl.DateTimeFormat(locale, { timeZone: "Asia/Kolkata", weekday: "narrow" });
   const now = Date.now();
   const out: WeekDay[] = [];
-  for (let i = 6; i >= 0; i--) {
+  for (let i = n - 1; i >= 0; i--) {
     const d = new Date(now - i * DAY_MS);
     out.push({ date: istDayKey(d), letter: fmt.format(d), isToday: i === 0 });
   }
   return out;
 }
+
+/** The constellation window: four clean weekday-aligned rows of seven. */
+const MONTH_DAYS = 28;
 
 export default function MyPath() {
   const router = useRouter();
@@ -93,7 +96,7 @@ export default function MyPath() {
   const locale = mode === "hindi" ? "hi-IN" : "en-IN";
   const weekData = useMemo(() => {
     if (!data) return null;
-    const week = lastSevenDays(locale);
+    const week = lastDays(locale, 7);
     const typesByDate = new Map<string, ActivityType[]>(
       (data.days as DailyActivity[]).map((d) => [d.ist_date, (d.types ?? []) as ActivityType[]]),
     );
@@ -106,7 +109,19 @@ export default function MyPath() {
     ) as Record<PillarKey, number>;
     const quietest = PILLAR_ORDER.reduce((a, b) => (counts[a] <= counts[b] ? a : b));
     const allStrong = Math.min(...PILLAR_ORDER.map((k) => counts[k])) >= 5;
-    return { week, activeOn, quietest, allStrong };
+
+    // The month of diyas (redesign — "a constellation, not a scoreboard"):
+    // each of the last 28 IST days becomes a dot — bright gold when all three
+    // pillars closed, tinted by the practised pillar on a partial day, dim on
+    // a quiet one. Same fetch as everything else (the 30-day window).
+    const month = lastDays(locale, MONTH_DAYS).map((d) => ({
+      ...d,
+      pillars: PILLAR_ORDER.filter((k) => activeOn(k, d.date)),
+    }));
+    const monthCounts = Object.fromEntries(
+      PILLAR_ORDER.map((k) => [k, month.filter((d) => d.pillars.includes(k)).length]),
+    ) as Record<PillarKey, number>;
+    return { week, activeOn, quietest, allStrong, month, monthCounts };
   }, [data, locale]);
 
   // Guests bank nothing yet — say why, and make signing in the way out.
@@ -149,7 +164,7 @@ export default function MyPath() {
   }
 
   // weekData is non-null here: data passed the loading/empty gates above.
-  const { week, activeOn, quietest, allStrong } = weekData!;
+  const { week, activeOn, quietest, allStrong, month, monthCounts } = weekData!;
   const nudge = allStrong
     ? t("mypath_nudge_all")
     : t("mypath_nudge").replace("{p}", t(`pillar_${quietest}` as StringKey));
@@ -237,6 +252,71 @@ export default function MyPath() {
         ))}
       </Card>
 
+      {/* the month of diyas — a constellation, never a scoreboard. Bright gold
+          when all three pillars closed, tinted by the practised pillar on a
+          partial day, dim on a quiet one (quiet, never "missed" — no red,
+          no guilt, by rule). Reads the same 30-day fetch as everything else. */}
+      <Card style={{ gap: space.sm }}>
+        <T variant="eyebrow" tone="gold">
+          {t("mypath_month")}
+        </T>
+        {/* weekday letters — columns are weekday-aligned (28 = 4 clean weeks) */}
+        <View style={{ flexDirection: "row", gap: 6 }}>
+          {month.slice(0, 7).map((d) => (
+            <T key={d.date} variant="caption" tone="muted" style={{ flex: 1, textAlign: "center", fontSize: 11 }}>
+              {d.letter}
+            </T>
+          ))}
+        </View>
+        {[0, 1, 2, 3].map((row) => (
+          <View key={row} style={{ flexDirection: "row", gap: 6 }}>
+            {month.slice(row * 7, row * 7 + 7).map((d) => (
+              <DiyaDot key={d.date} pillars={d.pillars} isToday={d.isToday} />
+            ))}
+          </View>
+        ))}
+        {/* legend — the constellation's own quiet language */}
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.md, marginTop: 2 }}>
+          <LegendItem tint={color.goldHi} label={t("legend_full")} />
+          <LegendItem tint={pillar.body} dim label={t("legend_part")} />
+          <LegendItem tint={color.surface2} outline label={t("legend_quiet")} />
+        </View>
+        {/* where the month actually went — three balance bars, leader full */}
+        <View style={{ gap: space.sm, marginTop: space.sm, borderTopWidth: 1, borderTopColor: color.line, paddingTop: space.md }}>
+          {(() => {
+            const max = Math.max(1, ...PILLAR_ORDER.map((p) => monthCounts[p]));
+            return PILLAR_ORDER.map((k) => (
+              <View key={k} style={{ flexDirection: "row", alignItems: "center", gap: space.sm }}>
+                <T style={{ width: 46, color: pillar[k], fontWeight: "800", fontSize: 13 }}>
+                  {t(`pillar_${k}` as StringKey)}
+                </T>
+                <View
+                  style={{
+                    flex: 1,
+                    height: 6,
+                    borderRadius: 3,
+                    backgroundColor: color.surface2,
+                    overflow: "hidden",
+                  }}
+                >
+                  <View
+                    style={{
+                      height: "100%",
+                      borderRadius: 3,
+                      width: `${Math.round((monthCounts[k] / max) * 100)}%`,
+                      backgroundColor: pillar[k],
+                    }}
+                  />
+                </View>
+                <T variant="caption" tone="soft" style={{ width: 22, textAlign: "right", fontVariant: ["tabular-nums"] }}>
+                  {monthCounts[k]}
+                </T>
+              </View>
+            ));
+          })()}
+        </View>
+      </Card>
+
       {/* Fit Points → next milestone (the sankalp's own reward track) */}
       {points ? (
         <Card style={{ gap: space.sm }}>
@@ -268,6 +348,74 @@ export default function MyPath() {
 
       <B k="wellness_disclaimer" variant="caption" tone="muted" />
     </Screen>
+  );
+}
+
+/**
+ * One day of the constellation. All three pillars → bright gold; two → a
+ * quieter gold; one → that pillar's own tint; none → a dim, guilt-free dot.
+ * Today wears a thin gold outline whatever its state. Opacity does the
+ * dimming so every hue stays a design token.
+ */
+function DiyaDot({ pillars, isToday }: { pillars: PillarKey[]; isToday: boolean }) {
+  const n = pillars.length;
+  const bg =
+    n === 3 ? color.goldHi : n === 2 ? color.gold : n === 1 ? pillar[pillars[0]] : color.surface2;
+  const opacity = n === 3 ? 1 : n === 2 ? 0.6 : n === 1 ? 0.75 : 1;
+  return (
+    <View
+      style={{
+        flex: 1,
+        aspectRatio: 1,
+        borderRadius: 999,
+        borderWidth: isToday ? 1.5 : 0,
+        borderColor: color.goldHi,
+        padding: isToday ? 2 : 0,
+      }}
+    >
+      <View
+        style={{
+          flex: 1,
+          borderRadius: 999,
+          backgroundColor: bg,
+          opacity,
+          borderWidth: n === 0 ? 1 : 0,
+          borderColor: color.line,
+        }}
+      />
+    </View>
+  );
+}
+
+/** One legend entry — a small dot in the state it names. */
+function LegendItem({
+  tint,
+  label,
+  dim,
+  outline,
+}: {
+  tint: string;
+  label: string;
+  dim?: boolean;
+  outline?: boolean;
+}) {
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+      <View
+        style={{
+          width: 10,
+          height: 10,
+          borderRadius: 5,
+          backgroundColor: tint,
+          opacity: dim ? 0.75 : 1,
+          borderWidth: outline ? 1 : 0,
+          borderColor: color.line,
+        }}
+      />
+      <T variant="caption" tone="muted" style={{ fontSize: 11 }}>
+        {label}
+      </T>
+    </View>
   );
 }
 

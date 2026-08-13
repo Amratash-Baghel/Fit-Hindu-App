@@ -148,7 +148,9 @@ export function CoinSplash({ size, tint, trigger }: SplashProps) {
 
   const ring = useAnimatedStyle(() => ({
     opacity: interpolate(t.value, [0, 0.85, 1], [0.62, 0.08, 0]),
-    transform: [{ scale: interpolate(t.value, [0, 1], [1, 2.4]) }],
+    // The mockup's .tapripple opens right out across the screen — the ripple
+    // should feel like it leaves the coin and takes the page with it.
+    transform: [{ scale: interpolate(t.value, [0, 1], [1, 3.4]) }],
   }));
   const wash = useAnimatedStyle(() => ({
     opacity: interpolate(t.value, [0, 0.2, 1], [0, 0.55, 0]),

@@ -1,10 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Pressable, ScrollView, View } from "react-native";
+import { ScrollView, View } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Svg, { Circle } from "react-native-svg";
-import { Screen, Card, Chip, EmberCard, IconSlot, T, AnimatedNumber, Reveal, ProgressBar, Shimmer, FlipCard, PressableScale, PillarCoin, CoinHalo, CoinSplash, Purna, duration, useMotion, color, ember, pillar, radius, space, type PillarKey } from "../../src/ui";
+import { Screen, Card, Chip, EmberCard, GoldWash, IconSlot, T, AnimatedNumber, Reveal, ProgressBar, Shimmer, FlipCard, PressableScale, PillarCoin, CoinHalo, CoinSplash, Purna, duration, useMotion, color, ember, pillar, radius, space, type PillarKey } from "../../src/ui";
 import { feedback } from "../../src/lib/feedback";
 import {
   DumbbellIcon,
@@ -90,6 +90,9 @@ export default function Home() {
   // tab, so a mount-only read would go stale.
   const [dp, setDp] = useState<DaypartInfo>(currentDaypart);
   const [purnaVisible, setPurnaVisible] = useState(false);
+  // The app-wide completion glow (mockup #goldwash) — fired over the whole
+  // screen when an earned moment lands ON Home (the blessing reveal).
+  const [washTick, setWashTick] = useState(0);
 
   // An activity finished inside a module lights its ring the moment the user
   // lands back on Home; the daypart re-reads at the same time.
@@ -150,7 +153,7 @@ export default function Home() {
   );
 
   return (
-    <Screen wash={dp.wash}>
+    <Screen wash={dp.wash} overlay={<GoldWash trigger={washTick} />}>
       {/* greeting + deity of the day */}
       <View style={{ flexDirection: "row", alignItems: "center", paddingTop: space.sm }}>
         <View style={{ flex: 1 }}>
@@ -160,15 +163,15 @@ export default function Home() {
           </T>
         </View>
         {dev?.deity ? <Chip label={loc(dev.deity.name_hi, dev.deity.name_en)} active /> : null}
-        <Pressable
-          accessibilityRole="button"
+        <PressableScale
           accessibilityLabel={t("settings_title")}
           onPress={() => router.push("/settings")}
+          scaleTo={0.9}
           hitSlop={10}
           style={{ padding: space.xs, marginLeft: space.sm }}
         >
           <SettingsIcon color={color.muted} />
-        </Pressable>
+        </PressableScale>
       </View>
 
       {/* the day's standing — the one number that says whether today is done.
@@ -178,11 +181,19 @@ export default function Home() {
           <T variant="eyebrow" tone="gold">
             {t("today_saadhana")}
           </T>
-          <T variant="caption" tone="muted" style={{ marginTop: 2 }}>
-            {t("saadhana_count")
-              .replace("{n}", String(complete))
-              .replace("{m}", String(PILLAR_ORDER.length))}
-          </T>
+          {complete >= PILLAR_ORDER.length ? (
+            // the day is whole — the hero rests in a quiet gold until midnight
+            // IST (the same boundary that resets the rings and Purna).
+            <T variant="caption" tone="gold" style={{ marginTop: 2, fontWeight: "700" }}>
+              {t("saadhana_settled")}
+            </T>
+          ) : (
+            <T variant="caption" tone="muted" style={{ marginTop: 2 }}>
+              {t("saadhana_count")
+                .replace("{n}", String(complete))
+                .replace("{m}", String(PILLAR_ORDER.length))}
+            </T>
+          )}
         </View>
       ) : null}
 
@@ -256,7 +267,7 @@ export default function Home() {
       <StreakCard />
 
       {/* today's blessing — the gentle come-back-tomorrow reveal */}
-      <DailyBlessing />
+      <DailyBlessing onReveal={() => setWashTick((n) => n + 1)} />
 
       {/* the week, reflected — practice mirrored, never asked about */}
       {!guest ? <MirrorCard /> : null}
@@ -659,7 +670,7 @@ const BLESSING_STORAGE = "fithindu.blessing.revealed";
  * picked deterministically from the IST date so it's stable all day. The
  * revealed state is persisted per IST day, so returning to Home shows it opened.
  */
-function DailyBlessing() {
+function DailyBlessing({ onReveal }: { onReveal?: () => void }) {
   const { t } = useI18n();
   const [todayKey, setTodayKey] = useState(istDayKey);
   // null = still reading the persisted state; don't flash the closed face first.
@@ -692,6 +703,7 @@ function DailyBlessing() {
     setRevealed(true);
     void AsyncStorage.setItem(BLESSING_STORAGE, todayKey).catch(() => {});
     feedback.success(); // a once-a-day earned moment — a small warm chime
+    onReveal?.(); // the gold wash blooms over the whole screen (mockup goldwash)
   };
 
   if (revealed === null) return null;

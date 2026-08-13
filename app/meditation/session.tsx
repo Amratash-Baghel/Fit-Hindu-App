@@ -13,7 +13,7 @@ import Svg, { Circle } from "react-native-svg";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useKeepAwake } from "expo-keep-awake";
-import { Screen, Button, FooterAction, B, T, CompletionDiya, PointsEarned, useMotion, color, space } from "../../src/ui";
+import { Screen, Button, FooterAction, B, T, CompletionDiya, GoldWash, PointsEarned, useMotion, color, space } from "../../src/ui";
 import { pauseAudio, resumeAudio, stopAudio, fadeOutStop } from "../../src/lib/audio";
 import { logActivity } from "../../src/lib/activity";
 import { earnSince, pointsTodayNow, type ActivityEarn } from "../../src/lib/points";
@@ -105,7 +105,7 @@ export default function MeditationSession() {
 
   if (finished) {
     return (
-      <Screen scroll={false}>
+      <Screen scroll={false} overlay={<GoldWash />}>
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: space.md }}>
           <CompletionDiya diyaSize={72} burstSize={200} rays={10} />
           <B k="session_complete" variant="h1" center />
