@@ -150,6 +150,15 @@ export const feedback = {
   count() {
     haptic("light");
   },
+  /** The primary GOLD action press (Set done, Begin meditation, Let's begin …) —
+   *  a firm, satisfying two-beat that rides the gold spark-burst, so the one gold
+   *  button on a screen feels weightier than an ordinary tap. No sound: the earned
+   *  chime belongs to a genuine completion (feedback.complete), which those
+   *  handlers fire on their own. */
+  goldPress() {
+    if (Platform.OS === "android") buzzPattern([0, 12, 30, 18]);
+    else haptic("medium");
+  },
   /** A small earned reveal (the daily blessing) — the mockup's two-beat flutter
    *  (buzz([10,30,14])) under the gold wash, with the soft bell rather than the
    *  full completion ring: a blessing is gentler than a workout done. */

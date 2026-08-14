@@ -55,13 +55,23 @@ export function useCoinExpand(): CoinExpandApi | null {
 /** The mockup's expand timing: 460ms out, 420ms fade over the new page. */
 const EXPAND_MS = 460;
 const FADE_MS = 420;
+/**
+ * The glow is rendered ONCE at this fixed pixel size and grown to full screen
+ * purely by a GPU transform:scale. The previous version sized the SVG itself to
+ * the whole screen diagonal (~1800px) and scaled it from 0 — react-native-svg
+ * had to rasterise that giant gradient on the first frame, which is exactly the
+ * jank the owner saw ("glows on click are not smooth"). A small raster + a
+ * transform is smooth because nothing re-rasterises while it grows.
+ */
+const BASE = 300;
 
 export function CoinExpandProvider({ children }: { children: React.ReactNode }) {
   const enabled = useMotion();
   const { width, height } = useWindowDimensions();
   const [req, setReq] = useState<(ExpandRequest & { key: number }) | null>(null);
   const keyRef = useRef(0);
-  // 0 = a point at the coin; 1 = covering the screen; then opacity falls.
+  // BASE-relative scale: 0 = a point at the coin; `coverScale` = past every
+  // screen corner. Opacity falls once the page has landed underneath.
   const scale = useSharedValue(0);
   const fade = useSharedValue(1);
 
@@ -75,17 +85,24 @@ export function CoinExpandProvider({ children }: { children: React.ReactNode }) 
       }
       keyRef.current += 1;
       setReq({ ...r, key: keyRef.current });
+      // grow until the BASE disc covers the farthest corner (+6% margin)
+      const maxR = Math.hypot(Math.max(r.x, width - r.x), Math.max(r.y, height - r.y));
+      const coverScale = ((2 * maxR) / BASE) * 1.06;
       scale.value = 0;
       fade.value = 1;
-      scale.value = withTiming(1, { duration: EXPAND_MS, easing: Easing.bezier(0.4, 0, 0.2, 1) }, (finished) => {
-        if (!finished) return;
-        runOnJS(r.onCovered)();
-        fade.value = withTiming(0, { duration: FADE_MS, easing: Easing.out(Easing.quad) }, (done) => {
-          if (done) runOnJS(clear)();
-        });
-      });
+      scale.value = withTiming(
+        coverScale,
+        { duration: EXPAND_MS, easing: Easing.bezier(0.4, 0, 0.2, 1) },
+        (finished) => {
+          if (!finished) return;
+          runOnJS(r.onCovered)();
+          fade.value = withTiming(0, { duration: FADE_MS, easing: Easing.out(Easing.quad) }, (done) => {
+            if (done) runOnJS(clear)();
+          });
+        },
+      );
     },
-    [enabled, scale, fade, clear],
+    [enabled, scale, fade, clear, width, height],
   );
 
   const style = useAnimatedStyle(() => ({
@@ -93,12 +110,10 @@ export function CoinExpandProvider({ children }: { children: React.ReactNode }) 
     transform: [{ scale: scale.value }],
   }));
 
-  // The disc has to reach every screen corner at the same moment — a circle
-  // sized to twice the farthest-corner distance, centred on the tapped coin.
+  // A BASE×BASE disc centred on the tapped coin; the scale (about its own
+  // centre) grows it out of that point to cover the screen.
   let disc: React.ReactNode = null;
   if (req) {
-    const maxR = Math.hypot(Math.max(req.x, width - req.x), Math.max(req.y, height - req.y));
-    const d = maxR * 2;
     const ramp = coinBurst[req.pillar];
     disc = (
       <Animated.View
@@ -107,17 +122,17 @@ export function CoinExpandProvider({ children }: { children: React.ReactNode }) 
         style={[
           {
             position: "absolute",
-            left: req.x - d / 2,
-            top: req.y - d / 2,
-            width: d,
-            height: d,
+            left: req.x - BASE / 2,
+            top: req.y - BASE / 2,
+            width: BASE,
+            height: BASE,
             zIndex: 100,
             elevation: 100,
           },
           style,
         ]}
       >
-        <Svg width={d} height={d} viewBox="0 0 100 100">
+        <Svg width={BASE} height={BASE} viewBox="0 0 100 100">
           <Defs>
             <RadialGradient id={`burst-${req.pillar}`} cx="50%" cy="50%" r="50%">
               <Stop offset="0" stopColor={ramp[0]} />

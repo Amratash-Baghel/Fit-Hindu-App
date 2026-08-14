@@ -8,9 +8,10 @@
  *
  * Perf contract (low-end Android rule): everything animates transform/opacity
  * ONLY, on the UI thread, over static SVG gradients — no layout work, no
- * JS-thread timers. The ambient loop is 3 animated nodes per coin (the mockup
- * runs 5). Web and reduce-motion render one faint static frame instead of
- * looping (the `useMotion` gate, same contract as CelebrationBurst).
+ * JS-thread timers. The ambient loop is kept to 2 animated nodes per coin (a
+ * ring over a bloom), so Home stays smooth on mid/low-end devices. Web and
+ * reduce-motion render one faint static frame instead of looping (the
+ * `useMotion` gate, same contract as CelebrationBurst).
  */
 import React, { useEffect } from "react";
 import { StyleSheet, View } from "react-native";
@@ -18,7 +19,6 @@ import Animated, {
   interpolate,
   useAnimatedStyle,
   useSharedValue,
-  withDelay,
   withRepeat,
   withSequence,
   withTiming,
@@ -87,15 +87,12 @@ function AmbientBloom({ size, tint, t }: { size: number; tint: string; t: Shared
 export function CoinHalo({ size, tint }: HaloProps) {
   const enabled = useMotion();
   const t1 = useSharedValue(enabled ? 0 : 0.3);
-  const t2 = useSharedValue(0);
-  const t3 = useSharedValue(0);
   const tb = useSharedValue(enabled ? 0 : 0.2);
-  const tb2 = useSharedValue(0);
 
   useEffect(() => {
     if (!enabled) return;
     // withRepeat alone would restart from wherever the value ended (1), so each
-    // cycle snaps to 0 first — the mockup's infinite CSS loop, worklet-style.
+    // cycle snaps to 0 first — an infinite CSS-style loop, worklet-side.
     const cycle = () =>
       withRepeat(
         withSequence(
@@ -105,25 +102,20 @@ export function CoinHalo({ size, tint }: HaloProps) {
         -1,
         false,
       );
-    // The mockup's full field: THREE wire rings a third of a cycle apart (.rw
-    // delays 0 / 1.3s / 2.6s) over TWO colour blooms half a cycle apart (.rg
-    // delays 0 / 1.95s) — there is always a wave mid-breath and one being born.
+    // Deliberately lean: ONE ring over ONE bloom per coin (2 animated nodes ×3
+    // coins = 6 on Home). The five-wave field this replaced (15 nodes) was the
+    // dominant continuous-animation cost and made Home stutter on mid/low-end
+    // devices — the low-end-Android rule wins over ripple fidelity here.
     t1.value = cycle();
-    t2.value = withDelay(duration.ripple / 3, cycle());
-    t3.value = withDelay((duration.ripple * 2) / 3, cycle());
     tb.value = cycle();
-    tb2.value = withDelay(duration.ripple / 2, cycle());
-  }, [enabled, t1, t2, t3, tb, tb2]);
+  }, [enabled, t1, tb]);
 
   // Static faint frame on web / reduce-motion: one mid-breath ring + bloom, no
   // loops — the coin still reads as haloed in a screenshot.
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
       <AmbientBloom size={size} tint={tint} t={tb} />
-      {enabled ? <AmbientBloom size={size} tint={tint} t={tb2} /> : null}
       <AmbientRing size={size} tint={tint} t={t1} />
-      {enabled ? <AmbientRing size={size} tint={tint} t={t2} /> : null}
-      {enabled ? <AmbientRing size={size} tint={tint} t={t3} /> : null}
     </View>
   );
 }
@@ -147,32 +139,19 @@ interface SplashProps {
 export function CoinSplash({ size, tint, trigger }: SplashProps) {
   const enabled = useMotion();
   const t = useSharedValue(1); // 1 = at rest (invisible)
-  const t2 = useSharedValue(1); // the mockup fires a SECOND ripple 150ms behind
   const uid = tint.replace(/[^a-zA-Z0-9]/g, "");
 
   useEffect(() => {
     if (!enabled || trigger === 0) return;
     t.value = 0;
     t.value = withTiming(1, { duration: duration.splash, easing: easing.out });
-    // stays at rest (invisible) through the 150ms gap, then plays 0→1
-    t2.value = withDelay(
-      150,
-      withSequence(
-        withTiming(0, { duration: 0 }),
-        withTiming(1, { duration: duration.splash, easing: easing.out }),
-      ),
-    );
-  }, [enabled, trigger, t, t2]);
+  }, [enabled, trigger, t]);
 
   const ring = useAnimatedStyle(() => ({
     opacity: interpolate(t.value, [0, 0.85, 1], [0.62, 0.08, 0]),
-    // The mockup's .tapripple opens right out across the screen — the ripple
-    // should feel like it leaves the coin and takes the page with it.
-    transform: [{ scale: interpolate(t.value, [0, 1], [1, 4.4]) }],
-  }));
-  const ring2 = useAnimatedStyle(() => ({
-    opacity: interpolate(t2.value, [0, 0.85, 1], [0.5, 0.06, 0]),
-    transform: [{ scale: interpolate(t2.value, [0, 1], [1, 4.4]) }],
+    // The ripple opens out from the coin — a single clean wave (the second wave
+    // and the screen-wide colour fill are now the smooth CoinExpand overlay).
+    transform: [{ scale: interpolate(t.value, [0, 1], [1, 3.6]) }],
   }));
   const wash = useAnimatedStyle(() => ({
     opacity: interpolate(t.value, [0, 0.2, 1], [0, 0.55, 0]),
@@ -200,13 +179,6 @@ export function CoinSplash({ size, tint, trigger }: SplashProps) {
           StyleSheet.absoluteFill,
           { borderRadius: size / 2, borderWidth: 2, borderColor: tint },
           ring,
-        ]}
-      />
-      <Animated.View
-        style={[
-          StyleSheet.absoluteFill,
-          { borderRadius: size / 2, borderWidth: 2, borderColor: tint },
-          ring2,
         ]}
       />
     </View>

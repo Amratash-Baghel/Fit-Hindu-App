@@ -34,15 +34,20 @@ interface Props {
   dim?: boolean;
   /** phase offset (ms) so a row of flames never sways in unison */
   delay?: number;
+  /** Set false to render a still flame — for dense/repeated rows (the 7-diya
+   *  week strip, the task-strip ticks) where a dozen looping flames is cost the
+   *  low-end-Android budget can't spare. The prominent diyas (streak hero, ring
+   *  crowns, blessing, completion) keep the live flicker. */
+  animate?: boolean;
 }
 
 /** One full sway of the flame — the mockup's `flick` 2.6s cycle. */
 const FLICK_MS = 2600;
 
-export function Diya({ size = 26, dim = false, delay = 0 }: Props) {
+export function Diya({ size = 26, dim = false, delay = 0, animate = true }: Props) {
   const enabled = useMotion();
   const t = useSharedValue(0);
-  const live = enabled && !dim;
+  const live = enabled && !dim && animate;
 
   useEffect(() => {
     if (!live) return;

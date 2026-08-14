@@ -3,6 +3,27 @@
 Running build log — one entry per shipped item, newest on top. This is the
 standup doc for the owner and the resume-from-home lifeline.
 
+- **2026-08-14 (pm) — Performance + gold-burst pass (owner feedback: "the app
+  is really laggy").** Cut the continuous-animation load the previous sweep
+  added, which was stuttering Home on device: **CoinHalo** 5 waves → **2** per
+  coin (15 → 6 looping nodes on Home); the **3D lift** (perspective + rotateX)
+  is now a plain fade+rise — the "3D scroll" the owner said to drop if it
+  slowed things; **PillarTile** lost its per-tile continuous glint; the
+  **7-diya week row + task-strip ticks** render static (the prominent diyas —
+  streak hero, ring crowns, blessing, completion — keep the flame). **Tap glow
+  smoothed**: CoinExpand now grows a fixed 300px SVG raster via GPU transform
+  instead of rasterising a full-screen-diagonal gradient from zero (the "glows
+  not smooth"); the competing CoinSplash ripple is dropped from the tap so it's
+  one clean beat. **Gold burst + haptic** (plan's "gold burst" reward beat) now
+  rides every primary **gold Button** on press — a one-shot gold spark burst +
+  a firm two-beat haptic (`feedback.goldPress`) — so Set done, Begin
+  meditation, Let's begin, etc. feel earned; opt-out via `burst={false}`, and a
+  button whose handler fires its own completion haptic (haptic={false}) shows
+  the burst without a double buzz. **Purna / progress**: confirmed NOT a bug —
+  `logActivity` no-ops for guests by design, so a guest (the "Not now" path)
+  logs nothing, rings never fill, Purna never fires and progress stays empty;
+  the signed-in path refreshes correctly on focus. Typecheck + lint green;
+  clicked through Home + Body in web preview (animations are device-only).
 - **2026-08-14 — Mockup-fidelity sweep: living diyas, tap-glow expand, 3D
   lift, hero coins, muscle filter everywhere (`redesign` branch).** Closed the
   owner's gap list against the two approved artifacts (mockup c0604591 + plan

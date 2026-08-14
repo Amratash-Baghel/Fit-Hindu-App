@@ -3,7 +3,7 @@ import { ScrollView, View, useWindowDimensions } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Screen, Card, Chip, Diya, EmberCard, GoldWash, IconSlot, T, AnimatedNumber, Reveal, ProgressBar, Shimmer, FlipCard, PressableScale, PillarCoin, CoinHalo, CoinSplash, Purna, useCoinExpand, duration, useMotion, color, ember, pillar, radius, space, type PillarKey } from "../../src/ui";
+import { Screen, Card, Chip, Diya, EmberCard, GoldWash, IconSlot, T, AnimatedNumber, Reveal, ProgressBar, Shimmer, FlipCard, PressableScale, PillarCoin, CoinHalo, Purna, useCoinExpand, duration, useMotion, color, ember, pillar, radius, space, type PillarKey } from "../../src/ui";
 import { feedback } from "../../src/lib/feedback";
 import {
   DumbbellIcon,
@@ -371,12 +371,12 @@ function PillarRing({
   const { width } = useWindowDimensions();
   const size = Math.min(Math.round(width * 0.52), 200);
 
-  // Tap = the mockup's full splash grammar: the pillar ripple opens out of the
-  // coin while the pillar-tinted light (CoinExpand) grows to take the screen;
-  // the page lands underneath it at full cover. Immediate under reduce-motion/
-  // web (expand.fire collapses to the navigation). The timer is only the
-  // fallback for a failed native measure, cleared on unmount.
-  const [splash, setSplash] = useState(0);
+  // Tap = ONE smooth beat: the pillar-tinted light (CoinExpand) grows out of the
+  // coin to take the screen, and the page lands underneath it at full cover.
+  // (The old tap fired a CoinSplash ripple AND the expand at once — two
+  // animations competing on the same frame was the "not smooth" the owner
+  // flagged.) Immediate under reduce-motion/web (expand.fire collapses to the
+  // navigation). The timer is only the fallback for a failed native measure.
   const coinRef = useRef<View>(null);
   const navTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(
@@ -390,7 +390,6 @@ function PillarRing({
       onPress();
       return;
     }
-    setSplash((n) => n + 1);
     const node = coinRef.current;
     if (node) {
       node.measureInWindow((x, y, w, h) => {
@@ -442,7 +441,6 @@ function PillarRing({
               )}
             </View>
           </PillarCoin>
-          <CoinSplash size={size} tint={tint} trigger={splash} />
           {/* a lit diya crowns a pillar that's fully done today */}
           {done ? (
             <View style={{ position: "absolute", top: 2, right: 10 }}>
@@ -510,7 +508,9 @@ function TaskStrip({
               <IconSlot size={34} radius={11}>
                 {it.icon(tint)}
               </IconSlot>
-              {done ? <Diya size={16} /> : null}
+              {/* static in the strip — many small flames looping is perf the
+                  budget spends on the prominent diyas instead */}
+              {done ? <Diya size={16} animate={false} /> : null}
             </View>
             <View>
               <T variant="caption" style={{ fontWeight: "700", fontSize: 13 }}>
@@ -674,8 +674,9 @@ function StreakCard() {
           // a lit-up-in-sequence stagger when Home first appears; a fade-pop
           // (distance 0), never a rise, so the diya row reads as igniting.
           <Reveal key={i} delay={i * 70} distance={0}>
-            {/* each lit flame gets its own phase so the row never sways in step */}
-            <Diya size={24} dim={i >= lit} delay={(i * 397) % 1600} />
+            {/* the seven-day row stays still — a wall of looping flames was part
+                of the Home lag; the hero streak diya above carries the motion */}
+            <Diya size={24} dim={i >= lit} animate={false} />
           </Reveal>
         ))}
       </View>

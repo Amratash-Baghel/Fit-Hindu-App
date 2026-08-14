@@ -10,6 +10,7 @@ export { Shimmer } from "./Shimmer";
 export { AnimatedNumber } from "./AnimatedNumber";
 export { CelebrationBurst, CompletionDiya } from "./CelebrationBurst";
 export { GoldWash } from "./GoldWash";
+export { GoldBurst } from "./GoldBurst";
 export { PointsEarned, RewardOverlay } from "./Reward";
 export { Reveal } from "./Reveal";
 export { FlipCard } from "./FlipCard";

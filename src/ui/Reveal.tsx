@@ -25,9 +25,11 @@ interface Props {
   delay?: number;
   /** How far it rises from (dp). */
   distance?: number;
-  /** The mockup's `.lift` — the card rises AND folds up out of the surface
-   *  (perspective + a 9° rotateX from its base), the "3D scroll" grammar the
-   *  Home cards use. Defaults the rise to 20dp like the mockup. */
+  /** A slightly deeper, slower entrance for a hero card — a longer fade + rise.
+   *  (This was a perspective/rotateX "3D fold", but that 3D transform stuttered
+   *  a scroll full of them on mid/low-end devices, so it is now a plain rise —
+   *  same staggered feel, none of the compositing cost. Owner: "forget 3d
+   *  scroll if it slows the app down", 2026-08-14.) */
   lift?: boolean;
   style?: StyleProp<ViewStyle>;
 }
@@ -35,33 +37,20 @@ interface Props {
 export function Reveal({ children, delay = 0, distance, lift = false, style }: Props) {
   const enabled = useMotion();
   const t = useSharedValue(enabled ? 0 : 1);
-  const rise = distance ?? (lift ? 20 : 12);
+  const rise = distance ?? (lift ? 18 : 12);
 
   useEffect(() => {
     if (!enabled) return;
     t.value = withDelay(
       delay,
-      withTiming(1, { duration: lift ? duration.slow + 200 : duration.slow, easing: easing.out }),
+      withTiming(1, { duration: lift ? duration.slow + 120 : duration.slow, easing: easing.out }),
     );
   }, [enabled, delay, lift, t]);
 
-  const style2 = useAnimatedStyle(() => {
-    const ty = interpolate(t.value, [0, 1], [rise, 0]);
-    if (!lift) {
-      return { opacity: t.value, transform: [{ translateY: ty }] };
-    }
-    // RN rotates about the centre; at 9° over a card the base drift is under a
-    // couple of dp, so the fold reads as rising from its base without any
-    // pivot correction.
-    return {
-      opacity: t.value,
-      transform: [
-        { perspective: 900 },
-        { translateY: ty },
-        { rotateX: `${interpolate(t.value, [0, 1], [9, 0])}deg` },
-      ],
-    };
-  });
+  const style2 = useAnimatedStyle(() => ({
+    opacity: t.value,
+    transform: [{ translateY: interpolate(t.value, [0, 1], [rise, 0]) }],
+  }));
 
   return <Animated.View style={[style, style2]}>{children}</Animated.View>;
 }

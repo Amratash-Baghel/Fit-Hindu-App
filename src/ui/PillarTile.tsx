@@ -21,7 +21,6 @@ import { Chip } from "./Card";
 import { B, T } from "./Text";
 import { ChevronRight } from "./icons";
 import { IconSlot } from "./IconSlot";
-import { Shimmer } from "./Shimmer";
 import { color, coin, radius, space } from "./tokens";
 import { useI18n, type StringKey } from "../lib/i18n";
 
@@ -102,8 +101,6 @@ export function PillarTile({ titleK, subK, icon, wash, onPress, soon, done, meta
           </View>
         ) : null}
       </View>
-      {/* the faint metal glint every live door carries (mockup .glint) */}
-      {!soon ? <Shimmer mode="sheen" tint={color.goldHi} peak={0.08} /> : null}
     </View>
   );
 

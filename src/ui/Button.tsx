@@ -9,14 +9,16 @@
  * button whose handler already fires a stronger semantic haptic
  * (complete/success/error) passes `haptic={false}` to avoid a double buzz.
  */
-import React from "react";
+import React, { useState } from "react";
 import { View, type ViewStyle, type StyleProp } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { color, radius, space, tapTarget, goldGradient } from "./tokens";
 import { pressScale } from "./motion";
 import { PressableScale } from "./PressableScale";
+import { GoldBurst } from "./GoldBurst";
 import { T } from "./Text";
+import { feedback } from "../lib/feedback";
 import { useI18n, type StringKey } from "../lib/i18n";
 
 interface Props {
@@ -26,13 +28,29 @@ interface Props {
   disabled?: boolean;
   /** Suppress the press haptic when the handler fires its own (e.g. error). */
   haptic?: "press" | false;
+  /** The gold spark-burst + firm haptic on the primary action (the plan's
+   *  "gold burst" beat). On by default for gold; pass false to quiet a gold
+   *  button that is really just navigation. Ghost never bursts. */
+  burst?: boolean;
   style?: StyleProp<ViewStyle>;
 }
 
-export function Button({ k, onPress, kind = "gold", disabled, haptic = "press", style }: Props) {
+export function Button({ k, onPress, kind = "gold", disabled, haptic = "press", burst, style }: Props) {
   const { t, tSub } = useI18n();
   const sub = tSub(k);
   const isGold = kind === "gold";
+  // Gold is the one primary action per screen — it gets the spark burst by
+  // default; a gold "back"/"skip" can opt out with burst={false}.
+  const burstOn = isGold && !disabled && burst !== false;
+  const [burstTick, setBurstTick] = useState(0);
+
+  const handlePress = () => {
+    if (burstOn) setBurstTick((n) => n + 1);
+    // Fire the firm gold haptic ONLY when the caller hasn't taken haptics over
+    // (haptic={false} means its handler fires complete()/success() itself).
+    if (isGold && haptic !== false && !disabled) feedback.goldPress();
+    onPress();
+  };
 
   const inner = (
     <>
@@ -50,8 +68,11 @@ export function Button({ k, onPress, kind = "gold", disabled, haptic = "press", 
   return (
     <PressableScale
       disabled={disabled}
-      onPress={onPress}
-      haptic={disabled ? false : haptic}
+      onPress={handlePress}
+      // Gold owns its haptic via handlePress (feedback.goldPress); tell
+      // PressableScale to stay silent so the two never double-buzz. Ghost keeps
+      // the ordinary press tick.
+      haptic={disabled || isGold ? false : haptic}
       scaleTo={pressScale.button}
       // Gold is the primary action — it gets the expanding-ring bloom on every
       // press (owner ask 2026-08-08). Ghost stays quiet, a dip only.
@@ -104,6 +125,8 @@ export function Button({ k, onPress, kind = "gold", disabled, haptic = "press", 
           {inner}
         </View>
       )}
+      {/* the gold spark-burst on press — one-shot, fires on every gold action */}
+      {burstOn ? <GoldBurst trigger={burstTick} /> : null}
     </PressableScale>
   );
 }
