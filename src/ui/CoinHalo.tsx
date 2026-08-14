@@ -37,84 +37,94 @@ interface HaloProps {
   tint: string;
 }
 
-/** One thin ring breathing outward: scale 1→1.78, opacity .26→0. */
+/** One thin ring rippling outward: scale 1→1.8, opacity .3→0. */
 function AmbientRing({ size, tint, t }: { size: number; tint: string; t: SharedValue<number> }) {
   const style = useAnimatedStyle(() => ({
-    opacity: interpolate(t.value, [0, 0.68, 1], [0.26, 0.05, 0]),
-    transform: [{ scale: interpolate(t.value, [0, 1], [1, 1.78]) }],
+    opacity: interpolate(t.value, [0, 0.66, 1], [0.3, 0.06, 0]),
+    transform: [{ scale: interpolate(t.value, [0, 1], [1, 1.8]) }],
   }));
   return (
     <Animated.View
       pointerEvents="none"
       style={[
         StyleSheet.absoluteFill,
-        { borderRadius: size / 2, borderWidth: 1.3, borderColor: tint },
+        { borderRadius: size / 2, borderWidth: 1.4, borderColor: tint },
         style,
       ]}
     />
   );
 }
 
-/** The soft color bloom under the rings (the mockup's .rg radial ring). */
-function AmbientBloom({ size, tint, t }: { size: number; tint: string; t: SharedValue<number> }) {
+/**
+ * The breathing glow bed — the coin's living layer, borrowed from the jap
+ * button's halo/bed (which is what makes it feel alive at rest). Unlike the old
+ * bloom, this NEVER fades to nothing: it oscillates between two visible states
+ * (opacity .36↔.16, scale 1↔1.12) on a slow ~2.4s breath, so every coin always
+ * reads as lit and breathing rather than dead-between-pulses. A rim-weighted
+ * radial (brightest just outside the coin face) so it glows AROUND the coin.
+ */
+function BreathingBed({ size, tint, b }: { size: number; tint: string; b: SharedValue<number> }) {
   const uid = tint.replace(/[^a-zA-Z0-9]/g, "");
+  // Geometry matters: the coin is opaque and fills ~0.95 of this box, so a glow
+  // band inside that radius is HIDDEN behind it. The band sits at offset .82 and
+  // the whole bed rests at scale ≥1.16, so .82×1.16 ≈ 0.95 lands the glow right
+  // at the coin's rim and the breath swells it outward — a halo that hugs each
+  // coin at ALL times, never hidden, never fully faded (floor opacity .18).
   const style = useAnimatedStyle(() => ({
-    opacity: interpolate(t.value, [0, 0.62, 1], [0.5, 0.1, 0]),
-    transform: [{ scale: interpolate(t.value, [0, 1], [0.92, 1.62]) }],
+    opacity: interpolate(b.value, [0, 1], [0.38, 0.18]),
+    transform: [{ scale: interpolate(b.value, [0, 1], [1.16, 1.3]) }],
   }));
   return (
     <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, style]}>
       <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
         <Defs>
-          <RadialGradient id={`halo-${uid}`} cx="50%" cy="50%" r="50%">
+          <RadialGradient id={`bed-${uid}`} cx="50%" cy="50%" r="50%">
             <Stop offset="0" stopColor={tint} stopOpacity="0" />
             <Stop offset="0.5" stopColor={tint} stopOpacity="0" />
-            <Stop offset="0.71" stopColor={tint} stopOpacity="0.3" />
-            <Stop offset="0.86" stopColor={tint} stopOpacity="0" />
+            <Stop offset="0.82" stopColor={tint} stopOpacity="0.52" />
+            <Stop offset="0.94" stopColor={tint} stopOpacity="0.12" />
             <Stop offset="1" stopColor={tint} stopOpacity="0" />
           </RadialGradient>
         </Defs>
-        <Circle cx={size / 2} cy={size / 2} r={size / 2} fill={`url(#halo-${uid})`} />
+        <Circle cx={size / 2} cy={size / 2} r={size / 2} fill={`url(#bed-${uid})`} />
       </Svg>
     </Animated.View>
   );
 }
 
 /**
- * The ambient pulse behind one coin. Rings are staggered a third of a cycle
- * apart so the halo always has one wave mid-breath, like the mockup.
+ * The living layer behind one coin: a constant breathing glow bed (the jap-like
+ * "alive at rest" quality the owner asked for) under one outward ripple ring.
+ * TWO animated nodes per coin (6 on Home) — the budget the lag-cutting commit
+ * deliberately set; the aliveness comes from the bed *breathing* (a constant
+ * reverse-yoyo that never fades to nothing) rather than from more nodes. All
+ * transform/opacity on the UI thread. Web / reduce-motion render one static
+ * mid-breath frame (no loops), so the coin still reads as haloed in a shot.
  */
 export function CoinHalo({ size, tint }: HaloProps) {
   const enabled = useMotion();
-  const t1 = useSharedValue(enabled ? 0 : 0.3);
-  const tb = useSharedValue(enabled ? 0 : 0.2);
+  const breath = useSharedValue(enabled ? 0 : 0.4);
+  const t1 = useSharedValue(enabled ? 0 : 0.32);
 
   useEffect(() => {
     if (!enabled) return;
-    // withRepeat alone would restart from wherever the value ended (1), so each
-    // cycle snaps to 0 first — an infinite CSS-style loop, worklet-side.
-    const cycle = () =>
-      withRepeat(
-        withSequence(
-          withTiming(0, { duration: 0 }),
-          withTiming(1, { duration: duration.ripple, easing: easing.out }),
-        ),
-        -1,
-        false,
-      );
-    // Deliberately lean: ONE ring over ONE bloom per coin (2 animated nodes ×3
-    // coins = 6 on Home). The five-wave field this replaced (15 nodes) was the
-    // dominant continuous-animation cost and made Home stutter on mid/low-end
-    // devices — the low-end-Android rule wins over ripple fidelity here.
-    t1.value = cycle();
-    tb.value = cycle();
-  }, [enabled, t1, tb]);
+    // the constant breath — reverses in place (never snaps to 0), so the glow is
+    // always visible and always moving, exactly like the jap halo.
+    breath.value = withRepeat(withTiming(1, { duration: 2400, easing: easing.inOut }), -1, true);
+    // one ripple that snaps to 0 then opens out
+    t1.value = withRepeat(
+      withSequence(
+        withTiming(0, { duration: 0 }),
+        withTiming(1, { duration: duration.ripple, easing: easing.out }),
+      ),
+      -1,
+      false,
+    );
+  }, [enabled, breath, t1]);
 
-  // Static faint frame on web / reduce-motion: one mid-breath ring + bloom, no
-  // loops — the coin still reads as haloed in a screenshot.
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-      <AmbientBloom size={size} tint={tint} t={tb} />
+      <BreathingBed size={size} tint={tint} b={breath} />
       <AmbientRing size={size} tint={tint} t={t1} />
     </View>
   );

@@ -574,6 +574,15 @@ export const strings = {
   diet_generate_cta: { hi: "शुरू करें", en: "Get started" },
   your_custom_plan: { hi: "आपका कस्टम प्लान", en: "Your custom plan" },
   view_plan: { hi: "प्लान देखें", en: "View plan" },
+  // Today's meal — the diet pillar's daily completion. Tracking adherence, not
+  // medical advice (health-claims fence-line): the copy stays "kept your plan",
+  // never curative. Logging one "meal" activity closes the Body ring's diet half.
+  diet_today_title: { hi: "आज का आहार", en: "Today's meals" },
+  diet_today_sub: { hi: "आज अपने प्लान पर टिके रहे? इसे पूर्ण करें।", en: "Kept to your plan today? Mark it done." },
+  diet_mark_meal: { hi: "मैंने अपना प्लान निभाया", en: "I kept my plan today" },
+  diet_meal_done: { hi: "आज पूर्ण ✓", en: "Kept today ✓" },
+  meal_reward_title: { hi: "आज का आहार पूर्ण 🙏", en: "Meal kept 🙏" },
+  meal_reward_body: { hi: "आज की साधना का एक और अंश।", en: "One more piece of today's practice." },
   diet_ai_disclaimer: {
     hi: "यह योजना AI द्वारा बनाई गई सामान्य स्वास्थ्य जानकारी है — चिकित्सा सलाह नहीं। किसी भी नए आहार से पहले चिकित्सक से परामर्श करें।",
     en: "This plan is AI-generated general wellness guidance — not medical advice. Consult a physician before any new diet.",

@@ -131,8 +131,11 @@ export default function Jap() {
       );
     }
     if (next === 0) {
-      // Mala complete (108) — a distinct "yes" you HEAR, not just another tick.
-      feedback.success();
+      // Mala complete (108) — a distinct "yes" you HEAR. SOUND only: the reward
+      // overlay's CompletionDiya fires the rewardBurst haptic a beat later, so
+      // firing a completion haptic here too would stack two vibration timelines
+      // on the same motor (audit 2026-08-14). One haptic per completion.
+      feedback.completeChime();
       // Only a COMPLETED mala is logged (spec) — partial malas aren't persisted in v1.
       if (mantra) {
         const deityId = mantra.deity_id;

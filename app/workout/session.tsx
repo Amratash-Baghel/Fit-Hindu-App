@@ -438,7 +438,9 @@ export default function WorkoutSession() {
               <Button k="plus_20s" kind="ghost" onPress={() => setRestLeft((r) => r + 20)} />
             </View>
             <View style={{ flex: 2 }}>
-              <Button k="skip_word" onPress={advance} />
+              {/* skipping rest is utilitarian and repeated — a plain tick, NOT
+                  the gold spark-burst reserved for genuine completions */}
+              <Button k="skip_word" onPress={advance} burst={false} haptic="press" />
             </View>
           </View>
         </FooterAction>

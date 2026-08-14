@@ -112,6 +112,15 @@ function TabsInner() {
       screenListeners={{ tabPress: () => feedback.select() }}
       screenOptions={{
         headerShown: false,
+        // Suspend a blurred tab's JS re-renders (react-freeze). Note: this does
+        // NOT itself pause the UI-thread Reanimated loops (coin halos, jap halo,
+        // diya flames) — those keep ticking regardless of React freezing. What
+        // spares their OFF-TAB compositing cost is react-native-screens
+        // detaching the inactive screen from the native hierarchy (the default),
+        // so a detached coin halo paints nothing. freezeOnBlur is the cheap
+        // JS-side complement; the animations are budgeted to run only while a
+        // screen is actually on-tab (they never stack across tabs).
+        freezeOnBlur: true,
         tabBarActiveTintColor: color.saffron,
         tabBarInactiveTintColor: color.muted,
         tabBarStyle: {

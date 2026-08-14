@@ -74,6 +74,8 @@ export function Button({ k, onPress, kind = "gold", disabled, haptic = "press", 
       // the ordinary press tick.
       haptic={disabled || isGold ? false : haptic}
       scaleTo={pressScale.button}
+      // the gold CTA presses INTO the surface like pressed metal (mockup .g3d.down)
+      sink={isGold && !disabled ? 2.5 : 0}
       // Gold is the primary action — it gets the expanding-ring bloom on every
       // press (owner ask 2026-08-08). Ghost stays quiet, a dip only.
       bloom={isGold && !disabled}

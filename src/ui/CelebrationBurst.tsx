@@ -97,10 +97,80 @@ function Ray({
 }
 
 /**
+ * StarField — the twinkling gold stars of the reward moment (the plan's "gold
+ * burst, animated with stars"). Bright spark-stars fly out from the diya,
+ * twinkle (swell then shrink) and fade, layered over the CelebrationBurst rays
+ * so a completion reads as a shower of stars, not just light beams. Plain Views
+ * (no per-star SVG), transform/opacity only; one-shot, held back by `delay`
+ * until the diya has caught. Static mid-frame on web / reduce-motion.
+ */
+// design-system tokens only — the near-white sparkle is `cream`, not a bespoke hex
+const STAR_COLORS = [color.goldHi, color.cream, color.gold, color.saffron];
+
+function StarField({ size, count = 11, delay = 0 }: { size: number; count?: number; delay?: number }) {
+  const enabled = useMotion();
+  const t = useSharedValue(enabled ? 0 : 0.5);
+  useEffect(() => {
+    if (!enabled) return;
+    t.value = 0;
+    t.value = withDelay(delay, withTiming(1, { duration: 1500, easing: Easing.out(Easing.cubic) }));
+  }, [enabled, delay, t]);
+  const dist = size / 2;
+  return (
+    <View pointerEvents="none" style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>
+      {Array.from({ length: count }).map((_, i) => (
+        <Star
+          key={i}
+          angle={(360 / count) * i + (i % 2 ? 16 : -8)}
+          dist={dist * (i % 3 === 0 ? 0.98 : 0.78)}
+          dot={i % 3 === 0 ? 7 : 5}
+          tint={STAR_COLORS[i % STAR_COLORS.length]}
+          t={t}
+        />
+      ))}
+    </View>
+  );
+}
+
+function Star({
+  angle,
+  dist,
+  dot,
+  tint,
+  t,
+}: {
+  angle: number;
+  dist: number;
+  dot: number;
+  tint: string;
+  t: SharedValue<number>;
+}) {
+  const style = useAnimatedStyle(() => ({
+    opacity: interpolate(t.value, [0, 0.2, 0.72, 1], [0, 1, 0.85, 0]),
+    transform: [
+      { rotate: `${angle}deg` },
+      { translateY: -interpolate(t.value, [0, 1], [dist * 0.12, dist]) },
+      // twinkle: swell past 1, then shrink — a spark catching and dying
+      { scale: interpolate(t.value, [0, 0.34, 0.68, 1], [0.2, 1.25, 0.85, 0.3]) },
+    ],
+  }));
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[
+        { position: "absolute", width: dot, height: dot, borderRadius: dot / 2, backgroundColor: tint },
+        style,
+      ]}
+    />
+  );
+}
+
+/**
  * CompletionDiya — the whole reward moment as one drop-in: a diya that LIGHTS
  * (a slow warm glow blooms behind it and it swells in), holds a beat, then the
- * spark burst radiates. Both the workout- and meditation-complete screens use
- * this so the timing stays identical and tunable in one place (owner feedback
+ * spark burst + a shower of twinkling stars radiate. Every completion screen
+ * (workout, meditation, jap, sleep, diet) uses this so the reward reads
+ * identically everywhere and the timing is tunable in one place (owner feedback
  * 2026-08-08: the light-up and burst were too fast).
  */
 export function CompletionDiya({
@@ -167,6 +237,10 @@ export function CompletionDiya({
       {/* the spark burst — held back until the diya has caught (delay) */}
       <View style={{ position: "absolute" }} pointerEvents="none">
         <CelebrationBurst size={burstSize} rays={rays} delay={1100} />
+      </View>
+      {/* the twinkling stars, over the rays — "animated with stars" */}
+      <View style={{ position: "absolute" }} pointerEvents="none">
+        <StarField size={burstSize * 1.15} delay={1150} />
       </View>
       <Animated.View style={diyaStyle}>
         {/* the flame starts swaying the moment the ignite tween hands over —

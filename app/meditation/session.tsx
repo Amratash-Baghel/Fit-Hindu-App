@@ -13,7 +13,7 @@ import Svg, { Circle } from "react-native-svg";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useKeepAwake } from "expo-keep-awake";
-import { Screen, Button, FooterAction, B, T, CompletionDiya, GoldWash, PointsEarned, useMotion, color, space } from "../../src/ui";
+import { Screen, Button, FooterAction, Reveal, B, T, CompletionDiya, GoldWash, PointsEarned, useMotion, color, space } from "../../src/ui";
 import { pauseAudio, resumeAudio, stopAudio, fadeOutStop } from "../../src/lib/audio";
 import { logActivity } from "../../src/lib/activity";
 import { earnSince, pointsTodayNow, type ActivityEarn } from "../../src/lib/points";
@@ -107,10 +107,21 @@ export default function MeditationSession() {
     return (
       <Screen scroll={false} overlay={<GoldWash />}>
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: space.md }}>
+          {/* the diya lights + spark/star burst radiate (calm variant — no
+              reward-burst haptic, the soft chime already rang), then the copy +
+              points LIFT in, so meditation reads as the same reward family as
+              the workout screen (audit 2026-08-14: the two 'complete' screens
+              should be one system). */}
           <CompletionDiya diyaSize={72} burstSize={200} rays={10} />
-          <B k="session_complete" variant="h1" center />
-          <B k="well_done" variant="body" tone="muted" center />
-          <PointsEarned earned={earn?.earned ?? null} total={earn?.total ?? null} style={{ marginTop: space.sm }} />
+          <Reveal lift delay={640}>
+            <B k="session_complete" variant="h1" center />
+          </Reveal>
+          <Reveal lift delay={760}>
+            <B k="well_done" variant="body" tone="muted" center />
+          </Reveal>
+          <Reveal lift delay={920} style={{ alignItems: "center" }}>
+            <PointsEarned earned={earn?.earned ?? null} total={earn?.total ?? null} style={{ marginTop: space.sm }} />
+          </Reveal>
         </View>
         <FooterAction>
           <Button k="done" onPress={() => router.dismissTo("/(tabs)/meditation")} />

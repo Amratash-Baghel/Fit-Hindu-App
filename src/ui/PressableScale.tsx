@@ -37,6 +37,9 @@ interface Props {
   haptic?: "press" | "select" | false;
   /** How far to dip. Defaults to the button depth; cards pass a shallower value. */
   scaleTo?: number;
+  /** Extra downward translate (dp) on press — the mockup's 3D "press into the
+   *  surface" sink for the metal gold button/coin. 0 = flat shrink only. */
+  sink?: number;
   /**
    * The press "bloom" — a gold ring that expands out from the surface and fades
    * on every press, the visible twin of the haptic buzz (the ring the owner
@@ -59,6 +62,7 @@ export function PressableScale({
   disabled,
   haptic = "press",
   scaleTo = 0.96,
+  sink = 0,
   bloom = false,
   bloomColor = color.goldHi,
   bloomRadius = 14,
@@ -71,7 +75,13 @@ export function PressableScale({
   const s = useSharedValue(1);
   // 0 = resting (invisible), 1 = fully expanded + faded. Re-fired on each press.
   const b = useSharedValue(0);
-  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: s.value }] }));
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [
+      // sink rides the same press value — deepest at the pressed scale, 0 at rest
+      { translateY: sink ? interpolate(s.value, [scaleTo, 1], [sink, 0]) : 0 },
+      { scale: s.value },
+    ],
+  }));
   const bloomStyle = useAnimatedStyle(() => ({
     opacity: interpolate(b.value, [0, 0.15, 1], [0, 0.65, 0]),
     transform: [{ scale: interpolate(b.value, [0, 1], [0.92, 1.32]) }],

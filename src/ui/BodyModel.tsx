@@ -15,6 +15,7 @@ import { View } from "react-native";
 import Svg, { Circle, Ellipse, Rect } from "react-native-svg";
 import { B } from "./Text";
 import { color, space } from "./tokens";
+import { feedback } from "../lib/feedback";
 import type { BodyArea } from "../types/db";
 
 /** The selectable groups (full_body is "no filter", not a region). */
@@ -42,7 +43,12 @@ export function BodyModel({ selected, onToggle, height = 240 }: Props) {
     fill: on(a) ? FILL_ON : FILL_IDLE,
     stroke: on(a) ? STROKE_ON : STROKE_IDLE,
     strokeWidth: 1.4,
-    onPress: () => onToggle(a),
+    // the figure is the headline filter surface — a muscle tap should tick like
+    // the chip row beside it does, not toggle in silence.
+    onPress: () => {
+      feedback.select();
+      onToggle(a);
+    },
   });
 
   return (

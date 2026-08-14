@@ -3,7 +3,7 @@ import { ScrollView, View, useWindowDimensions } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Screen, Card, Chip, Diya, EmberCard, GoldWash, IconSlot, T, AnimatedNumber, Reveal, ProgressBar, Shimmer, FlipCard, PressableScale, PillarCoin, CoinHalo, Purna, useCoinExpand, duration, useMotion, color, ember, pillar, radius, space, type PillarKey } from "../../src/ui";
+import { Screen, Card, Chip, Diya, EmberCard, GoldWash, GoldBurst, IconSlot, T, AnimatedNumber, Reveal, ProgressBar, Shimmer, FlipCard, PressableScale, PillarCoin, CoinHalo, Purna, useCoinExpand, duration, useMotion, color, ember, pillar, radius, space, type PillarKey } from "../../src/ui";
 import { feedback } from "../../src/lib/feedback";
 import {
   DumbbellIcon,
@@ -406,6 +406,7 @@ function PillarRing({
       <PressableScale
         onPress={handlePress}
         scaleTo={0.97}
+        sink={3}
         accessibilityLabel={
           guest
             ? `${t(nameKey)} — ${t("ring_begin")}`
@@ -788,10 +789,13 @@ function DailyBlessing({ onReveal }: { onReveal?: () => void }) {
     return BLESSING_KEYS[h % BLESSING_KEYS.length];
   }, [todayKey]);
 
+  // the mockup throws 12 gold sparks off the card as it flips open — fired here
+  const [burstTick, setBurstTick] = useState(0);
   const reveal = () => {
     setRevealed(true);
     void AsyncStorage.setItem(BLESSING_STORAGE, todayKey).catch(() => {});
     feedback.reveal(); // a once-a-day earned moment — the mockup's soft flutter + bell
+    setBurstTick((n) => n + 1); // the spark shower off the card
     onReveal?.(); // the gold wash blooms over the whole screen (mockup goldwash)
   };
 
@@ -836,24 +840,29 @@ function DailyBlessing({ onReveal }: { onReveal?: () => void }) {
 
   return (
     <Reveal lift delay={300}>
-    <View
-      style={{
-        borderRadius: radius.card,
-        overflow: "hidden",
-        borderWidth: 1,
-        borderColor: ember.line,
-        backgroundColor: color.surface, // shows on-brand at the flip's edge-on instant
-      }}
-    >
-      <FlipCard
-        front={front}
-        back={back}
-        flipped={revealed}
-        onPress={reveal}
-        accessibilityLabel={t("daily_blessing_title")}
-      />
-      {/* faint sheen so the blessing card reads as something special */}
-      <Shimmer mode="sheen" tint={color.goldHi} peak={0.1} />
+    {/* a positioning wrapper (no clip) so the spark shower can fly beyond the
+        card; the card itself keeps overflow:hidden for the flip + sheen */}
+    <View>
+      <View
+        style={{
+          borderRadius: radius.card,
+          overflow: "hidden",
+          borderWidth: 1,
+          borderColor: ember.line,
+          backgroundColor: color.surface, // shows on-brand at the flip's edge-on instant
+        }}
+      >
+        <FlipCard
+          front={front}
+          back={back}
+          flipped={revealed}
+          onPress={reveal}
+          accessibilityLabel={t("daily_blessing_title")}
+        />
+        {/* faint sheen so the blessing card reads as something special */}
+        <Shimmer mode="sheen" tint={color.goldHi} peak={0.1} />
+      </View>
+      <GoldBurst trigger={burstTick} size={200} count={12} />
     </View>
     </Reveal>
   );

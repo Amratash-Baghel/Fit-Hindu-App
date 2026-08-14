@@ -13,6 +13,7 @@ import { color, radius, space } from "./tokens";
 import { T } from "./Text";
 import { MuteIcon } from "./icons";
 import { useI18n } from "../lib/i18n";
+import { feedback } from "../lib/feedback";
 import { isPlaying, stopAudio, subscribeAudio } from "../lib/audio";
 
 export function AudioStopPill() {
@@ -33,7 +34,10 @@ export function AudioStopPill() {
     >
       <Pressable
         accessibilityRole="button"
-        onPress={() => stopAudio()}
+        onPress={() => {
+          feedback.press(); // a session control shouldn't stop the sound in silence
+          stopAudio();
+        }}
         style={({ pressed }) => ({
           flexDirection: "row",
           alignItems: "center",

@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
 import { View, ActivityIndicator } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Screen, Card, Button, FooterAction, B, T, color, space } from "../../src/ui";
+import { Screen, Card, Button, FooterAction, GoldWash, B, T, color, space } from "../../src/ui";
 import { useI18n } from "../../src/lib/i18n";
 import { getDietRequest } from "../../src/lib/diet";
+import { feedback } from "../../src/lib/feedback";
 import type { DietPlanRequest, DietPlan } from "../../src/types/db";
 
 export default function DietPlanScreen() {
@@ -13,6 +14,13 @@ export default function DietPlanScreen() {
   const [req, setReq] = useState<DietPlanRequest | null>(null);
   const [loading, setLoading] = useState(true);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Celebrate the plan landing (gold wash + completion haptic/sound) ONLY on a
+  // real pending/generating -> ready TRANSITION — never when the screen opens on
+  // a plan that was already generated earlier, which would replay the whole
+  // "your plan just generated" moment on every View-plan tap (review finding).
+  // prevStatus tracks the last-seen status; `celebrate` drives the one-shot wash.
+  const prevStatus = useRef<string | null>(null);
+  const [celebrate, setCelebrate] = useState(false);
 
   useEffect(() => {
     if (!request) return;
@@ -24,6 +32,11 @@ export default function DietPlanScreen() {
         if (!alive) return;
         setReq(r);
         setLoading(false);
+        if (r && r.status === "ready" && prevStatus.current != null && prevStatus.current !== "ready") {
+          setCelebrate(true);
+          feedback.complete();
+        }
+        if (r) prevStatus.current = r.status;
         // stop polling once terminal
         if (r && (r.status === "ready" || r.status === "failed") && timer.current) {
           clearInterval(timer.current);
@@ -91,7 +104,7 @@ export default function DietPlanScreen() {
   // ready
   const plan: DietPlan = req.plan ?? {};
   return (
-    <Screen>
+    <Screen overlay={celebrate ? <GoldWash /> : null}>
       <B k="your_custom_plan" variant="h1" />
       {pick(plan.summary_hi, plan.summary_en) ? (
         <T variant="body" tone="soft">

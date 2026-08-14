@@ -8,6 +8,7 @@ import { isPlaying, playLoop, stopAudio, subscribeAudio } from "../../src/lib/au
 import { audioSourceFor } from "../../src/lib/localAudio";
 import { logActivity } from "../../src/lib/activity";
 import { earnSince, pointsTodayNow } from "../../src/lib/points";
+import { feedback } from "../../src/lib/feedback";
 import { beginSleepRun, markSleepAlive, clearSleepRun } from "../../src/lib/sleepRun";
 import { uuidv4 } from "../../src/lib/ids";
 
@@ -88,6 +89,10 @@ export default function Sleep() {
       runEventIdRef.current ?? undefined,
     );
     if (present) {
+      // the completion SOUND (the reward overlay's diya supplies the haptic) —
+      // so a finished rest rings like every other completion (audit 2026-08-14:
+      // sleep was the one reward with no sound).
+      feedback.completeChime();
       void logged.then(async (ok) => {
         // Diff only when the write landed, so a failed log shows the "rest
         // complete" moment without a misleading "already claimed" line.

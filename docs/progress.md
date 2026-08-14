@@ -3,6 +3,32 @@
 Running build log — one entry per shipped item, newest on top. This is the
 standup doc for the owner and the resume-from-home lifeline.
 
+- **2026-08-14 (eve) — Reward-on-every-completion + livelier coins + polish
+  (owner: "reward screen for every completion, animated with stars… ripples
+  more alive like the jap button… polish everything, runs smooth, haptics").**
+  Ran a discovery workflow (4 agents) to map every completion surface + the
+  aliveness gap + polish/haptic/perf gaps, built the changes, then a review
+  workflow (3 lenses × per-finding verify, 11 findings) and fixed all 11.
+  **Reward with stars** — `CompletionDiya` now radiates a one-shot `StarField`
+  of twinkling gold star-sparks over the rays, so workout/meditation/jap/sleep
+  all show the same starry reward; jap's double-haptic removed; sleep + meal +
+  diet-plan now play the completion sound; meditation copy lifts in to match
+  the workout screen. **Diet completes** — new "Today's meals → I kept my plan
+  today" card logs the `meal` activity (stable per-IST-day `client_event_id`,
+  idempotent) + fires the reward, and the silent AI plan-ready screen now
+  celebrates on the pending→ready transition only. This unblocks Body's ring
+  and makes **Purna reachable** (meal was never logged before). **Coins alive**
+  — CoinHalo's fading pulse replaced by a constant *breathing* glow bed (jap
+  halo grammar; geometry fixed so it rings the coin instead of hiding behind
+  it) + one ripple; kept to 2 nodes/coin (6 on Home) after the review flagged a
+  3rd node re-growing the lag. **Polish/haptics** — gold CTA presses in like
+  metal (`PressableScale sink`), coins sink too; muscle-figure + stop-pill now
+  buzz; rest-Skip no longer fires the reward flourish; blessing throws sparks.
+  Reverted the review-flagged perf regressions (per-tile + per-button continuous
+  glint loops) and two one-off hex literals. Typecheck + lint green; diet
+  completion verified in web preview. ⚠️ Dev-client APK must be built by the
+  owner (`eas build -p android --profile development`) — no local Android
+  toolchain / EAS login on the dev machine.
 - **2026-08-14 (pm) — Performance + gold-burst pass (owner feedback: "the app
   is really laggy").** Cut the continuous-animation load the previous sweep
   added, which was stuttering Home on device: **CoinHalo** 5 waves → **2** per

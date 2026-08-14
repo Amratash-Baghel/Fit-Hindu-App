@@ -9,9 +9,10 @@
  * tells you what's behind the door before you tap — "14 exercises · 20 min ·
  * Full body" — with the NUMBERS set in gold (mockup .t-stat b) so the stats
  * read at a glance. Numbers come from content data (the countPublished
- * helpers), never hardcoded. The icon sits in the embossed IconSlot, and live
- * tiles carry the same faint glint sweep as the ember cards — one material
- * language across every door.
+ * helpers), never hardcoded. The icon sits in the embossed IconSlot — one
+ * material language across every door. (No continuous glint sweep: a per-tile
+ * forever-loop across the pillar pages re-introduced the low-end-Android
+ * stutter, so the sheen stays on the ember/hero cards only.)
  */
 import React from "react";
 import { StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
