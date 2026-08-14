@@ -2,6 +2,20 @@
 
 One dated line per decision, with the why. Newest on top.
 
+- **2026-08-14** — **Haptic map reworked to the approved mockup; press drops
+  Medium → Light.** The mockup's grammar wins: light tick on press, crisp
+  [12,40,18] pattern on success/complete, a [10,30,14] flutter + soft bell on
+  the blessing reveal (`feedback.reveal`). Supersedes the 2026-08-08 "press =
+  Medium" call — with pattern-based completions in place, a Medium baseline
+  made every surface thump the same. rewardBurst stays the one grand-
+  celebration verb (Purna, reward screens); no parallel "celebrate" pattern,
+  since two Android vibration timelines cancel each other.
+- **2026-08-14** — **Muscle filter lives in every workout mode, after the
+  premade workouts.** Home/Gym filter the mode's own list client-side over
+  `body_areas` (no new queries); Custom keeps its server-side area union.
+  Owner ask; the plan artifact's "premade workouts still lead" rule holds —
+  templates render above the filter.
+
 - **2026-08-12** — **BMS redesign, phase-1 UI pass (owner demo build).** Applied
   the reviewed proposals to the app, UI-only (haptics deferred to a later pass):
   (1) a *time-of-day surface* — Home's greeting + a top wash follow the IST clock

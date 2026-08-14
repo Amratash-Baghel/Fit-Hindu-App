@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { View } from "react-native";
 import { useRouter } from "expo-router";
-import { Screen, PillarTile, B, T, pillar, space } from "../../src/ui";
+import { Screen, PillarTile, Reveal, B, T, pillar, space } from "../../src/ui";
 import { LotusIcon, OmGlyph } from "../../src/ui/icons";
 import { useI18n } from "../../src/lib/i18n";
 import { countMeditationSounds } from "../../src/lib/content";
@@ -37,22 +37,29 @@ export default function Mind() {
         </T>
       </View>
       <View style={{ gap: space.md }}>
-        <PillarTile
-          titleK="tile_meditation"
-          subK="tile_meditation_sub"
-          icon={<LotusIcon size={28} color={pillar.mind} />}
-          wash={pillar.mindWash}
-          onPress={() => router.push("/(tabs)/meditation")}
-          done={todayTypes.includes("meditation")}
-          meta={[sounds != null ? `${sounds} ${t("sounds_word")}` : null, t("meta_guided")]}
-        />
-        <PillarTile
-          titleK="tile_gita"
-          subK="tile_gita_sub"
-          icon={<OmGlyph size={26} color={pillar.mind} />}
-          wash={pillar.mindWash}
-          soon
-        />
+        <Reveal lift delay={80}>
+          <PillarTile
+            titleK="tile_meditation"
+            subK="tile_meditation_sub"
+            icon={<LotusIcon size={28} color={pillar.mind} />}
+            wash={pillar.mindWash}
+            onPress={() => router.push("/(tabs)/meditation")}
+            done={todayTypes.includes("meditation")}
+            meta={[
+              sounds != null ? { v: sounds, label: t("sounds_word") } : null,
+              t("meta_guided"),
+            ]}
+          />
+        </Reveal>
+        <Reveal lift delay={180}>
+          <PillarTile
+            titleK="tile_gita"
+            subK="tile_gita_sub"
+            icon={<OmGlyph size={26} color={pillar.mind} />}
+            wash={pillar.mindWash}
+            soon
+          />
+        </Reveal>
       </View>
     </Screen>
   );

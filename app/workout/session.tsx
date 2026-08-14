@@ -34,6 +34,7 @@ import {
   GoldWash,
   PointsEarned,
   AnimatedNumber,
+  Shimmer,
   color,
   radius,
   space,
@@ -345,23 +346,24 @@ export default function WorkoutSession() {
               sparks radiate — with the synced haptic burst. Timing in CompletionDiya. */}
           <CompletionDiya diyaSize={76} burstSize={232} celebrate />
 
-          {/* copy + stats assemble in AFTER the burst, so the celebration lands
-              first and the screen builds itself around it */}
-          <Reveal delay={640}>
+          {/* copy + stats LIFT in after the burst (mockup .lift), so the
+              celebration lands first and the screen builds itself around it */}
+          <Reveal lift delay={640}>
             <B k="workout_complete" variant="h1" center />
           </Reveal>
-          <Reveal delay={760}>
+          <Reveal lift delay={760}>
             <B k="great_work" variant="body" tone="muted" center />
           </Reveal>
 
           {/* the reward hero — the Fit-Points this workout earned, counting up */}
-          <Reveal delay={920} style={{ width: "100%", alignItems: "center" }}>
+          <Reveal lift delay={920} style={{ width: "100%", alignItems: "center" }}>
             <PointsEarned earned={earn?.earned ?? null} total={earn?.total ?? null} style={{ marginTop: space.sm }} />
           </Reveal>
 
           {/* the session at a glance — a gold-tinted card matching the points
-              hero, so the two read as one cohesive reward block */}
-          <Reveal delay={1080} style={{ width: "100%", alignItems: "center" }}>
+              hero, so the two read as one cohesive reward block; it carries the
+              same faint glint as every earned surface */}
+          <Reveal lift delay={1080} style={{ width: "100%", alignItems: "center" }}>
             <View
               style={{
                 width: "100%",
@@ -371,6 +373,7 @@ export default function WorkoutSession() {
                 borderColor: "rgba(217,164,65,0.28)",
                 backgroundColor: "rgba(217,164,65,0.06)",
                 paddingVertical: space.lg,
+                overflow: "hidden",
               }}
             >
               <View style={{ flexDirection: "row", alignItems: "center" }}>
@@ -380,6 +383,7 @@ export default function WorkoutSession() {
                 <StatDivider />
                 <Stat n={summary.minutes} label={t("minutes_short")} />
               </View>
+              <Shimmer mode="sheen" tint={color.goldHi} peak={0.1} />
             </View>
           </Reveal>
 

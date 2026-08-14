@@ -1,16 +1,15 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ScrollView, View } from "react-native";
+import { ScrollView, View, useWindowDimensions } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Screen, Card, Chip, EmberCard, GoldWash, IconSlot, T, AnimatedNumber, Reveal, ProgressBar, Shimmer, FlipCard, PressableScale, PillarCoin, CoinHalo, CoinSplash, Purna, duration, useMotion, color, ember, pillar, radius, space, type PillarKey } from "../../src/ui";
+import { Screen, Card, Chip, Diya, EmberCard, GoldWash, IconSlot, T, AnimatedNumber, Reveal, ProgressBar, Shimmer, FlipCard, PressableScale, PillarCoin, CoinHalo, CoinSplash, Purna, useCoinExpand, duration, useMotion, color, ember, pillar, radius, space, type PillarKey } from "../../src/ui";
 import { feedback } from "../../src/lib/feedback";
 import {
   DumbbellIcon,
   LotusIcon,
   OmGlyph,
   ChevronRight,
-  DiyaIcon,
   SettingsIcon,
   BowlIcon,
   MalaIcon,
@@ -225,7 +224,9 @@ export default function Home() {
         ))}
       </View>
 
-      {/* today's shloka — the ember material with ॐ watermark + sheen */}
+      {/* today's shloka — the ember material with ॐ watermark + sheen, lifting
+          up out of the surface (mockup .lift — the 3D scroll grammar) */}
+      <Reveal lift delay={140}>
       <EmberCard watermark sheen>
         <T variant="eyebrow" tone="gold">
           {t("todays_shloka")}
@@ -277,6 +278,7 @@ export default function Home() {
           </T>
         )}
       </EmberCard>
+      </Reveal>
 
       {/* sankalp / streak */}
       <StreakCard />
@@ -358,15 +360,24 @@ function PillarRing({
 }) {
   const { t } = useI18n();
   const motion = useMotion();
+  const expand = useCoinExpand();
   const tint = pillar[k];
   const wash = pillar[`${k}Wash`];
   const nameKey = `pillar_${k}` as const;
   const subKey = `pillar_${k}_sub` as const;
 
-  // Tap = the mockup's splash: pillar ripple + gold wash open first, the page
-  // follows one beat later so the moment reads. Immediate under reduce-motion/
-  // web. The timer is cleared on unmount so a fast tab-away never double-fires.
+  // The coins are the hero — sized to the phone, not a fixed dp (the approved
+  // mockup's 158px coin + overhanging ring fills half the 390px frame).
+  const { width } = useWindowDimensions();
+  const size = Math.min(Math.round(width * 0.52), 200);
+
+  // Tap = the mockup's full splash grammar: the pillar ripple opens out of the
+  // coin while the pillar-tinted light (CoinExpand) grows to take the screen;
+  // the page lands underneath it at full cover. Immediate under reduce-motion/
+  // web (expand.fire collapses to the navigation). The timer is only the
+  // fallback for a failed native measure, cleared on unmount.
   const [splash, setSplash] = useState(0);
+  const coinRef = useRef<View>(null);
   const navTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(
     () => () => {
@@ -375,13 +386,20 @@ function PillarRing({
     [],
   );
   const handlePress = () => {
-    if (!motion) {
+    if (!motion || !expand) {
       onPress();
       return;
     }
     setSplash((n) => n + 1);
-    if (navTimer.current) clearTimeout(navTimer.current);
-    navTimer.current = setTimeout(onPress, duration.base);
+    const node = coinRef.current;
+    if (node) {
+      node.measureInWindow((x, y, w, h) => {
+        expand.fire({ x: x + w / 2, y: y + h / 2, pillar: k, onCovered: onPress });
+      });
+    } else {
+      if (navTimer.current) clearTimeout(navTimer.current);
+      navTimer.current = setTimeout(onPress, duration.base);
+    }
   };
 
   return (
@@ -398,12 +416,12 @@ function PillarRing({
         }
         style={{ alignItems: "center" }}
       >
-        <View>
+        <View ref={coinRef} collapsable={false}>
           {/* the coin's living layer — ambient pillar-colored ripples behind,
               the tap splash above (mockup .ripples / .tapripple / .goldwash) */}
-          <CoinHalo size={168} tint={tint} />
+          <CoinHalo size={size} tint={tint} />
           <PillarCoin
-            size={168}
+            size={size}
             progress={guest ? 0 : progress.total ? progress.done / progress.total : 0}
             tint={tint}
             track={wash}
@@ -424,11 +442,11 @@ function PillarRing({
               )}
             </View>
           </PillarCoin>
-          <CoinSplash size={168} tint={tint} trigger={splash} />
+          <CoinSplash size={size} tint={tint} trigger={splash} />
           {/* a lit diya crowns a pillar that's fully done today */}
           {done ? (
             <View style={{ position: "absolute", top: 2, right: 10 }}>
-              <DiyaIcon size={26} />
+              <Diya size={26} />
             </View>
           ) : null}
         </View>
@@ -492,7 +510,7 @@ function TaskStrip({
               <IconSlot size={34} radius={11}>
                 {it.icon(tint)}
               </IconSlot>
-              {done ? <DiyaIcon size={16} /> : null}
+              {done ? <Diya size={16} /> : null}
             </View>
             <View>
               <T variant="caption" style={{ fontWeight: "700", fontSize: 13 }}>
@@ -530,6 +548,7 @@ function MirrorCard() {
   const lead = PILLAR_ORDER.reduce((a, b) => (week.days[b] > week.days[a] ? b : a));
 
   return (
+    <Reveal lift delay={380}>
     <EmberCard>
       <T variant="eyebrow" tone="gold">
         {t("mirror_title")}
@@ -556,6 +575,7 @@ function MirrorCard() {
         {t("mirror_footer")}
       </T>
     </EmberCard>
+    </Reveal>
   );
 }
 
@@ -615,10 +635,12 @@ function StreakCard() {
   return (
     // The sankalp card is the way into the full progress screen (slice 6) —
     // "my streak" and "how far I've come" are the same question, and it keeps
-    // Progress off the tab bar, which is already full at five.
+    // Progress off the tab bar, which is already full at five. It lifts in a
+    // beat after the verse (mockup .lift stagger).
+    <Reveal lift delay={220}>
     <Card onPress={() => router.push("/progress")}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: space.md }}>
-        <DiyaIcon size={30} dim={!active} />
+        <Diya size={30} dim={!active} />
         <View style={{ flex: 1 }}>
           <T variant="bodyBold">{title}</T>
           {sub ? (
@@ -652,12 +674,14 @@ function StreakCard() {
           // a lit-up-in-sequence stagger when Home first appears; a fade-pop
           // (distance 0), never a rise, so the diya row reads as igniting.
           <Reveal key={i} delay={i * 70} distance={0}>
-            <DiyaIcon size={24} dim={i >= lit} />
+            {/* each lit flame gets its own phase so the row never sways in step */}
+            <Diya size={24} dim={i >= lit} delay={(i * 397) % 1600} />
           </Reveal>
         ))}
       </View>
       <PointsRow points={points} />
     </Card>
+    </Reveal>
   );
 }
 
@@ -766,7 +790,7 @@ function DailyBlessing({ onReveal }: { onReveal?: () => void }) {
   const reveal = () => {
     setRevealed(true);
     void AsyncStorage.setItem(BLESSING_STORAGE, todayKey).catch(() => {});
-    feedback.success(); // a once-a-day earned moment — a small warm chime
+    feedback.reveal(); // a once-a-day earned moment — the mockup's soft flutter + bell
     onReveal?.(); // the gold wash blooms over the whole screen (mockup goldwash)
   };
 
@@ -783,7 +807,7 @@ function DailyBlessing({ onReveal }: { onReveal?: () => void }) {
   };
   const front = (
     <LinearGradient colors={[...ember.gradient]} start={{ x: 0, y: 0 }} end={{ x: 0.9, y: 1 }} style={face}>
-      <DiyaIcon size={30} dim />
+      <Diya size={30} dim />
       <View style={{ flex: 1 }}>
         <T variant="eyebrow" tone="gold">
           {t("daily_blessing_title")}
@@ -797,7 +821,7 @@ function DailyBlessing({ onReveal }: { onReveal?: () => void }) {
   );
   const back = (
     <LinearGradient colors={[...ember.gradientLit]} start={{ x: 0, y: 0 }} end={{ x: 0.9, y: 1 }} style={face}>
-      <DiyaIcon size={30} />
+      <Diya size={30} />
       <View style={{ flex: 1 }}>
         <T variant="bodyBold" style={{ color: color.goldHi }}>
           {t(blessingKey)}
@@ -810,6 +834,7 @@ function DailyBlessing({ onReveal }: { onReveal?: () => void }) {
   );
 
   return (
+    <Reveal lift delay={300}>
     <View
       style={{
         borderRadius: radius.card,
@@ -829,6 +854,7 @@ function DailyBlessing({ onReveal }: { onReveal?: () => void }) {
       {/* faint sheen so the blessing card reads as something special */}
       <Shimmer mode="sheen" tint={color.goldHi} peak={0.1} />
     </View>
+    </Reveal>
   );
 }
 

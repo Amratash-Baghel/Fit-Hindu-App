@@ -1,4 +1,4 @@
-export { color, space, radius, type, tapTarget, goldGradient, ceremony, pillar, daypart, ember, scrim, coin, progressBar, type PillarKey } from "./tokens";
+export { color, space, radius, type, tapTarget, goldGradient, ceremony, pillar, daypart, ember, scrim, coin, coinBurst, progressBar, type PillarKey } from "./tokens";
 export { duration, easing, spring, pressScale, useMotion } from "./motion";
 export { T, B } from "./Text";
 export { Button, FooterAction } from "./Button";
@@ -23,7 +23,9 @@ export { CeremonySplash } from "./CeremonySplash";
 export { BmsSplash } from "./BmsSplash";
 export { PillarCoin } from "./PillarCoin";
 export { CoinHalo, CoinSplash } from "./CoinHalo";
+export { CoinExpandProvider, useCoinExpand } from "./CoinExpand";
 export { Purna } from "./Purna";
+export { Diya } from "./Diya";
 export { PillarTile } from "./PillarTile";
 export { BodyModel, type MuscleArea } from "./BodyModel";
 export { AudioStopPill } from "./AudioStopPill";

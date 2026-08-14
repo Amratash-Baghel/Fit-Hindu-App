@@ -120,12 +120,29 @@ function haptic(kind: Buzz): void {
  *   chime    — a meditation session ended; a soft bell, gentler than complete
  *   error    — a destructive action confirmed; a soft warning
  */
+/**
+ * One OS-scheduled vibration pattern (Android). The mockup's haptic map speaks
+ * in short waveforms — [12,40,18] for a completion, [20,60,30,60,40] for the
+ * all-three celebration — and JS-scheduled impact trains land late and
+ * unevenly on a busy thread. Vibration.vibrate hands the whole timeline to
+ * the OS (same reasoning as rewardBurst). Pattern = [wait, on, off, on, …].
+ */
+function buzzPattern(pattern: number[]): void {
+  if (!getFeedbackPrefs().haptics || Platform.OS === "web") return;
+  try {
+    Vibration.vibrate(pattern);
+  } catch {
+    // no vibrator — silent
+  }
+}
+
 export const feedback = {
   press() {
-    // Bumped Light → Medium: on most Android motors the Light impact is so faint
-    // it reads as "haptics don't work". Medium is the baseline tap that actually
-    // registers under the thumb (owner feedback 2026-08-08).
-    haptic("medium");
+    // The mockup's haptic map (2026-08-13 rework): a LIGHT tick on every plain
+    // press — presses are constant, so the baseline ack stays feather-light and
+    // the heavier hits below keep their meaning. (Supersedes the 2026-08-08
+    // Medium bump, which made every surface thump like a completion.)
+    haptic("light");
   },
   select() {
     haptic("selection");
@@ -133,6 +150,18 @@ export const feedback = {
   count() {
     haptic("light");
   },
+  /** A small earned reveal (the daily blessing) — the mockup's two-beat flutter
+   *  (buzz([10,30,14])) under the gold wash, with the soft bell rather than the
+   *  full completion ring: a blessing is gentler than a workout done. */
+  reveal() {
+    if (Platform.OS === "android") buzzPattern([0, 10, 30, 14]);
+    else haptic("medium");
+    playSfx("chime");
+  },
+  // NOTE: the grand-celebration haptic (Purna, mala complete) is rewardBurst()
+  // below — the owner-approved accelerando that superseded the mockup's flat
+  // buzz([20,60,30,60,40]). Don't add a parallel "celebrate" verb: two
+  // celebration timelines on one Android vibrator cancel each other.
   /** One jap count — the strongest thump we fire, on EVERY tap. The mala is the
    *  one place a devotee wants a satisfying, definite hit per bead (owner
    *  override 2026-08-08), so it opts out of the quiet `count` tick. Still no
@@ -144,11 +173,14 @@ export const feedback = {
     haptic("heavy");
   },
   success() {
-    haptic("medium");
+    // the mockup's completion buzz — a crisp hit-release-hit, not one flat thud
+    if (Platform.OS === "android") buzzPattern([0, 12, 40, 18]);
+    else haptic("medium");
     playSfx("success");
   },
   complete() {
-    haptic("success");
+    if (Platform.OS === "android") buzzPattern([0, 12, 40, 18]);
+    else haptic("success");
     playSfx("complete");
   },
   /** Just the workout reward chime — the SOUND with no haptic, for a screen whose

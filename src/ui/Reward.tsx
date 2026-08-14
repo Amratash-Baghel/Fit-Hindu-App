@@ -20,6 +20,7 @@ import { Button } from "./Button";
 import { AnimatedNumber } from "./AnimatedNumber";
 import { CompletionDiya } from "./CelebrationBurst";
 import { GoldWash } from "./GoldWash";
+import { Reveal } from "./Reveal";
 import { color, radius, space } from "./tokens";
 import { useI18n, type StringKey } from "../lib/i18n";
 
@@ -123,12 +124,22 @@ export function RewardOverlay({ visible, titleKey, bodyKey, earned, total, onDon
         {/* the app-wide completion glow — the modal opening is the trigger */}
         <GoldWash />
         <CompletionDiya diyaSize={72} burstSize={210} celebrate />
-        <B k={titleKey} variant="h1" center />
-        {bodyKey ? <B k={bodyKey} variant="body" tone="muted" center /> : null}
-        <PointsEarned earned={earned} total={total} style={{ marginTop: space.sm }} />
-        <View style={{ width: "100%", maxWidth: 420, marginTop: space.lg }}>
+        {/* copy + reward LIFT in after the diya catches — the same one grammar
+            of completion the workout screen speaks (mockup .lift stagger) */}
+        <Reveal lift delay={640}>
+          <B k={titleKey} variant="h1" center />
+        </Reveal>
+        {bodyKey ? (
+          <Reveal lift delay={760}>
+            <B k={bodyKey} variant="body" tone="muted" center />
+          </Reveal>
+        ) : null}
+        <Reveal lift delay={920} style={{ alignItems: "center" }}>
+          <PointsEarned earned={earned} total={total} style={{ marginTop: space.sm }} />
+        </Reveal>
+        <Reveal lift delay={1080} style={{ width: "100%", maxWidth: 420, marginTop: space.lg }}>
           <Button k="done" onPress={onDone} />
-        </View>
+        </Reveal>
       </View>
     </Modal>
   );

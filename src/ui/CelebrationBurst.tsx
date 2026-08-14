@@ -28,7 +28,7 @@ import Animated, {
   type SharedValue,
 } from "react-native-reanimated";
 import { color } from "./tokens";
-import { DiyaIcon } from "./icons";
+import { Diya } from "./Diya";
 import { useMotion } from "./motion";
 import { feedback } from "../lib/feedback";
 
@@ -169,7 +169,9 @@ export function CompletionDiya({
         <CelebrationBurst size={burstSize} rays={rays} delay={1100} />
       </View>
       <Animated.View style={diyaStyle}>
-        <DiyaIcon size={diyaSize} />
+        {/* the flame starts swaying the moment the ignite tween hands over —
+            the "moving diya" from the approved mockup, not a frozen icon */}
+        <Diya size={diyaSize} delay={1000} />
       </Animated.View>
     </View>
   );

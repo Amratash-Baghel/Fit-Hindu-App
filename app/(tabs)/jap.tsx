@@ -20,7 +20,7 @@ import {
   Button,
   B,
   T,
-  DiyaIcon,
+  Diya,
   RewardOverlay,
   useMotion,
   color,
@@ -395,7 +395,7 @@ function JapButton({ done, onPress }: { done: boolean; onPress: () => void }) {
         >
           {done ? (
             <>
-              <DiyaIcon size={44} />
+              <Diya size={44} />
               <T variant="bodyBold" style={{ color: "#241503" }}>
                 {t("jap_start_again")}
               </T>

@@ -76,7 +76,9 @@ function PurnaStage({ onDismiss }: { onDismiss: () => void }) {
 
   useEffect(() => {
     // The haptic twin of the ceremony — the same reward-burst grammar as every
-    // completion (ramp collapses to one firm hit when motion is off).
+    // completion (ramp collapses to one firm hit when motion is off) — plus the
+    // completion ring: the day resolving is the one moment that gets both.
+    feedback.completeChime();
     const cancel = feedback.rewardBurst({ ramp: enabled });
     if (!enabled) return cancel;
     const easeOut = Easing.out(Easing.cubic);

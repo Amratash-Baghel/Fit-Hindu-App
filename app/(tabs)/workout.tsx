@@ -83,10 +83,22 @@ export default function Workout() {
     } catch {
       setStatus("error");
     }
-  }, [tab, areas]);
+    // The muscle filter only re-queries in custom mode; home/gym filter the
+    // already-loaded mode list client-side (see `shown`), so `areas` must not
+    // refetch there.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, tab === "custom" ? areas : null]);
 
   const toggleArea = (a: MuscleArea) =>
     setAreas((prev) => (prev.includes(a) ? prev.filter((x) => x !== a) : [...prev, a]));
+
+  // The muscle filter lives in EVERY mode now (owner ask 2026-08-14): custom
+  // queries by area server-side; home/gym narrow their own mode's list here.
+  // Empty selection = full body = no filter, exactly like the mockup.
+  const shown =
+    tab === "custom" || areas.length === 0
+      ? items
+      : items.filter((e) => e.body_areas?.some((a) => areas.includes(a as MuscleArea)));
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: load() flips to "loading" then immediately suspends on the fetch; the reset on tab/area change is a one-shot transition, not a cascading render.
@@ -118,50 +130,25 @@ export default function Workout() {
         </Center>
       ) : (
         <ExerciseGrid
-          items={items}
+          items={shown}
           header={
             <View>
-              {tab === "custom" ? (
-                <View style={{ marginTop: space.md }}>
-                  <T variant="eyebrow" tone="gold">
-                    {t("muscle_pick")}
-                  </T>
-                  <T variant="caption" tone="muted" style={{ marginBottom: space.md }}>
-                    {t("muscle_pick_hint")}
-                  </T>
-                  {/* the figure is the delight; the chips below are the
-                      labelled, accessible tap targets for the same filter */}
-                  <BodyModel selected={areas} onToggle={toggleArea} />
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      flexWrap: "wrap",
-                      gap: space.sm,
-                      marginTop: space.md,
-                    }}
-                  >
-                    <Chip
-                      label={t("muscle_clear")}
-                      active={areas.length === 0}
-                      onPress={() => setAreas([])}
-                    />
-                    {MUSCLES.map((m) => (
-                      <Chip
-                        key={m.area}
-                        label={t(m.k)}
-                        active={areas.includes(m.area)}
-                        onPress={() => toggleArea(m.area)}
-                      />
-                    ))}
-                  </View>
-                </View>
-              ) : templates.length > 0 ? (
+              {/* Premade workouts still lead (plan: "the body you train");
+                  the muscle filter is the make-your-own path beneath them —
+                  but it lives in EVERY mode, not only Custom. */}
+              {tab !== "custom" && templates.length > 0 ? (
                 <TemplatesSection templates={templates} />
               ) : null}
-
               {tab !== "custom" ? <MyWorkoutsSection mine={mine} /> : null}
 
-              {items.length > 0 ? (
+              <MusclePicker
+                areas={areas}
+                onToggle={toggleArea}
+                onClear={() => setAreas([])}
+                topGap={tab === "custom" ? space.md : space.lg}
+              />
+
+              {shown.length > 0 ? (
                 <T variant="eyebrow" tone="gold" style={{ marginTop: space.lg, marginBottom: space.xs }}>
                   {t("all_exercises")}
                 </T>
@@ -176,6 +163,55 @@ export default function Workout() {
 
 function Center({ children }: { children: React.ReactNode }) {
   return <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: space.md }}>{children}</View>;
+}
+
+/**
+ * The muscle filter — front + back figure over labelled chips, shown in every
+ * mode (redesign: "let people point at the muscle, not read a word for it").
+ * The figure is the delight; the chips are the accessible tap targets for the
+ * same filter. Empty selection = full body.
+ */
+function MusclePicker({
+  areas,
+  onToggle,
+  onClear,
+  topGap,
+}: {
+  areas: MuscleArea[];
+  onToggle: (a: MuscleArea) => void;
+  onClear: () => void;
+  topGap: number;
+}) {
+  const { t } = useI18n();
+  return (
+    <View style={{ marginTop: topGap }}>
+      <T variant="eyebrow" tone="gold">
+        {t("muscle_pick")}
+      </T>
+      <T variant="caption" tone="muted" style={{ marginBottom: space.md }}>
+        {t("muscle_pick_hint")}
+      </T>
+      <BodyModel selected={areas} onToggle={onToggle} />
+      <View
+        style={{
+          flexDirection: "row",
+          flexWrap: "wrap",
+          gap: space.sm,
+          marginTop: space.md,
+        }}
+      >
+        <Chip label={t("muscle_clear")} active={areas.length === 0} onPress={onClear} />
+        {MUSCLES.map((m) => (
+          <Chip
+            key={m.area}
+            label={t(m.k)}
+            active={areas.includes(m.area)}
+            onPress={() => onToggle(m.area)}
+          />
+        ))}
+      </View>
+    </View>
+  );
 }
 
 /** My Workouts (F&B "add your own"). Own-row RLS, so it needs a session. */

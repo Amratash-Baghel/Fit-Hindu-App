@@ -25,7 +25,7 @@ import {
   AnimatedNumber,
   B,
   T,
-  DiyaIcon,
+  Diya,
   color,
   pillar,
   space,
@@ -184,7 +184,7 @@ export default function MyPath() {
       {/* the sankalp — current streak given the hero treatment, its record beside */}
       <EmberCard sheen>
         <View style={{ flexDirection: "row", alignItems: "center", gap: space.md }}>
-          <DiyaIcon size={34} dim={(streak?.current_streak ?? 0) === 0} />
+          <Diya size={34} dim={(streak?.current_streak ?? 0) === 0} />
           <View style={{ flex: 1 }}>
             <T variant="eyebrow" tone="gold">
               {t("mypath_current")}
@@ -440,7 +440,7 @@ function Empty({
         borderRadius: radius.card,
       }}
     >
-      <DiyaIcon size={56} />
+      <Diya size={56} />
       <B k={titleKey} variant="h2" center />
       <B k={bodyKey} variant="body" tone="soft" center />
       <Button k={ctaKey} onPress={onPress} style={{ marginTop: space.sm, alignSelf: "stretch" }} />

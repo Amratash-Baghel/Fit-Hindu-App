@@ -2,7 +2,7 @@ import React from "react";
 import { View } from "react-native";
 import { Tabs } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { color, pillar, type PillarKey } from "../../src/ui";
+import { CoinExpandProvider, color, pillar, type PillarKey } from "../../src/ui";
 import { HomeIcon, DumbbellIcon, LotusIcon, OmGlyph } from "../../src/ui/icons";
 import { useI18n } from "../../src/lib/i18n";
 import { feedback } from "../../src/lib/feedback";
@@ -22,7 +22,11 @@ import { PillarsProvider, usePillars, pillarComplete } from "../../src/lib/pilla
 export default function TabsLayout() {
   return (
     <PillarsProvider>
-      <TabsInner />
+      {/* the coin tap-glow lives ABOVE the navigator so it can carry the
+          screen switch underneath it (mockup expandTo) */}
+      <CoinExpandProvider>
+        <TabsInner />
+      </CoinExpandProvider>
     </PillarsProvider>
   );
 }
@@ -46,17 +50,38 @@ function PillarTabIcon({
     <TabLift focused={focused}>
       {children}
       {done ? (
+        // the 4px gold done-point with its own glow (mockup .pdot: a lit dot,
+        // not a flat one) — a soft halo behind a bright core
         <View
           style={{
             position: "absolute",
-            top: -3,
-            right: -6,
-            width: 6,
-            height: 6,
-            borderRadius: 3,
-            backgroundColor: color.goldHi,
+            top: -6,
+            right: -9,
+            width: 12,
+            height: 12,
+            alignItems: "center",
+            justifyContent: "center",
           }}
-        />
+        >
+          <View
+            style={{
+              position: "absolute",
+              width: 12,
+              height: 12,
+              borderRadius: 6,
+              backgroundColor: color.goldHi,
+              opacity: 0.28,
+            }}
+          />
+          <View
+            style={{
+              width: 5,
+              height: 5,
+              borderRadius: 2.5,
+              backgroundColor: color.goldHi,
+            }}
+          />
+        </View>
       ) : null}
     </TabLift>
   );

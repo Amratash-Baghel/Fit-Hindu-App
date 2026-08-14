@@ -88,7 +88,9 @@ export function CoinHalo({ size, tint }: HaloProps) {
   const enabled = useMotion();
   const t1 = useSharedValue(enabled ? 0 : 0.3);
   const t2 = useSharedValue(0);
+  const t3 = useSharedValue(0);
   const tb = useSharedValue(enabled ? 0 : 0.2);
+  const tb2 = useSharedValue(0);
 
   useEffect(() => {
     if (!enabled) return;
@@ -103,18 +105,25 @@ export function CoinHalo({ size, tint }: HaloProps) {
         -1,
         false,
       );
+    // The mockup's full field: THREE wire rings a third of a cycle apart (.rw
+    // delays 0 / 1.3s / 2.6s) over TWO colour blooms half a cycle apart (.rg
+    // delays 0 / 1.95s) — there is always a wave mid-breath and one being born.
     t1.value = cycle();
     t2.value = withDelay(duration.ripple / 3, cycle());
+    t3.value = withDelay((duration.ripple * 2) / 3, cycle());
     tb.value = cycle();
-  }, [enabled, t1, t2, tb]);
+    tb2.value = withDelay(duration.ripple / 2, cycle());
+  }, [enabled, t1, t2, t3, tb, tb2]);
 
   // Static faint frame on web / reduce-motion: one mid-breath ring + bloom, no
   // loops — the coin still reads as haloed in a screenshot.
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
       <AmbientBloom size={size} tint={tint} t={tb} />
+      {enabled ? <AmbientBloom size={size} tint={tint} t={tb2} /> : null}
       <AmbientRing size={size} tint={tint} t={t1} />
       {enabled ? <AmbientRing size={size} tint={tint} t={t2} /> : null}
+      {enabled ? <AmbientRing size={size} tint={tint} t={t3} /> : null}
     </View>
   );
 }
@@ -138,19 +147,32 @@ interface SplashProps {
 export function CoinSplash({ size, tint, trigger }: SplashProps) {
   const enabled = useMotion();
   const t = useSharedValue(1); // 1 = at rest (invisible)
+  const t2 = useSharedValue(1); // the mockup fires a SECOND ripple 150ms behind
   const uid = tint.replace(/[^a-zA-Z0-9]/g, "");
 
   useEffect(() => {
     if (!enabled || trigger === 0) return;
     t.value = 0;
     t.value = withTiming(1, { duration: duration.splash, easing: easing.out });
-  }, [enabled, trigger, t]);
+    // stays at rest (invisible) through the 150ms gap, then plays 0→1
+    t2.value = withDelay(
+      150,
+      withSequence(
+        withTiming(0, { duration: 0 }),
+        withTiming(1, { duration: duration.splash, easing: easing.out }),
+      ),
+    );
+  }, [enabled, trigger, t, t2]);
 
   const ring = useAnimatedStyle(() => ({
     opacity: interpolate(t.value, [0, 0.85, 1], [0.62, 0.08, 0]),
     // The mockup's .tapripple opens right out across the screen — the ripple
     // should feel like it leaves the coin and takes the page with it.
-    transform: [{ scale: interpolate(t.value, [0, 1], [1, 3.4]) }],
+    transform: [{ scale: interpolate(t.value, [0, 1], [1, 4.4]) }],
+  }));
+  const ring2 = useAnimatedStyle(() => ({
+    opacity: interpolate(t2.value, [0, 0.85, 1], [0.5, 0.06, 0]),
+    transform: [{ scale: interpolate(t2.value, [0, 1], [1, 4.4]) }],
   }));
   const wash = useAnimatedStyle(() => ({
     opacity: interpolate(t.value, [0, 0.2, 1], [0, 0.55, 0]),
@@ -178,6 +200,13 @@ export function CoinSplash({ size, tint, trigger }: SplashProps) {
           StyleSheet.absoluteFill,
           { borderRadius: size / 2, borderWidth: 2, borderColor: tint },
           ring,
+        ]}
+      />
+      <Animated.View
+        style={[
+          StyleSheet.absoluteFill,
+          { borderRadius: size / 2, borderWidth: 2, borderColor: tint },
+          ring2,
         ]}
       />
     </View>

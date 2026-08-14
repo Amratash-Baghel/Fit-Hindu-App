@@ -25,22 +25,43 @@ interface Props {
   delay?: number;
   /** How far it rises from (dp). */
   distance?: number;
+  /** The mockup's `.lift` — the card rises AND folds up out of the surface
+   *  (perspective + a 9° rotateX from its base), the "3D scroll" grammar the
+   *  Home cards use. Defaults the rise to 20dp like the mockup. */
+  lift?: boolean;
   style?: StyleProp<ViewStyle>;
 }
 
-export function Reveal({ children, delay = 0, distance = 12, style }: Props) {
+export function Reveal({ children, delay = 0, distance, lift = false, style }: Props) {
   const enabled = useMotion();
   const t = useSharedValue(enabled ? 0 : 1);
+  const rise = distance ?? (lift ? 20 : 12);
 
   useEffect(() => {
     if (!enabled) return;
-    t.value = withDelay(delay, withTiming(1, { duration: duration.slow, easing: easing.out }));
-  }, [enabled, delay, t]);
+    t.value = withDelay(
+      delay,
+      withTiming(1, { duration: lift ? duration.slow + 200 : duration.slow, easing: easing.out }),
+    );
+  }, [enabled, delay, lift, t]);
 
-  const style2 = useAnimatedStyle(() => ({
-    opacity: t.value,
-    transform: [{ translateY: interpolate(t.value, [0, 1], [distance, 0]) }],
-  }));
+  const style2 = useAnimatedStyle(() => {
+    const ty = interpolate(t.value, [0, 1], [rise, 0]);
+    if (!lift) {
+      return { opacity: t.value, transform: [{ translateY: ty }] };
+    }
+    // RN rotates about the centre; at 9° over a card the base drift is under a
+    // couple of dp, so the fold reads as rising from its base without any
+    // pivot correction.
+    return {
+      opacity: t.value,
+      transform: [
+        { perspective: 900 },
+        { translateY: ty },
+        { rotateX: `${interpolate(t.value, [0, 1], [9, 0])}deg` },
+      ],
+    };
+  });
 
   return <Animated.View style={[style, style2]}>{children}</Animated.View>;
 }

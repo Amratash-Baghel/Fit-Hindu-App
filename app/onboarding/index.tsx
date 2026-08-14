@@ -22,7 +22,7 @@ import Animated, { SlideInRight } from "react-native-reanimated";
 import { useRouter } from "expo-router";
 import {
   Screen, Button, FooterAction, SelectCard, ProgressDots, Checkbox, Chip,
-  B, T, DiyaIcon, space, color,
+  B, T, Diya, space, color,
 } from "../../src/ui";
 import { useI18n, type StringKey } from "../../src/lib/i18n";
 import { PRIVACY_POLICY_URL } from "../../src/lib/config";
@@ -184,7 +184,7 @@ export default function Onboarding() {
               {/* The app's own diya SVG, not a 🪔 emoji — emoji violate the
                   no-emoji standing rule and get clipped to the Text line box on
                   Android (the top/bottom-shaved diya the owner reported). */}
-              <DiyaIcon size={64} />
+              <Diya size={64} />
               <B k="ready_body" variant="body" tone="soft" center />
             </View>
           ) : null}

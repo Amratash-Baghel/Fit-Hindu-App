@@ -5,10 +5,13 @@
  * press) for modules the redesign has planned but not built (Daily Gita,
  * Mantra Ucharan, Bhajan Alarm).
  *
- * Redesign "tiles that speak": an optional `meta` footer tells you what's
- * behind the door before you tap — "24 exercises · Home & gym" — numbers
- * from content data (the countPublished helpers), never hardcoded. The icon
- * sits in the embossed IconSlot so every door shares one material language.
+ * Redesign "tiles that speak", v2-mockup fidelity: the optional `meta` footer
+ * tells you what's behind the door before you tap — "14 exercises · 20 min ·
+ * Full body" — with the NUMBERS set in gold (mockup .t-stat b) so the stats
+ * read at a glance. Numbers come from content data (the countPublished
+ * helpers), never hardcoded. The icon sits in the embossed IconSlot, and live
+ * tiles carry the same faint glint sweep as the ember cards — one material
+ * language across every door.
  */
 import React from "react";
 import { StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
@@ -18,8 +21,13 @@ import { Chip } from "./Card";
 import { B, T } from "./Text";
 import { ChevronRight } from "./icons";
 import { IconSlot } from "./IconSlot";
+import { Shimmer } from "./Shimmer";
 import { color, coin, radius, space } from "./tokens";
 import { useI18n, type StringKey } from "../lib/i18n";
+
+/** One footer stat: `{ v, label }` renders the value in gold (mockup .t-stat);
+ *  a plain string renders as a quiet word ("Full body", "Home & gym"). */
+export type TileStat = string | { v: string | number; label?: string } | null;
 
 interface Props {
   titleK: StringKey;
@@ -34,13 +42,13 @@ interface Props {
   done?: boolean;
   /** "what's inside" stats, already localised — null entries are skipped so a
    *  count that hasn't landed (or failed) simply doesn't show */
-  meta?: (string | null)[];
+  meta?: TileStat[];
   style?: StyleProp<ViewStyle>;
 }
 
 export function PillarTile({ titleK, subK, icon, wash, onPress, soon, done, meta, style }: Props) {
   const { t } = useI18n();
-  const metaShown = (meta ?? []).filter((m): m is string => !!m);
+  const metaShown = (meta ?? []).filter((m): m is Exclude<TileStat, null> => !!m);
 
   const inner = (
     <View style={[styles.tile, soon && { opacity: 0.55 }]}>
@@ -56,7 +64,7 @@ export function PillarTile({ titleK, subK, icon, wash, onPress, soon, done, meta
           <Chip label={t("coming_soon")} />
         ) : done ? (
           <View style={styles.tickDot}>
-            <T style={{ fontSize: 14, fontWeight: "800", color: coin.face }}>✓</T>
+            <T style={{ fontSize: 15, fontWeight: "800", color: coin.face }}>✓</T>
           </View>
         ) : (
           <ChevronRight />
@@ -64,22 +72,38 @@ export function PillarTile({ titleK, subK, icon, wash, onPress, soon, done, meta
       </View>
       <View style={{ gap: metaShown.length ? space.md : 0 }}>
         <View>
-          <B k={titleK} variant="h1" noSub />
+          <B k={titleK} variant="h2" noSub style={{ fontWeight: "800" }} />
           {subK ? <B k={subK} variant="caption" tone="muted" noSub /> : null}
         </View>
         {metaShown.length ? (
           <View style={styles.metaRow}>
-            {metaShown.map((m, i) => (
-              <React.Fragment key={m}>
-                {i > 0 ? <View style={styles.metaDot} /> : null}
-                <T variant="caption" tone="soft" style={{ fontSize: 12 }}>
-                  {m}
-                </T>
-              </React.Fragment>
-            ))}
+            {metaShown.map((m, i) => {
+              const key = typeof m === "string" ? m : `${m.v}-${m.label ?? ""}`;
+              return (
+                <React.Fragment key={key}>
+                  {i > 0 ? <View style={styles.metaDot} /> : null}
+                  {typeof m === "string" ? (
+                    <T variant="caption" tone="soft" style={styles.statWord}>
+                      {m}
+                    </T>
+                  ) : (
+                    <View style={styles.stat}>
+                      <T style={styles.statValue}>{String(m.v)}</T>
+                      {m.label ? (
+                        <T variant="caption" tone="soft" style={styles.statWord}>
+                          {m.label}
+                        </T>
+                      ) : null}
+                    </View>
+                  )}
+                </React.Fragment>
+              );
+            })}
           </View>
         ) : null}
       </View>
+      {/* the faint metal glint every live door carries (mockup .glint) */}
+      {!soon ? <Shimmer mode="sheen" tint={color.goldHi} peak={0.08} /> : null}
     </View>
   );
 
@@ -100,7 +124,7 @@ export function PillarTile({ titleK, subK, icon, wash, onPress, soon, done, meta
 
 const styles = StyleSheet.create({
   frame: {
-    borderRadius: radius.card,
+    borderRadius: radius.card + 2,
     borderWidth: 1,
     borderColor: color.line,
     backgroundColor: color.surface,
@@ -119,9 +143,9 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
   },
   tickDot: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
     backgroundColor: color.gold,
     alignItems: "center",
     justifyContent: "center",
@@ -130,15 +154,31 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     flexWrap: "wrap",
-    gap: space.sm,
+    gap: space.sm + 1,
     borderTopWidth: 1,
     borderTopColor: "rgba(58,46,36,0.7)",
-    paddingTop: space.sm + 2,
+    paddingTop: space.sm + 3,
   },
   metaDot: {
     width: 3,
     height: 3,
     borderRadius: 2,
     backgroundColor: color.line,
+  },
+  stat: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 4,
+  },
+  statValue: {
+    fontSize: 15,
+    lineHeight: 20,
+    fontWeight: "800",
+    color: color.goldHi,
+    fontVariant: ["tabular-nums"],
+  },
+  statWord: {
+    fontSize: 12,
+    lineHeight: 18,
   },
 });

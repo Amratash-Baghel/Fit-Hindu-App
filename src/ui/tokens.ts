@@ -106,6 +106,18 @@ export const pillar = {
 export type PillarKey = "body" | "mind" | "soul";
 
 /**
+ * The tap-glow ramps (mockup expandTo TINT): the circular light that opens out
+ * of a tapped Home coin and takes the whole screen — a white-hot core falling
+ * away through the pillar's own colour into ink, so Body opens warm, Mind
+ * opens cool, Soul opens gold. Stops at [0, .19, .44, .74, 1].
+ */
+export const coinBurst: Record<PillarKey, readonly [string, string, string, string, string]> = {
+  body: ["#F4E3C6", "#EEC788", "#E0700F", "#4E2107", "#120B06"],
+  mind: ["#E3E9F7", "#C1CDEA", "#828FBC", "#262D42", "#0B0E15"],
+  soul: ["#F3E4C0", "#EBD29C", "#CE9B3B", "#43300F", "#100C06"],
+} as const;
+
+/**
  * Time-of-day Home washes (redesign — "a surface that keeps time",
  * docs/specs/redesign-bms.md). Each is a top-anchored gradient painted over the
  * ink ground so Home breathes with the IST day. Every stop reuses an existing

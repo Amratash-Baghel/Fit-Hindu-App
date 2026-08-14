@@ -3,6 +3,31 @@
 Running build log — one entry per shipped item, newest on top. This is the
 standup doc for the owner and the resume-from-home lifeline.
 
+- **2026-08-14 — Mockup-fidelity sweep: living diyas, tap-glow expand, 3D
+  lift, hero coins, muscle filter everywhere (`redesign` branch).** Closed the
+  owner's gap list against the two approved artifacts (mockup c0604591 + plan
+  e7e96b0e): **Diya** — new animated component, the flame sways on the
+  mockup's 2.6s flick loop (staggered phases), swapped in everywhere a diya
+  shows (streak card + week row, task strip, ring crowns, blessing, jap,
+  progress, onboarding, and CompletionDiya — so the reward/complete screens
+  now carry the moving flame). **Tap glow** — new CoinExpand: the mockup's
+  circular expandTo transition, a pillar-tinted light (coinBurst tokens)
+  growing out of the tapped Home coin to cover the screen above the tab
+  switch, hosted over the navigator; CoinSplash gained the second delayed
+  ripple. **Coins** — sized to the phone (52% of width, cap 200) instead of
+  fixed 168; CoinHalo now runs the mockup's full field (3 wire rings + 2
+  blooms). **3D scroll** — Reveal gained `lift` (perspective + 9° rotateX
+  fold-in); Home's verse/streak/blessing/mirror cards and all pillar tiles
+  lift in staggered. **Tiles** — PillarTile meta stats now render gold bold
+  values (mockup .t-stat), tiles carry the glint sheen + bigger gold tick.
+  **Workout** — the muscle filter (figure + chips) now lives in EVERY mode;
+  home/gym filter client-side over `body_areas`, templates still lead.
+  **Haptics** — reworked to the mockup map: light press tick, pattern-based
+  success/complete ([12,40,18]), blessing flutter ([10,30,14] + soft bell via
+  new feedback.reveal), Purna adds the completion ring over rewardBurst.
+  **Tab bar** — done-point is now a lit dot (glow halo). Typecheck + lint
+  green; clicked through web preview (guest home → body → workout filter →
+  mind/soul); /code-review medium run, 2 findings fixed.
 - **2026-08-13 — v2 mockup delta pass: twin-point gaze, content-sized tiles,
   hero saadhana count, English-first verse (`redesign` branch).** Caught up
   the app to the refreshed app-native mockup (artifact c0604591): **splash**
