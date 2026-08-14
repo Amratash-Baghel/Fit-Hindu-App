@@ -335,12 +335,13 @@ export const strings = {
 
   // sleep sounds tab
   sleep_title: { hi: "नींद की ध्वनियाँ", en: "Sleep sounds" },
-  sleep_tagline: { hi: "धीरे-धीरे शांत हो जाएँ", en: "Drift off gently" },
   sleep_timer: { hi: "अपने आप बंद", en: "Auto-stop" },
   timer_off: { hi: "बंद नहीं", en: "Off" },
   sleep_empty: { hi: "अभी कोई ध्वनि नहीं", en: "No sounds yet" },
   sleep_playing: { hi: "बज रहा है", en: "Playing" },
   sleep_stop: { hi: "रोकने के लिए दबाएँ", en: "Tap to stop" },
+  sleep_winddown: { hi: "आराम से। ध्वनि अपने आप रुक जाएगी।", en: "Wind down. Sounds stop themselves." },
+  sleep_dim_hint: { hi: "बजते समय स्क्रीन मंद हो जाती है — जगाने के लिए कहीं भी दबाएँ।", en: "Screen dims while playing — tap anywhere to wake." },
 
   // home (habit surface)
   todays_shloka: { hi: "आज का श्लोक", en: "Today's shloka" },

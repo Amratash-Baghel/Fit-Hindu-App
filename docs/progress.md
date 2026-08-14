@@ -3,6 +3,21 @@
 Running build log — one entry per shipped item, newest on top. This is the
 standup doc for the owner and the resume-from-home lifeline.
 
+- **2026-08-14 (night) — UI9 slice A: Sleep re-materialized (redesign branch).**
+  First slice of the UI9 plan (artifact 4d5592bc, plate 14). Visual + one-behavior
+  pass on the sleep tab: saffron → `pillar.mind` indigo everywhere (playing border,
+  icon, countdown), sound-row icon wells now use the shared `IconSlot` recast in
+  night steel (new `tone="night"`, default `"soul"` so no other caller moves),
+  auto-stop is one `SegmentedDial` instead of four chips, a `PlayingGlow` breathing
+  indigo ring on the playing row, a `SleepDim` scrim that fades in 30s into playback
+  (tap to wake) — both opacity-only on the UI thread and gated on `useMotion`. The
+  one sanctioned behavior change: `finishTimer` now fades the sound out
+  (`fadeOutStop`, after logging) instead of a hard cut. Wind-down header copy added.
+  **The run-logging machinery (refs, `logRunIfQualified`, crash mirror, heartbeat,
+  focus-blur stop, `subscribeAudio` sync) is untouched.** Spec: docs/specs/sleep.md
+  v2. typecheck + lint green; verified on web preview (indigo playing border, night
+  material, no console errors — motion features are device-only); /code-review clean
+  (one orphaned string removed). No migration.
 - **2026-08-14 (eve) — Reward-on-every-completion + livelier coins + polish
   (owner: "reward screen for every completion, animated with stars… ripples
   more alive like the jap button… polish everything, runs smooth, haptics").**
