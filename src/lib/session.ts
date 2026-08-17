@@ -172,6 +172,40 @@ function enqueue(op: QueuedOp): Promise<void> {
   });
 }
 
+/**
+ * Remove the first `n` delivered ops, RE-READING the queue inside the lock.
+ *
+ * The snapshot `flushQueue` holds goes stale the moment a set is logged while a
+ * send is in flight — which is the normal case on the target device, where a
+ * send takes seconds and taps do not wait. Writing that snapshot back would
+ * erase the op enqueued in between: the set is in the local mirror but nothing
+ * would ever deliver it (close-out re-queues the finish row, never the sets),
+ * so it would be training the server never hears about — exactly the loss this
+ * module exists to prevent. Ops are only ever appended at the tail, so dropping
+ * `n` from the head of the CURRENT queue is always the right edit.
+ */
+function dropHead(n: number): Promise<QueuedOp[]> {
+  return serial(async () => {
+    const next = (await readQueue()).slice(n);
+    await writeQueue(next);
+    return next;
+  });
+}
+
+/** Count a failed attempt against the head op — dropping it past MAX_ATTEMPTS so
+ *  one poisoned write cannot wedge every later one. Same re-read discipline as
+ *  `dropHead`. */
+function penaliseHead(): Promise<QueuedOp[]> {
+  return serial(async () => {
+    const cur = await readQueue();
+    if (!cur.length) return cur;
+    const head = { ...cur[0], tries: (cur[0].tries ?? 0) + 1 };
+    const next = head.tries >= MAX_ATTEMPTS ? cur.slice(1) : [head, ...cur.slice(1)];
+    await writeQueue(next);
+    return next;
+  });
+}
+
 /** Serialises flushes: two overlapping drains would double-send and could
  *  reorder a session insert behind its own sets. */
 let flushing = false;
@@ -220,13 +254,12 @@ export async function flushQueue(): Promise<boolean> {
         // Count the attempt against the head op only. Dropping it after a
         // bounded number of tries loses at most that one write, where keeping
         // it would lose every write that ever queues behind it.
-        const head = { ...q[0], tries: (q[0].tries ?? 0) + 1 };
-        q = head.tries >= MAX_ATTEMPTS ? q.slice(1) : [head, ...q.slice(1)];
-        await serial(() => writeQueue(q));
+        await penaliseHead();
         return false;
       }
-      q = q.slice(take);
-      await serial(() => writeQueue(q));
+      // Re-read rather than write back our snapshot: a set logged during the
+      // send above is already in the durable queue and must survive this edit.
+      q = await dropHead(take);
     }
     return true;
   } catch {

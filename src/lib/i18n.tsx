@@ -29,8 +29,6 @@ export const strings = {
   tab_home: { hi: "होम", en: "Home" },
   tab_workout: { hi: "व्यायाम", en: "Workout" },
   tab_meditation: { hi: "ध्यान", en: "Meditation" },
-  tab_jap: { hi: "जप", en: "Jap" },
-  tab_sleep: { hi: "नींद", en: "Sleep" },
 
   // splash / launch ceremony (slice 3) — wordmark is the brand name (rendered
   // raw, not translated); only the tagline is bilingual. Kept devotional and
@@ -124,7 +122,6 @@ export const strings = {
   // shared
   coming_soon: { hi: "जल्द आ रहा है", en: "Coming soon" },
   continue: { hi: "आगे बढ़ें", en: "Continue" },
-  start: { hi: "शुरू करें", en: "Start" },
   retry: { hi: "फिर से कोशिश करें", en: "Retry" },
   loading: { hi: "लोड हो रहा है…", en: "Loading…" },
 
@@ -151,7 +148,6 @@ export const strings = {
   our_avatar: { hi: "हमारा अवतार", en: "Our Avatar" },
   workout_empty: { hi: "अभी कोई व्यायाम उपलब्ध नहीं", en: "No exercises available yet" },
   workout_error: { hi: "व्यायाम लोड नहीं हो सके", en: "Couldn't load exercises" },
-  pick_area: { hi: "अंग चुनें", en: "Pick a body area" },
   sets: { hi: "सेट", en: "Sets" },
   reps: { hi: "बार", en: "Reps" },
   hold: { hi: "समय", en: "Hold" },
@@ -165,10 +161,6 @@ export const strings = {
 
   // home (stub)
   greeting: { hi: "राम राम", en: "Ram Ram" },
-  todays_workout: { hi: "आज का व्यायाम", en: "Today's workout" },
-  todays_diet: { hi: "आज का आहार", en: "Today's diet" },
-  todays_meditation: { hi: "आज का ध्यान", en: "Today's meditation" },
-  todays_jap: { hi: "मंत्र जप", en: "Mantra jap" },
 
   // onboarding — question set v2 (docs/specs/onboarding-questionnaire.md:19-39)
   q_language: { hi: "अपनी भाषा चुनें", en: "Choose your language" },
@@ -224,13 +216,6 @@ export const strings = {
   mode_home_full: { hi: "घर पर (बिना सामान)", en: "At home (no equipment)" },
   mode_later: { hi: "बाद में तय करेंगे", en: "I'll decide later" },
 
-  // Q9 — deity (optional)
-  q_deity: { hi: "आपके इष्ट देव?", en: "Your chosen deity?" },
-  q_deity_hint: {
-    hi: "आपकी दैनिक प्रेरणा इनसे जुड़ी रहेगी — चाहें तो छोड़ सकते हैं",
-    en: "Your daily inspiration will be shaped around them — feel free to skip",
-  },
-  deity_error: { hi: "देव सूची लोड नहीं हो सकी", en: "Couldn't load the list" },
 
   // Q10 — DPDP consent
   q_consent: { hi: "आपकी जानकारी", en: "Your information" },
@@ -267,7 +252,6 @@ export const strings = {
     en: "Your journey starts today. One day, one step at a time.",
   },
   ready_cta: { hi: "शुरू करें", en: "Let's begin" },
-  onboarding_saving: { hi: "आपका plan बन रहा है…", en: "Building your plan…" },
 
   // plan-ready ceremony (slice 5) — the four stage labels map 1:1 onto the four
   // real awaits in flushOnboarding (see FLUSH_STAGES in src/lib/auth.tsx). Copy
@@ -313,7 +297,6 @@ export const strings = {
   auth_invalid_identifier: { hi: "सही जानकारी डालें", en: "Enter a valid value" },
   auth_invalid_code: { hi: "कोड ग़लत है — दोबारा कोशिश करें", en: "That code isn't right — try again" },
   auth_send_failed: { hi: "कोड नहीं भेजा जा सका", en: "Couldn't send the code" },
-  auth_saved: { hi: "सब सुरक्षित है 🙏", en: "Everything's saved 🙏" },
   auth_flush_failed: {
     hi: "आपके उत्तर सुरक्षित हैं, पर सहेजे नहीं जा सके — दोबारा कोशिश करें",
     en: "Your answers are safe but couldn't be saved — try again",
@@ -392,18 +375,6 @@ export const strings = {
   // progress screen (slice 6). Numbers are rendered at the call site and the
   // labels stay separate, so nothing here needs interpolation. Copy is
   // descriptive and effort-based — never a health outcome or a body claim.
-  progress_title: { hi: "आपकी प्रगति", en: "Your progress" },
-  progress_this_week: { hi: "इस सप्ताह", en: "This week" },
-  progress_sessions: { hi: "सत्र", en: "sessions" },
-  progress_minutes: { hi: "मिनट", en: "minutes" },
-  progress_sets: { hi: "कुल सेट", en: "total sets" },
-  progress_days_trained: { hi: "दिन अभ्यास", en: "days trained" },
-  progress_all_time: { hi: "अब तक", en: "All time" },
-  progress_plan: { hi: "आपका plan", en: "Your plan" },
-  progress_plan_days: { hi: "दिन पूरे", en: "days done" },
-  progress_areas: { hi: "अंग के अनुसार", en: "By body area" },
-  progress_activity: { hi: "पिछले 30 दिन", en: "Last 30 days" },
-  progress_streak: { hi: "संकल्प", en: "Sankalp" },
   progress_longest: { hi: "सबसे लंबा", en: "Longest" },
   // Empty state — a brand-new user must meet encouragement, not a wall of
   // zeros (spec slice 6: "empty states are load-bearing").
@@ -474,7 +445,6 @@ export const strings = {
   workout_name: { hi: "वर्कआउट का नाम", en: "Workout name" },
   add_exercise: { hi: "व्यायाम जोड़ें", en: "Add exercise" },
   save_word: { hi: "सहेजें", en: "Save" },
-  delete_word: { hi: "हटाएं", en: "Delete" },
   saved_ok: { hi: "सहेजा गया ✓", en: "Saved ✓" },
   empty_workout_hint: { hi: "नीचे से व्यायाम जोड़ें", en: "Add exercises from below" },
 

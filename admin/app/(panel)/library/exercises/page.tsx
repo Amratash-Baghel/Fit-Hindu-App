@@ -23,8 +23,8 @@ export default async function ExercisesPage() {
         </div>
         <NewEntityButton
           table="exercises"
+          slugPrefix="exercise"
           defaults={{
-            slug: `exercise-${Date.now()}`,
             name_en: "New exercise",
             name_hi: "नया व्यायाम",
             body_areas: [],

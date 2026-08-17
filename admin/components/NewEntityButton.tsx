@@ -11,11 +11,17 @@ export function NewEntityButton({
   defaults,
   editorPath,
   label,
+  slugPrefix,
 }: {
   table: string;
   defaults: Record<string, unknown>;
   editorPath: string; // e.g. "/library/exercises"
   label: string;
+  /** Tables with a unique `slug` pass a prefix and get `<prefix>-<now>` stamped
+   *  HERE, at click time. Building it in the page instead made the timestamp
+   *  part of the render (impure), and — worse — froze it: two creations from one
+   *  rendered page would carry the same slug and the second insert would fail. */
+  slugPrefix?: string;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -26,7 +32,8 @@ export function NewEntityButton({
       disabled={busy}
       onClick={async () => {
         setBusy(true);
-        const { data, error } = await supabaseBrowser().from(table).insert(defaults).select("id").single();
+        const row = slugPrefix ? { ...defaults, slug: `${slugPrefix}-${Date.now()}` } : defaults;
+        const { data, error } = await supabaseBrowser().from(table).insert(row).select("id").single();
         setBusy(false);
         if (error) {
           alert(error.message);

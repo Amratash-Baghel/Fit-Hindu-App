@@ -2,6 +2,24 @@
 
 One dated line per decision, with the why. Newest on top.
 
+- **2026-08-17** — **Queue edits re-read storage under the lock (never write back
+  a snapshot).** `session.ts`'s `flushQueue` now edits the *current* durable
+  queue inside `serial()` (`dropHead` / `penaliseHead`) instead of writing back
+  the array it read before the network call. Why: a set logged during an
+  in-flight send was appended by `enqueue` and then erased by the snapshot write
+  — the mirror kept it, but close-out only re-queues the finish and activity
+  rows, so it was training the server would never hear about. Rule going
+  forward: **any AsyncStorage read-modify-write in this module reads inside the
+  lock**; a value read before an `await` on the network is stale by definition.
+- **2026-08-17** — **Autolinking excludes `@expo/ui` and `@expo/dom-webview`;
+  app size is a packaging problem, not a code one.** Both ship inside `expo` and
+  autolink by default, neither is imported, and `@expo/ui` alone pulls Jetpack
+  Compose into the APK. Measured payload is small (4.8 MB Hermes bundle + 1.7 MB
+  assets), so the 100 MB cap is only reachable by shipping a **universal 4-ABI
+  APK**: production goes out as an AAB (Play splits per ABI, ~20–30 MB download),
+  and hand-shared demo APKs should be arm64-only. R8 + resource shrinking is the
+  next lever but stays unapplied until someone can validate a real build.
+  See `docs/review-2026-08-17.md`.
 - **2026-08-17** — **Workout template order is content, not code
   (`workout_templates.sort`, migration 0021).** The v3 workout tab's "Today's
   workout" hero is `templates[0]`, which meant *alphabetical* — the only way to

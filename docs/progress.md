@@ -3,7 +3,54 @@
 Running build log — one entry per shipped item, newest on top. This is the
 standup doc for the owner and the resume-from-home lifeline.
 
-- **2026-08-17 (last) — UI9 slice E: The hero becomes content (redesign
+- **2026-08-17 (last) — Codebase review + app-size assessment (redesign
+  branch).** Owner ask after slice E: review everything for errors and problems,
+  and answer the size question (target 50–70 MB, hard cap 100). Full report:
+  `docs/review-2026-08-17.md`.
+  **Fixed:** (1) a **real data-loss race** in `session.ts` — `flushQueue` held a
+  snapshot of the durable queue and wrote it back after each send, so a set
+  logged *during* an in-flight send (a 2G round-trip: seconds) was erased from
+  the queue. The local mirror kept it but nothing would ever deliver it, because
+  close-out re-queues the finish + activity rows and never the sets. The two
+  post-send edits now re-read the queue inside the existing serial lock and edit
+  the head (`dropHead` / `penaliseHead`); ops are only appended at the tail, so
+  a head-relative edit is always right and mid-send writes survive.
+  (2) `admin` "+ New exercise" built its slug with `Date.now()` **during
+  render** — the repo's one lint error, and the frozen timestamp meant a second
+  create from the same rendered page collided on the unique `exercises.slug`;
+  `NewEntityButton` now takes `slugPrefix` and stamps at click time.
+  (3) 26 orphaned i18n strings left by the BMS/UI9 rewrites removed (381 → 355
+  pairs) — `StringKey = keyof typeof strings` means a still-referenced key would
+  break `tsc`, so green typecheck is the proof.
+  (4) `@expo/ngrok` (a dev tunnel helper) moved out of runtime dependencies.
+  **Size, measured:** `expo export` gives a **4.8 MB** Hermes bundle + **1.7 MB**
+  bundled assets = **6.5 MB** of app payload; video/audio stay on the CDN so
+  content growth never grows the binary. The native half can't be built here (no
+  Android SDK/JRE, managed workflow), so it is estimated: AAB→Play install
+  **~55–75 MB** (download ~20–30), arm64 APK ~30–45 MB, and **a universal
+  4-ABI APK ~70–110 MB — the only realistic way to breach 100**. So the cap is a
+  packaging risk, not a code one. Applied one safe lever: `@expo/ui` and
+  `@expo/dom-webview` (both autolinked by default, neither imported; the first
+  drags Jetpack Compose in) are now excluded — verified 27 → 25 autolinked
+  modules. R8 + ABI filters are written up with snippets but deliberately **not**
+  applied: they change the native build and can only be validated by one.
+  **Verified healthy:** RLS on all 33 tables, no service-role key outside the
+  Edge Function, the push endpoint's recipient always from the verified JWT, no
+  live-DB drift except the expected 0021 (probed `points_rules` /
+  `streak_milestones` against 0020 column-for-column), every timer cleaned up,
+  `expo-dev-client` costing nothing in release (its deps are `debugOnly`).
+  **Left for later, ranked:** meditation/jap/sleep/diet completions still use
+  the non-durable `logActivity` while workouts use the queue; `logActivity`
+  doesn't stamp `program_id`; the diet-plan screen polls every 4 s forever;
+  `t()` throws on an unknown key reached through an `as StringKey` cast.
+  Verified with a click-through on a **fresh** Metro server (language → workout
+  hero/shelf/grid → Home → Body/Mind/Soul), typecheck + lint + admin `next
+  build` green, only console error being the deliberate 0021 probe. Two notes on
+  the preview: full-page reloads on a long-running Expo web server intermittently
+  render a blank tree — reproduced **at the untouched commit** via `git stash`,
+  so it is the dev server, not the app; and the admin panel's own click-through
+  is still unverified because it needs a sign-in I have no credentials for.
+- **2026-08-17 (earlier) — UI9 slice E: The hero becomes content (redesign
   branch).** The chapter's last slice and its **only migration**. Slice B
   shipped a "Today's workout" hero that is `templates[0]` — i.e. whoever wins
   the alphabet — so the only way to change it was to rename a workout.
