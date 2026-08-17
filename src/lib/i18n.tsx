@@ -489,6 +489,19 @@ export const strings = {
   practice_guided: { hi: "निर्देशित", en: "Guided" },
   practice_guided_sub: { hi: "एक स्वर के साथ, हमारी टीम से", en: "Led by a voice, from the content team" },
   your_week: { hi: "आपका सप्ताह", en: "Your week" },
+
+  // breath practice (UI9 slice D — docs/specs/meditation.md v3). The phase
+  // TERMS stay in Devanagari in both modes (practice vocabulary, the scripture
+  // rule); the line under them carries the meaning. Framing is practice, never
+  // therapy — no physiological claims here or anywhere near this feature.
+  breath_phase_in: { hi: "साँस भरो", en: "साँस भरो" },
+  breath_phase_out: { hi: "साँस छोड़ो", en: "साँस छोड़ो" },
+  breath_in: { hi: "साँस लें", en: "Breathe in" },
+  breath_out: { hi: "साँस छोड़ें", en: "Breathe out" },
+  pace_label: { hi: "गति", en: "Pace" },
+  pace_calm: { hi: "शांत ४–६", en: "Calm 4–6" },
+  pace_even: { hi: "सम ४–४", en: "Even 4–4" },
+  bell_every_5: { hi: "हर ५ मिनट पर घंटी", en: "Bell every 5 min" },
   week_this_week: { hi: "इस सप्ताह", en: "this week" },
   week_longest: { hi: "सबसे लंबा ध्यान", en: "longest sit" },
 

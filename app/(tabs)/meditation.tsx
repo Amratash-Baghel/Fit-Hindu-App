@@ -25,7 +25,15 @@ import { useI18n, type StringKey } from "../../src/lib/i18n";
 import { listMeditationSounds, type SoundWithMedia } from "../../src/lib/content";
 import { playLoop, stopAudio } from "../../src/lib/audio";
 import { audioSourceFor, resolvePlayable } from "../../src/lib/localAudio";
-import { DEFAULT_MINUTES, getMedPrefs, saveMedPrefs, SILENT, type MedPrefs } from "../../src/lib/medPrefs";
+import {
+  DEFAULT_MINUTES,
+  DEFAULT_MODE,
+  DEFAULT_PACE,
+  getMedPrefs,
+  saveMedPrefs,
+  SILENT,
+  type MedPrefs,
+} from "../../src/lib/medPrefs";
 import { fetchMeditationWeek, type MeditationWeek } from "../../src/lib/progress";
 import { useAuth } from "../../src/lib/auth";
 
@@ -91,6 +99,11 @@ export default function Meditation() {
 
   function quickStart() {
     const soundId = quickSilent ? SILENT : (quickSound?.id ?? SILENT);
+    // Quick start resumes the PRACTICE, not just the sound — whatever was run
+    // last, on the same pace and bell setting.
+    const practice = prefs?.mode ?? DEFAULT_MODE;
+    const bell = prefs?.bell === true;
+    const pace = prefs?.pace ?? DEFAULT_PACE;
     // The session screen has never started audio — the sound selector did, and
     // it carried across unrestarted. The starting point moves here; the rule
     // (and `_layout`'s stop at the flow boundary) is unchanged.
@@ -101,8 +114,17 @@ export default function Meditation() {
     } else {
       stopAudio();
     }
-    void saveMedPrefs({ soundId, minutes: quickMinutes });
-    router.push({ pathname: "/meditation/session", params: { sound: soundId, min: String(quickMinutes) } });
+    void saveMedPrefs({ soundId, minutes: quickMinutes, mode: practice, bell, pace });
+    router.push({
+      pathname: "/meditation/session",
+      params: {
+        sound: soundId,
+        min: String(quickMinutes),
+        mode: practice,
+        bell: bell ? "1" : "0",
+        ...(practice === "breath" ? { pace } : {}),
+      },
+    });
   }
 
   return (
@@ -118,6 +140,7 @@ export default function Meditation() {
           ready={loadedPrefs && sounds !== null}
           minutes={quickMinutes}
           soundLabel={quickSilent ? null : quickSound}
+          practiceK={prefs?.mode === "breath" ? "practice_breath" : null}
           onBegin={quickStart}
         />
       </Reveal>
@@ -133,14 +156,13 @@ export default function Meditation() {
             icon={<LotusIcon size={18} color={pillar.mind} />}
             onPress={() => router.push("/meditation/start")}
           />
-          {/* Breath is plate 13 / slice D and Guided is a Chapter 3 content
-              type. Saying "soon" beats a row that routes nowhere; slice D turns
-              Breath on by changing this row alone. */}
+          {/* Breath went live with slice D; Guided is still a Chapter 3
+              content type, and says so rather than routing nowhere. */}
           <PracticeRow
             titleK="practice_breath"
             subK="practice_breath_sub"
             icon={<OmGlyph size={18} color={pillar.mind} />}
-            soon
+            onPress={() => router.push({ pathname: "/meditation/start", params: { mode: "breath" } })}
           />
           <PracticeRow
             titleK="practice_guided"
@@ -173,6 +195,7 @@ function QuickStart({
   ready,
   minutes,
   soundLabel,
+  practiceK,
   onBegin,
 }: {
   returning: boolean;
@@ -180,15 +203,22 @@ function QuickStart({
   minutes: number;
   /** null = a silent sit */
   soundLabel: SoundWithMedia | null;
+  /** Named only when it is not the plain timer — the card should say which
+   *  practice one tap is about to resume. */
+  practiceK: StringKey | null;
   onBegin: () => void;
 }) {
   const { t, loc } = useI18n();
   // Until the sound list lands the card must not name a sound — claiming
   // "Silent" for the length of a query is a claim about what Begin will do,
   // and it is wrong at exactly the moment it is read.
-  const sub = ready
-    ? `${minutes} ${t("minutes_short")} · ${soundLabel ? loc(soundLabel.name_hi, soundLabel.name_en) : t("silent_mode")}`
-    : `${minutes} ${t("minutes_short")}`;
+  const sub = [
+    `${minutes} ${t("minutes_short")}`,
+    ready ? (soundLabel ? loc(soundLabel.name_hi, soundLabel.name_en) : t("silent_mode")) : null,
+    practiceK ? t(practiceK) : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
     <Card style={{ borderColor: pillar.mindWash, backgroundColor: color.surface }}>

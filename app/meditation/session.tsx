@@ -1,42 +1,131 @@
-import React, { useEffect, useRef, useState } from "react";
-import { View } from "react-native";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { Pressable, View } from "react-native";
 import Animated, {
   cancelAnimation,
   Easing,
   interpolate,
+  runOnJS,
+  useAnimatedReaction,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
+  withSequence,
   withTiming,
 } from "react-native-reanimated";
 import Svg, { Circle } from "react-native-svg";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useKeepAwake } from "expo-keep-awake";
-import { Screen, Button, FooterAction, Reveal, B, T, CompletionDiya, GoldWash, PointsEarned, useMotion, color, space } from "../../src/ui";
+import { Screen, Button, FooterAction, Reveal, B, T, CompletionDiya, GoldWash, PointsEarned, useMotion, color, duration, pillar, space } from "../../src/ui";
+import { useI18n } from "../../src/lib/i18n";
 import { pauseAudio, resumeAudio, stopAudio, fadeOutStop } from "../../src/lib/audio";
 import { logActivity } from "../../src/lib/activity";
 import { earnSince, pointsTodayNow, type ActivityEarn } from "../../src/lib/points";
 import { feedback } from "../../src/lib/feedback";
 
+/** The two breath rhythms (UI9 slice D). `even` is a plain even breath — NOT
+ *  "box", which is four phases with holds; naming a practice wrongly is not a
+ *  copy detail. */
+const PACES = {
+  calm: { inhaleMs: 4000, exhaleMs: 6000 },
+  even: { inhaleMs: 4000, exhaleMs: 4000 },
+} as const;
+
+/** The unhurried breath the timer practice has always used, both legs equal. */
+const TIMER_BREATH_MS = 4600;
+
+/** Interval-bell spacing, in seconds. */
+const BELL_EVERY = 300;
+
+/** How long the controls stay lit before the screen settles into the practice. */
+const DIM_AFTER_MS = 6000;
+const CONTROLS_DIM = 0.16;
+
 /**
  * Step 3 — the session: pulsing ॐ, ticking countdown, sound looping from the
  * selector (never restarted), gentle completion moment. Partial sessions of
  * ≥3 minutes still count as completed (spec: generosity over strictness).
+ *
+ * UI9 slice D adds the BREATH practice on top of the same machinery: the phase
+ * labels read the turn of the ॐ's existing shared value rather than running a
+ * second animation, the pace presets only change its timing config, and the
+ * optional bell rides the countdown that already ticks. Timer mode is
+ * deliberately left exactly as it was — palette, animation and all.
  */
 export default function MeditationSession() {
   useKeepAwake();
   const router = useRouter();
-  const { sound, min } = useLocalSearchParams<{ sound: string; min: string }>();
+  const { t } = useI18n();
+  const { sound, min, mode, bell, pace } = useLocalSearchParams<{
+    sound: string;
+    min: string;
+    mode?: string;
+    bell?: string;
+    pace?: string;
+  }>();
   const totalSeconds = Math.max(1, Number(min ?? 15)) * 60;
+
+  // Anything unrecognised falls back to the default practice rather than
+  // rendering an empty one.
+  const breathMode = mode === "breath";
+  const bellOn = bell === "1";
+  const paceCfg = breathMode
+    ? pace === "even"
+      ? PACES.even
+      : PACES.calm
+    : { inhaleMs: TIMER_BREATH_MS, exhaleMs: TIMER_BREATH_MS };
 
   const [left, setLeft] = useState(totalSeconds);
   const [paused, setPaused] = useState(false);
   const [finished, setFinished] = useState(false);
   const [earn, setEarn] = useState<ActivityEarn | null>(null);
+  const [phase, setPhase] = useState<"in" | "out">("in");
   const logged = useRef(false);
   /** Today's points before this session is logged, for the earned delta. */
   const pointsBefore = useRef<number | null>(null);
+  /** The last 5-minute mark the bell rang on — makes the ring idempotent no
+   *  matter how often the effect re-runs for the same second. */
+  const lastBell = useRef(0);
+
+  const motion = useMotion();
+
+  /** The phase label, flipped by the breath animation itself (see BreathingOm's
+   *  useAnimatedReaction). Stable so the worklet's dependency never churns. */
+  const onPhase = useCallback((p: "in" | "out") => setPhase(p), []);
+
+  /**
+   * Ambient dim — the controls settle out of the way a few seconds in, and any
+   * tap brings them back. Opacity only, on the UI thread. They stay tappable at
+   * all times, so nothing is ever trapped behind the dim. Breath practice only:
+   * the timer session is left exactly as it was.
+   */
+  const controls = useSharedValue(1);
+  const dimTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wake = useCallback(
+    (settle = true) => {
+      if (!motion || !breathMode) return;
+      controls.value = withTiming(1, { duration: duration.base });
+      if (dimTimer.current) clearTimeout(dimTimer.current);
+      // `settle: false` holds them lit — used while paused, when the user is
+      // deliberately out of the practice and needs to find Resume.
+      if (!settle) return;
+      dimTimer.current = setTimeout(() => {
+        controls.value = withTiming(CONTROLS_DIM, { duration: duration.slow * 2 });
+      }, DIM_AFTER_MS);
+    },
+    [motion, breathMode, controls],
+  );
+
+  // Lit on arrival, lit for as long as the session is paused, settling again
+  // once the practice resumes.
+  useEffect(() => {
+    wake(!paused);
+    return () => {
+      if (dimTimer.current) clearTimeout(dimTimer.current);
+    };
+  }, [wake, paused]);
+
+  const controlsStyle = useAnimatedStyle(() => ({ opacity: controls.value }));
 
   useEffect(() => {
     void pointsTodayNow().then((v) => {
@@ -65,6 +154,18 @@ export default function MeditationSession() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [left]);
 
+  // The interval bell rides the countdown that is already ticking — one `if`,
+  // no scheduler. Never at 0 (nothing has happened yet) and never at the end,
+  // where the completion chime already rings.
+  useEffect(() => {
+    if (!bellOn || finished) return;
+    const elapsed = totalSeconds - left;
+    if (elapsed <= 0 || left <= 0) return;
+    if (elapsed % BELL_EVERY !== 0 || lastBell.current === elapsed) return;
+    lastBell.current = elapsed;
+    feedback.chime();
+  }, [bellOn, finished, left, totalSeconds]);
+
   function complete(actualSeconds: number) {
     if (logged.current) return;
     logged.current = true;
@@ -81,6 +182,11 @@ export default function MeditationSession() {
         sound_id: sound === "silent" ? null : sound,
         set_min: totalSeconds / 60,
         actual_min: Math.round(actualSeconds / 60),
+        // Which practice this was. Points, streak and the Mind ring read none
+        // of this — they see the same `meditation` row they always did.
+        mode: breathMode ? "breath" : "timer",
+        ...(breathMode ? { pace: pace === "even" ? "even" : "calm" } : {}),
+        bell: bellOn,
       },
       sound && sound !== "silent" ? sound : undefined,
     ).then(async (ok) => {
@@ -102,6 +208,16 @@ export default function MeditationSession() {
 
   const mm = String(Math.floor(left / 60)).padStart(2, "0");
   const ss = String(left % 60).padStart(2, "0");
+
+  // With motion on, the phase comes from the ॐ's own breath (the animation IS
+  // the instruction, so the word must match the swell exactly). With motion
+  // off nothing animates, so it is derived from the countdown already ticking —
+  // still no second timer, and no crossfade: adding motion for the people who
+  // asked for less would be the wrong reading of the ask.
+  const cycleSec = (paceCfg.inhaleMs + paceCfg.exhaleMs) / 1000;
+  const derivedPhase = (totalSeconds - left) % cycleSec < paceCfg.inhaleMs / 1000 ? "in" : "out";
+  const shownPhase = motion ? phase : derivedPhase;
+  const phaseSeconds = Math.round((shownPhase === "in" ? paceCfg.inhaleMs : paceCfg.exhaleMs) / 1000);
 
   if (finished) {
     return (
@@ -141,20 +257,49 @@ export default function MeditationSession() {
         end={{ x: 0.5, y: 1 }}
         style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
       />
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: space.xl }}>
-        <BreathingOm progress={progress} paused={paused} />
+      {/* Any tap on the practice area brings the controls back. */}
+      <Pressable
+        onPress={() => wake()}
+        style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: space.xl }}
+      >
+        <BreathingOm
+          progress={progress}
+          paused={paused}
+          breath={breathMode}
+          inhaleMs={paceCfg.inhaleMs}
+          exhaleMs={paceCfg.exhaleMs}
+          onPhase={breathMode ? onPhase : undefined}
+          bellMarks={bellOn ? Math.floor((totalSeconds - 1) / BELL_EVERY) : 0}
+          markEvery={BELL_EVERY / totalSeconds}
+        />
+
+        {breathMode ? (
+          <View style={{ alignItems: "center", gap: 2 }}>
+            {/* the practice's own words, with their meaning underneath */}
+            <T variant="h2" style={{ color: pillar.mind }}>
+              {t(shownPhase === "in" ? "breath_phase_in" : "breath_phase_out")}
+            </T>
+            <T variant="caption" tone="muted">
+              {t(shownPhase === "in" ? "breath_in" : "breath_out")} · {phaseSeconds}
+            </T>
+          </View>
+        ) : null}
+
         <T variant="display" style={{ fontVariant: ["tabular-nums"], fontSize: 56, letterSpacing: 2 }}>
           {mm}:{ss}
         </T>
-      </View>
+      </Pressable>
 
       <FooterAction>
-        <View style={{ flexDirection: "row", gap: space.sm }}>
+        <Animated.View style={[{ flexDirection: "row", gap: space.sm }, controlsStyle]}>
           <View style={{ flex: 1 }}>
             <Button
               k={paused ? "resume" : "pause"}
               kind="ghost"
               onPress={() => {
+                // Touching a control is an interaction like any other — the
+                // controls must never answer a tap from behind the dim.
+                wake();
                 setPaused((p) => {
                   const next = !p;
                   if (next) pauseAudio();
@@ -165,9 +310,16 @@ export default function MeditationSession() {
             />
           </View>
           <View style={{ flex: 1 }}>
-            <Button k="end_session" kind="ghost" onPress={endEarly} />
+            <Button
+              k="end_session"
+              kind="ghost"
+              onPress={() => {
+                wake();
+                endEarly();
+              }}
+            />
           </View>
-        </View>
+        </Animated.View>
       </FooterAction>
     </Screen>
   );
@@ -183,9 +335,34 @@ const AnimatedCircle = Animated.createAnimatedComponent(Circle);
  * the ॐ itself breathing in a warm glow. All on the Reanimated UI thread; a
  * single slow breath value drives everything so it stays cheap.
  */
-function BreathingOm({ progress, paused }: { progress: number; paused: boolean }) {
+function BreathingOm({
+  progress,
+  paused,
+  breath: breathMode = false,
+  inhaleMs = 4600,
+  exhaleMs = 4600,
+  onPhase,
+  bellMarks = 0,
+  markEvery = 0,
+}: {
+  progress: number;
+  paused: boolean;
+  /** Breath practice: indigo, and the phase is reported back. */
+  breath?: boolean;
+  inhaleMs?: number;
+  exhaleMs?: number;
+  /** Called on each turn of the breath — never per frame. */
+  onPhase?: (p: "in" | "out") => void;
+  /** How many 5-minute marks fit in the session (0 = bell off). */
+  bellMarks?: number;
+  /** One mark's share of the ring, as a fraction of the whole. */
+  markEvery?: number;
+}) {
   const enabled = useMotion();
   const breath = useSharedValue(0);
+  /** Which way the breath is currently travelling: 1 in, -1 out. Lives on the
+   *  UI thread so the reaction below never touches JS except on a turn. */
+  const dir = useSharedValue(1);
 
   useEffect(() => {
     if (!enabled) return;
@@ -193,14 +370,46 @@ function BreathingOm({ progress, paused }: { progress: number; paused: boolean }
       cancelAnimation(breath);
       return;
     }
-    // ~4.6s in-and-out — an unhurried, meditative breath.
-    breath.value = withRepeat(withTiming(1, { duration: 4600, easing: Easing.inOut(Easing.quad) }), -1, true);
+    const easingCfg = Easing.inOut(Easing.quad);
+    // Equal legs keep the reversing repeat the timer practice has always run.
+    // Only an asymmetric pace needs the two-timing sequence.
+    breath.value =
+      inhaleMs === exhaleMs
+        ? withRepeat(withTiming(1, { duration: inhaleMs, easing: easingCfg }), -1, true)
+        : withRepeat(
+            withSequence(
+              withTiming(1, { duration: inhaleMs, easing: easingCfg }),
+              withTiming(0, { duration: exhaleMs, easing: easingCfg }),
+            ),
+            -1,
+          );
     return () => cancelAnimation(breath);
-  }, [enabled, paused, breath]);
+  }, [enabled, paused, breath, inhaleMs, exhaleMs]);
+
+  // The words ride the animation that already exists: the label flips on the
+  // TURN of the same shared value, so it can never drift from the swell, and
+  // JS hears from it twice a breath rather than sixty times a second.
+  useAnimatedReaction(
+    () => breath.value,
+    (cur, prev) => {
+      if (prev === null || !onPhase) return;
+      if (cur === prev) return;
+      const next = cur > prev ? 1 : -1;
+      if (next === dir.value) return;
+      dir.value = next;
+      runOnJS(onPhase)(next === 1 ? "in" : "out");
+    },
+  );
 
   const SIZE = 260;
   const R = 118;
   const CIRC = 2 * Math.PI * R;
+
+  // Indigo is the practice's accent; gold stays for the completion moment.
+  const accent = breathMode ? pillar.mind : color.gold;
+  const haloOuterColor = breathMode ? pillar.mind : color.saffronDeep;
+  const haloInnerColor = breathMode ? pillar.mind : color.gold;
+  const omColor = breathMode ? pillar.mind : color.goldHi;
 
   const haloOuter = useAnimatedStyle(() => ({
     opacity: interpolate(breath.value, [0, 1], [0.1, 0.26]),
@@ -220,14 +429,14 @@ function BreathingOm({ progress, paused }: { progress: number; paused: boolean }
       <Animated.View
         pointerEvents="none"
         style={[
-          { position: "absolute", width: 236, height: 236, borderRadius: 118, backgroundColor: color.saffronDeep },
+          { position: "absolute", width: 236, height: 236, borderRadius: 118, backgroundColor: haloOuterColor },
           haloOuter,
         ]}
       />
       <Animated.View
         pointerEvents="none"
         style={[
-          { position: "absolute", width: 176, height: 176, borderRadius: 88, backgroundColor: color.gold },
+          { position: "absolute", width: 176, height: 176, borderRadius: 88, backgroundColor: haloInnerColor },
           haloInner,
         ]}
       />
@@ -239,7 +448,7 @@ function BreathingOm({ progress, paused }: { progress: number; paused: boolean }
           cx={SIZE / 2}
           cy={SIZE / 2}
           r={R}
-          stroke={color.gold}
+          stroke={accent}
           strokeWidth={4}
           fill="none"
           strokeLinecap="round"
@@ -247,6 +456,20 @@ function BreathingOm({ progress, paused }: { progress: number; paused: boolean }
           strokeDashoffset={CIRC * (1 - progress)}
           transform={`rotate(-90 ${SIZE / 2} ${SIZE / 2})`}
         />
+        {/* where the bell will ring — static dots, no animation cost */}
+        {Array.from({ length: bellMarks }, (_, i) => {
+          const angle = (i + 1) * markEvery * 2 * Math.PI - Math.PI / 2;
+          return (
+            <Circle
+              key={i}
+              cx={SIZE / 2 + R * Math.cos(angle)}
+              cy={SIZE / 2 + R * Math.sin(angle)}
+              r={3}
+              fill={color.gold}
+              opacity={0.85}
+            />
+          );
+        })}
       </Svg>
 
       {/* the ॐ */}
@@ -258,8 +481,8 @@ function BreathingOm({ progress, paused }: { progress: number; paused: boolean }
             lineHeight: 150,
             textAlign: "center",
             paddingHorizontal: space.xxl,
-            color: color.goldHi,
-            textShadowColor: "rgba(242,200,121,0.5)",
+            color: omColor,
+            textShadowColor: breathMode ? pillar.mind : "rgba(242,200,121,0.5)",
             textShadowRadius: 28,
             textShadowOffset: { width: 0, height: 0 },
           },

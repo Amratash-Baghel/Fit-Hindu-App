@@ -188,3 +188,112 @@ minutes), through that same chain.
       links to them.
 - [ ] `typecheck` + `lint` green; verified in the web preview; `/code-review`
       clean. No migration.
+
+---
+
+## v3 — The breath, paced (UI9 slice D, 2026-08-17)
+
+> Status: BUILDING on `redesign`. Source of truth: the UI9 artifact, plate 13 +
+> slice D. This slice touches `app/meditation/session.tsx` — the app's most
+> delicate animation file — which is why it is last. The logging, the ≥3-minute
+> generosity, the completion diya and the points delta stay as they are; what
+> changes is what the screen *says* while the ॐ breathes.
+>
+> The thesis: *the ॐ already breathes — now it can teach you to.*
+
+### What changes
+
+1. **A second practice, not a second timer.** The session takes `mode`
+   (`timer` | `breath`, default `timer`), so the Breath row on the hub goes
+   live. Everything below is breath-mode only unless stated.
+2. **Words on the existing breath.** `BreathingOm` already runs one Reanimated
+   shared value on the UI thread. The phase label reads **that same value's
+   turn** via `useAnimatedReaction` — no second timer, no new render loop. The
+   big line is the practice's own term (**साँस भरो** / **साँस छोड़ो**, kept in
+   Devanagari per the scripture rule) with its meaning and the count beneath it.
+3. **Pace presets change the timing config, nothing else.** `calm` (in 4s, out
+   6s) and `even` (4s / 4s). Asymmetric pacing needs a `withSequence` of two
+   timings instead of a reversing repeat, so that form is used **only when the
+   two legs differ** — timer mode and `even` keep the exact reversing animation
+   they have today.
+   - **Naming:** the artifact calls 4-4 "box", but box breathing is four phases
+     with holds. A two-phase 4-4 is an *even* breath, and that is what the chip
+     says. Mislabelling a named practice is not a copy detail.
+4. **Indigo is the accent of the practice.** In breath mode the halos, the
+   progress ring and the ॐ take `pillar.mind`; gold stays for the completion,
+   exactly as elsewhere. Timer mode keeps its warm palette untouched.
+5. **Interval bell.** Optional, off by default, a chip on the Start screen: the
+   existing quiet chime on every 5-minute mark, fired from the countdown that
+   already ticks each second — one `if`, no scheduler. Offered in **both** modes
+   (the mechanism is mode-agnostic and a timed sit wants it just as much).
+   When on, the progress ring carries small gold dots at the marks.
+6. **Ambient dim.** The footer controls fade to near-transparent after ~6s and
+   any tap restores them (they stay tappable throughout, so nothing is ever
+   trapped). Opacity only, UI thread, gated on `useMotion`.
+7. **Remembered with the rest.** `medPrefs` grows `mode`, `bell` and `pace`, so
+   quick start resumes the practice you actually did last, and the hub's card
+   names it. Older saved prefs without these fields read as the defaults.
+8. **Logged identically.** The same `meditation` row, with `meta.mode` and
+   `meta.bell` added. Points, streak and the Mind ring see no difference.
+
+### Deviations from the artifact, and why
+
+- **The bell is not quieter.** The artifact asks for "the existing chime,
+  quieter", but `feedback.ts` has one shared volume per SFX player and its own
+  comment records that an earlier trim to 0.7 made chimes read as "no sound at
+  all" on device. Threading a per-call volume through a service every screen
+  uses is more blast radius than this slice earns, and guessing a quieter mix
+  risks an inaudible bell. It rings at the normal (already low-amplitude) chime;
+  a properly mixed softer asset is a content task, not a code one.
+- **Reduce-motion gets a plain swap, not a crossfade.** With `useMotion` false
+  the breath value never animates, so the phase is derived from the existing
+  one-second countdown instead (still no new timer) and the label simply
+  changes. A crossfade is itself motion; adding one for the users who asked for
+  less would be the wrong reading of the ask.
+
+### Files
+
+- `app/meditation/session.tsx` — `mode`/`bell`/`pace` params, phase labels,
+  indigo accent, the 5-minute bell, ambient dim, `meta.mode`/`meta.bell`.
+- `app/meditation/start.tsx` — pace chips (breath only) + bell chip; carries the
+  new params and saves them.
+- `app/(tabs)/meditation.tsx` — Breath row goes live; quick start carries the
+  remembered mode/bell/pace and the card names the practice.
+- `src/lib/medPrefs.ts` — `mode`, `bell`, `pace`, backward-compatible.
+- `src/lib/i18n.tsx` — phase terms + meanings, pace names, bell label (en + hi).
+
+### Health-claims guard
+
+Breath pacing is presented as **practice, not therapy**. Copy stays descriptive
+("paced breathing", "calm") and never claims a physiological or clinical effect
+— no heart-rate, blood-pressure, anxiety or sleep-disorder language anywhere in
+this slice. This is the standing rule, restated here because breathing is
+exactly the feature where wellness copy tends to drift into medical claims.
+
+### Edge cases
+
+- **A sit shorter than one bell interval** never rings; the bell must not fire
+  at 0 or at the completion instant, where the completion chime already rings.
+- **Pausing** freezes the countdown, so the bell cannot fire while paused, and
+  the breath animation is already cancelled on pause.
+- **Ending early** keeps the ≥3-minute rule; `meta.mode` is recorded either way.
+- **A `pace` or `mode` param that is not recognised** falls back to the default
+  rather than rendering an empty practice.
+
+### Acceptance checklist
+
+- [ ] Hub's Breath row opens the Start screen in breath mode; Timer row is
+      unchanged.
+- [ ] Breath session shows साँस भरो / साँस छोड़ो flipping with the ॐ, in indigo,
+      with the countdown and controls intact.
+- [ ] Pace chips change the rhythm; `even` and timer mode keep the existing
+      reversing animation.
+- [ ] Bell chip off by default; when on, a chime lands on each 5-minute mark and
+      never at 0 or at completion.
+- [ ] Footer dims after a few seconds and any tap restores it; reduce-motion and
+      web never dim.
+- [ ] Completion still logs ONE `meditation` row — now with `mode` and `bell` —
+      still shows the diya and the points delta, still honours ≥3 minutes.
+- [ ] Quick start resumes the last practice, including breath.
+- [ ] `typecheck` + `lint` green; verified in the web preview; `/code-review`
+      clean. No migration.

@@ -1,14 +1,25 @@
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, ScrollView, View } from "react-native";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { Screen, Card, Chip, Button, FooterAction, B, T, OmGlyph, BellIcon, MuteIcon, Check, color, pillar, space } from "../../src/ui";
 import { useI18n } from "../../src/lib/i18n";
 import { listMeditationSounds, type SoundWithMedia } from "../../src/lib/content";
 import { playLoop, stopAudio } from "../../src/lib/audio";
 import { audioSourceFor, resolvePlayable } from "../../src/lib/localAudio";
-import { DEFAULT_MINUTES, getMedPrefs, saveMedPrefs, SILENT } from "../../src/lib/medPrefs";
+import {
+  DEFAULT_MINUTES,
+  DEFAULT_PACE,
+  getMedPrefs,
+  saveMedPrefs,
+  SILENT,
+  type MedPace,
+} from "../../src/lib/medPrefs";
 
 const PRESETS = [5, 10, 15, 20, 30] as const;
+const PACES: { key: MedPace; k: "pace_calm" | "pace_even" }[] = [
+  { key: "calm", k: "pace_calm" },
+  { key: "even", k: "pace_even" },
+];
 
 /**
  * Start — sound and duration on ONE screen (UI9 slice C, plate 12: "three
@@ -23,10 +34,17 @@ const PRESETS = [5, 10, 15, 20, 30] as const;
 export default function MeditationStart() {
   const router = useRouter();
   const { t, loc, locSub } = useI18n();
+  // Which practice this screen is setting up (UI9 slice D). The hub's Breath
+  // row arrives here with mode=breath; anything else is the timer.
+  const { mode } = useLocalSearchParams<{ mode?: string }>();
+  const breathMode = mode === "breath";
+
   const [sounds, setSounds] = useState<SoundWithMedia[] | null>(null);
   const [error, setError] = useState(false);
   const [selected, setSelected] = useState<string>("");
   const [minutes, setMinutes] = useState<number>(DEFAULT_MINUTES);
+  const [bellOn, setBellOn] = useState(false);
+  const [pace, setPace] = useState<MedPace>(DEFAULT_PACE);
 
   useEffect(() => {
     let alive = true;
@@ -38,7 +56,11 @@ export default function MeditationStart() {
       .then(([prefs, rows]) => {
         if (!alive) return;
         setSounds(rows);
-        if (prefs) setMinutes(prefs.minutes);
+        if (prefs) {
+          setMinutes(prefs.minutes);
+          setBellOn(prefs.bell);
+          setPace(prefs.pace);
+        }
 
         const saved = prefs?.soundId;
         const pick = saved === SILENT ? null : resolvePlayable(rows, saved);
@@ -72,8 +94,18 @@ export default function MeditationStart() {
 
   function begin() {
     const sound = selected || SILENT;
-    void saveMedPrefs({ soundId: sound, minutes });
-    router.push({ pathname: "/meditation/session", params: { sound, min: String(minutes) } });
+    const practice = breathMode ? "breath" : "timer";
+    void saveMedPrefs({ soundId: sound, minutes, mode: practice, bell: bellOn, pace });
+    router.push({
+      pathname: "/meditation/session",
+      params: {
+        sound,
+        min: String(minutes),
+        mode: practice,
+        bell: bellOn ? "1" : "0",
+        ...(breathMode ? { pace } : {}),
+      },
+    });
   }
 
   const selectedStyle = { borderColor: pillar.mind, backgroundColor: pillar.mindWash };
@@ -162,6 +194,23 @@ export default function MeditationStart() {
                 />
               ))}
             </View>
+          </View>
+
+          {/* Breath practice only — the rhythm the ॐ will keep (slice D). */}
+          {breathMode ? (
+            <View style={{ marginTop: space.md }}>
+              <T variant="bodyBold">{t("pace_label")}</T>
+              <View style={{ flexDirection: "row", gap: space.sm, marginTop: space.sm, flexWrap: "wrap" }}>
+                {PACES.map((p) => (
+                  <Chip key={p.key} label={t(p.k)} active={pace === p.key} onPress={() => setPace(p.key)} />
+                ))}
+              </View>
+            </View>
+          ) : null}
+
+          {/* Off by default: a bell nobody asked for is an interruption. */}
+          <View style={{ marginTop: space.md }}>
+            <Chip label={t("bell_every_5")} active={bellOn} onPress={() => setBellOn((v) => !v)} />
           </View>
         </ScrollView>
       )}

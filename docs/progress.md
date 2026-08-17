@@ -3,6 +3,49 @@
 Running build log — one entry per shipped item, newest on top. This is the
 standup doc for the owner and the resume-from-home lifeline.
 
+- **2026-08-17 (last) — UI9 slice D: The breath, paced (redesign branch).**
+  Final app slice of the UI9 plan (artifact 4d5592bc, plate 13), and the one
+  that touches the app's most delicate animation file — which is why it went
+  last. The session now takes `mode`, so the hub's **Breath row goes live**:
+  the phase labels (**साँस भरो / साँस छोड़ो**, Devanagari kept per the scripture
+  rule, meaning underneath) read the **turn of the ॐ's existing shared value**
+  via `useAnimatedReaction` — no second timer, no new render loop. **Pace
+  presets** only change its timing config (`calm` 4–6, `even` 4–4), and the
+  asymmetric `withSequence` form is used *only* when the legs differ, so timer
+  mode and `even` keep the exact reversing animation they always ran. In breath
+  mode the halos, ring and ॐ take `pillar.mind`; gold stays for completion.
+  **Interval bell** (opt-in, off by default) rides the countdown that already
+  ticks — one `if`, no scheduler, idempotent per mark — and paints gold dots on
+  the ring where it will ring. **Ambient dim** settles the controls after ~6s,
+  any tap restores, and a paused session never dims. `medPrefs` grew
+  `mode`/`bell`/`pace` (old prefs read as defaults), so quick start resumes the
+  practice you actually did last and the hub's card names it. Logged as the same
+  `meditation` row with `meta.mode`/`meta.bell`/`meta.pace` — **points, streak
+  and the Mind ring see no difference**. No migration.
+  **Deviations from the artifact, both spec'd:** the bell is *not* quieter —
+  `feedback.ts` has one shared volume per player and its own comment records
+  that an earlier trim to 0.7 made chimes read as "no sound at all" on device,
+  so threading a per-call volume through a service every screen uses buys an
+  inaudible bell at more blast radius than this slice earns (a softer mixed
+  asset is a content task). And reduce-motion gets a plain label swap, not a
+  crossfade — a crossfade is itself motion. Also: the artifact calls 4-4 "box",
+  but box breathing is four phases with holds; the chip says **Even 4–4**,
+  because mislabelling a named practice is not a copy detail.
+  Verified in the preview: Breath row → Start screen with Pace + Bell chips
+  (Timer's has neither), breath session showing साँस भरो / "Breathe in · 4" with
+  the ring and ॐ both at `#8FA3E8` and five gold bell dots on a 30-min sit, the
+  label flipping on exactly 4/4 and then 4/6 when the pace changed, prefs
+  round-tripping `{mode, bell, pace}`, quick start naming the practice, pause →
+  resume, and **timer mode byte-identical in feel** (gold ring, gold ॐ, no
+  labels, no dots). **Not verifiable in the web preview and stated as such:**
+  the `useAnimatedReaction` path itself (web has `useMotion()` false, so the
+  reduce-motion countdown-derived fallback is what ran — the primary path is
+  device-only), the 5-minute bell ring (needs a 5-minute sit), the ambient dim
+  (motion off on web), and the completion meta (guests log nothing).
+  `/code-review` returned one finding, fixed: the dimmed controls did not wake
+  when *they* were tapped, so pausing left the Resume button ghosted at 16%
+  opacity — controls now wake on interaction and hold lit while paused. Spec:
+  docs/specs/meditation.md v3.
 - **2026-08-17 (later) — UI9 slice C: A home for the mind (redesign branch).**
   Third slice of the UI9 plan (artifact 4d5592bc, plates 11–12). The Mind tab —
   one glyph and one button opening a three-screen corridor, the emptiest room in
