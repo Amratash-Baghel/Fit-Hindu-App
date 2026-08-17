@@ -33,5 +33,32 @@ export function audioSourceFor(audio: AudioRef | null | undefined): number | str
   if (audio.provider === "local") {
     return audio.external_id ? LOCAL_AUDIO[audio.external_id] ?? null : null;
   }
+  // A placeholder row is a content-team stand-in whose URL is deliberately not
+  // real (the seed's `https://example.com/...`). Returning it handed the player
+  // a dead source and threw `NotSupportedError`; null is what this function has
+  // always documented and what callers already treat as "not playable"
+  // (app/(tabs)/sleep.tsx dims the row on exactly this check).
+  if (audio.provider === "placeholder") return null;
   return audio.playback_url ?? null;
+}
+
+/**
+ * The sound a screen should land on or auto-start: the preferred one when it is
+ * still published AND actually playable, else the first playable one, else null
+ * — a genuinely silent library, which is a real state, not an error.
+ *
+ * The playability step matters because "published" and "playable" are not the
+ * same thing: a placeholder row is published content the content team has not
+ * uploaded audio for yet. Landing on one would make "arriving is never silent"
+ * (docs/specs/meditation.md) quietly false, and would start a sit that names a
+ * sound and plays nothing.
+ */
+export function resolvePlayable<T extends { id: string; audio: AudioRef | null }>(
+  rows: readonly T[],
+  preferredId?: string | null,
+): T | null {
+  const playable = (r: T) => audioSourceFor(r.audio) != null;
+  const preferred = preferredId ? rows.find((r) => r.id === preferredId) : undefined;
+  if (preferred && playable(preferred)) return preferred;
+  return rows.find(playable) ?? null;
 }

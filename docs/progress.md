@@ -3,6 +3,44 @@
 Running build log — one entry per shipped item, newest on top. This is the
 standup doc for the owner and the resume-from-home lifeline.
 
+- **2026-08-17 (later) — UI9 slice C: A home for the mind (redesign branch).**
+  Third slice of the UI9 plan (artifact 4d5592bc, plates 11–12). The Mind tab —
+  one glyph and one button opening a three-screen corridor, the emptiest room in
+  the app for the pillar the redesign is named after — is now a **hub**: a
+  **quick start** that goes tab → session in one tap on the remembered sound and
+  duration, the **practices as first-class rows** (Timer live; Breath and Guided
+  honestly marked "soon" — Breath is slice D, Guided is Chapter 3), **your week**
+  as seven `pillar.mind` bars of real minutes, and the old instructions moved
+  into a **"How to meditate" fold** instead of a toll on every session. **Three
+  screens became one**: `sounds.tsx` + `setup.tsx` retired into
+  `app/meditation/start.tsx` (sound list with live preview + minute chips +
+  Begin). New `src/lib/medPrefs.ts` remembers `{soundId, minutes}` in
+  AsyncStorage (the `sleepRun.ts` pattern), written from both entry points;
+  new `fetchMeditationWeek()` beside the other progress reads (activity_log,
+  IST days, summed on device — no table, no RPC). The session screen, its
+  params contract, the ≥3-min generosity, the diya and the points delta are
+  **untouched**; no migration.
+  **Deliberate deviation:** the artifact put a bell-interval chip on the Start
+  screen, but the bell fires in slice D — shipping the chip now would ship a
+  control that does nothing, so slice D adds chip and behavior together.
+  Verified with a full click-through (this slice changes routes): quick start
+  → session counting from 15:00 with audio already playing, End → hub with the
+  card flipped to "Pick up where you left", Timer → the one Start screen,
+  Temple Bells + 30 min → session at 30:00 with prefs saved, and the fallback
+  chain exercised by hand (unpublished sound → first playable; `silent` →
+  Silent). typecheck + lint green. The **week strip's populated state could not
+  be verified** — it needs an authenticated user; the signed-out hidden state
+  was verified.
+  `/code-review` returned 4 findings, all fixed: `audioSourceFor` handed
+  placeholder rows their fake `example.com` URL and threw `NotSupportedError`
+  (it now returns null, as its own doc claimed and as `sleep.tsx` already
+  assumed) — so the fallback chain became `resolvePlayable()` over *playable*
+  sounds, and Start dims placeholder rows with a "soon" tag like the sleep list;
+  the quick-start card no longer claims "Silent" while the sound list is still
+  loading; the Start screen now preselects the remembered *sound*, not only the
+  minutes; and the sounds read retries on focus instead of stranding quick start
+  on silence after one failed query. Orphaned strings from the retired screens
+  (`start_meditation`, `next`) removed. Spec: docs/specs/meditation.md v2.
 - **2026-08-17 — UI9 slice B: Workout re-stacked (redesign branch).**
   Second slice of the UI9 plan (artifact 4d5592bc, plates 09–10). "A gym has a
   front desk, not a card catalogue at the door": the tab now opens on action —

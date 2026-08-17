@@ -117,6 +117,69 @@ export function useProgress(): UseProgress {
   };
 }
 
+/** Seven IST days of meditation, oldest first — the Mind hub's week strip. */
+export interface MeditationWeek {
+  /** Always 7 entries, including the days with nothing (the gaps are the point). */
+  days: { date: string; minutes: number }[];
+  totalMinutes: number;
+  longestMinutes: number;
+}
+
+const WEEK_DAYS = 7;
+
+/**
+ * Meditation minutes per IST day for the last week (docs/specs/meditation.md
+ * v2 — the hub's "Your week").
+ *
+ * Read from `activity_log` rather than `daily_activity`: that view knows which
+ * types happened on a day, not how long they lasted, and the strip is about
+ * minutes. The row count is bounded by a week of one user's own sits, so the
+ * summing happens on the device — this is not the "ship the whole history over
+ * 2G" case the file header warns about. RLS ("read own") is the boundary.
+ *
+ * `actual_min` is what the session actually ran (`set_min` is what was asked
+ * for), so an ended-early sit contributes what it earned, not what it planned.
+ */
+export async function fetchMeditationWeek(uid: string): Promise<MeditationWeek> {
+  const dates: string[] = [];
+  const now = new Date();
+  for (let i = WEEK_DAYS - 1; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    dates.push(d.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }));
+  }
+
+  const byDate = new Map<string, number>(dates.map((d) => [d, 0]));
+  // The longest SINGLE sit of the week, not the biggest day — two 10-minute
+  // sits are not a 20-minute one, and the line under the strip says "longest
+  // sit".
+  let longest = 0;
+
+  const { data, error } = await supabase
+    .from("activity_log")
+    .select("ist_date, meta")
+    .eq("user_id", uid)
+    .eq("activity_type", "meditation")
+    .gte("ist_date", dates[0]);
+
+  if (!error) {
+    for (const row of (data ?? []) as { ist_date: string; meta: Record<string, unknown> | null }[]) {
+      if (!byDate.has(row.ist_date)) continue; // a row stamped ahead of today
+      const raw = row.meta?.actual_min;
+      const mins = typeof raw === "number" && Number.isFinite(raw) ? Math.max(0, raw) : 0;
+      byDate.set(row.ist_date, (byDate.get(row.ist_date) ?? 0) + mins);
+      longest = Math.max(longest, mins);
+    }
+  }
+
+  const days = dates.map((date) => ({ date, minutes: Math.round(byDate.get(date) ?? 0) }));
+  return {
+    days,
+    totalMinutes: days.reduce((n, d) => n + d.minutes, 0),
+    longestMinutes: Math.round(longest),
+  };
+}
+
 /**
  * The last `days` IST dates, most recent LAST, each flagged with whether
  * anything was logged. Built here rather than in SQL because the gaps matter:

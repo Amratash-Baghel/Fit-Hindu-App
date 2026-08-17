@@ -478,14 +478,27 @@ export const strings = {
   saved_ok: { hi: "सहेजा गया ✓", en: "Saved ✓" },
   empty_workout_hint: { hi: "नीचे से व्यायाम जोड़ें", en: "Add exercises from below" },
 
-  // meditation flow (docs/specs/meditation.md — 3 clicks: Start → Next → Start)
-  start_meditation: { hi: "ध्यान शुरू करें", en: "Start Meditation" },
+  // meditation hub (UI9 slice C — docs/specs/meditation.md v2)
+  med_quick_title: { hi: "जहाँ छोड़ा था, वहीं से", en: "Pick up where you left" },
+  med_quick_title_new: { hi: "अपनी साधना शुरू करें", en: "Begin your practice" },
+  practices_title: { hi: "अभ्यास", en: "Practices" },
+  practice_timer: { hi: "टाइमर", en: "Timer" },
+  practice_timer_sub: { hi: "ध्वनि के साथ बैठें, या मौन में", en: "Sit with a sound, or in silence" },
+  practice_breath: { hi: "श्वास", en: "Breath" },
+  practice_breath_sub: { hi: "लयबद्ध श्वास — साँस भरो, साँस छोड़ो", en: "Paced breathing — साँस भरो, साँस छोड़ो" },
+  practice_guided: { hi: "निर्देशित", en: "Guided" },
+  practice_guided_sub: { hi: "एक स्वर के साथ, हमारी टीम से", en: "Led by a voice, from the content team" },
+  your_week: { hi: "आपका सप्ताह", en: "Your week" },
+  week_this_week: { hi: "इस सप्ताह", en: "this week" },
+  week_longest: { hi: "सबसे लंबा ध्यान", en: "longest sit" },
+
+  // meditation flow (docs/specs/meditation.md — the hub's quick start, or
+  // Start → Begin for a deliberate pick)
   med_tagline: { hi: "कुछ मिनट अपने लिए — श्वास, शांति, ॐ", en: "A few minutes for yourself — breath, calm, Om" },
   choose_sound: { hi: "ध्वनि चुनें", en: "Choose a sound" },
   sound_playing_hint: { hi: "ध्वनि बदलने के लिए टैप करें — अभी बज रही है", en: "Tap to switch — playing now" },
   silent_mode: { hi: "मौन", en: "Silent" },
   stop_sound: { hi: "ध्वनि रोकें", en: "Stop sound" },
-  next: { hi: "आगे", en: "Next" },
   how_to_meditate: { hi: "कैसे करें", en: "How to meditate" },
   med_instructions: {
     hi: "सीधे बैठें, आँखें बंद करें। धीरे-धीरे गहरी सांस लें और छोड़ें। मन भटके तो बिना झुंझलाहट के ध्यान वापस श्वास पर लाएं।",
