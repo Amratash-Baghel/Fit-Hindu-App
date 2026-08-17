@@ -1,25 +1,46 @@
-import React, { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, FlatList, View } from "react-native";
-import { useRouter } from "expo-router";
-import { Screen, Card, Chip, T, Button, AvatarTile, BodyModel, ChevronRight, DumbbellIcon, color, space, type MuscleArea } from "../../src/ui";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { ActivityIndicator, FlatList, ScrollView, View } from "react-native";
+import { useFocusEffect, useRouter } from "expo-router";
+import {
+  Screen,
+  Card,
+  Chip,
+  T,
+  Button,
+  AvatarTile,
+  BodyModel,
+  EmberCard,
+  ShelfCard,
+  PressableScale,
+  Reveal,
+  TextField,
+  Check,
+  ChevronRight,
+  DumbbellIcon,
+  PlayIcon,
+  pressScale,
+  color,
+  radius,
+  space,
+  type MuscleArea,
+} from "../../src/ui";
 import { useI18n, type StringKey } from "../../src/lib/i18n";
 import {
   listExercisesByMode,
-  listExercisesByArea,
   listWorkoutTemplates,
   listUserWorkouts,
   type ExerciseWithMedia,
   type WorkoutTemplateSummary,
   type UserWorkoutSummary,
 } from "../../src/lib/content";
+import { getInterruptedSession, type LocalSession } from "../../src/lib/session";
+import { usePillars } from "../../src/lib/pillars";
 import { posterUrl } from "../../src/lib/media";
 import type { WorkoutMode } from "../../src/types/db";
 
-type Tab = WorkoutMode | "custom";
-const MODES: { tab: Tab; k: StringKey }[] = [
-  { tab: "home", k: "mode_home" },
-  { tab: "gym", k: "mode_gym" },
-  { tab: "custom", k: "mode_custom" },
+const MODES: { mode: WorkoutMode; k: StringKey }[] = [
+  { mode: "home", k: "mode_home" },
+  { mode: "gym", k: "mode_gym" },
 ];
 const MUSCLES: { area: MuscleArea; k: StringKey }[] = [
   { area: "chest", k: "area_chest" },
@@ -36,85 +57,117 @@ const LEVEL_KEY: Record<string, StringKey> = {
 };
 
 /**
- * Workout tab. Structure (2026-07-14 owner feedback):
- *  - Home / Gym: composed WORKOUTS (admin Compose area) first, then the
- *    exercise library grid — the admin panel's output is the primary surface.
- *  - Custom: body-area picker over the same library.
+ * Workout tab, re-stacked (UI9 slice B — docs/specs/workout.md v3).
+ *
+ * "A gym has a front desk, not a card catalogue at the door." The screen opens
+ * on action — an open session resumes with one tap, then today's workout as an
+ * ember hero with the one gold Start — and folds browsing beneath it: the
+ * templates and My Workouts share one horizontal shelf, the muscle figure hides
+ * behind a filter row, and a search field answers whoever already knows the
+ * exercise's name.
+ *
+ * Custom is gone as a mode: it was only ever the library plus a filter, and the
+ * filter now lives in both modes. So area filtering is client-side over the
+ * loaded mode list (the path home/gym already used) — empty selection = full
+ * body, exactly as before. The fold changed the geometry, not the logic.
  */
 export default function Workout() {
   const { t } = useI18n();
-  const [tab, setTab] = useState<Tab>("home");
-  // Multi-select muscle filter (redesign): empty = no filter = full body.
+  const [mode, setMode] = useState<WorkoutMode>("home");
+  // Multi-select muscle filter: empty = no filter = full body.
   const [areas, setAreas] = useState<MuscleArea[]>([]);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [query, setQuery] = useState("");
   const [items, setItems] = useState<ExerciseWithMedia[]>([]);
   const [templates, setTemplates] = useState<WorkoutTemplateSummary[]>([]);
   const [mine, setMine] = useState<UserWorkoutSummary[] | null | undefined>(undefined);
+  // The mirror plus how old it was WHEN READ — the elapsed minutes are stamped
+  // in the effect, never computed during render (an impure clock read there
+  // makes the strip's label depend on which render it happened to land in).
+  const [resume, setResume] = useState<{ session: LocalSession; agoMins: number } | null>(null);
   const [status, setStatus] = useState<"loading" | "ok" | "error">("loading");
 
-  useEffect(() => {
-    // null = signed out (placeholder); undefined = still loading
-    listUserWorkouts()
-      .then(setMine)
-      .catch(() => setMine(null));
-  }, []);
+  // Today's done-state comes from the SAME day read that lights Home's rings —
+  // context, not a new query.
+  const { todayTypes } = usePillars();
+  const doneToday = todayTypes.includes("workout");
+
+  // Both of these are re-read on every focus, because coming back from a route
+  // is exactly when they change: the mirror (finished → strip gone) and the
+  // user's own workouts (just built one → it belongs on the shelf).
+  useFocusEffect(
+    useCallback(() => {
+      let alive = true;
+      getInterruptedSession()
+        .then((s) => {
+          if (!alive) return;
+          setResume(
+            s ? { session: s, agoMins: Math.max(0, Math.round((Date.now() - s.started_at_ms) / 60000)) } : null,
+          );
+        })
+        .catch(() => {
+          if (alive) setResume(null);
+        });
+      // null = signed out (placeholder); undefined = still loading
+      listUserWorkouts()
+        .then((w) => {
+          if (alive) setMine(w);
+        })
+        .catch(() => {
+          if (alive) setMine(null);
+        });
+      return () => {
+        alive = false;
+      };
+    }, []),
+  );
 
   const load = useCallback(async () => {
     setStatus("loading");
     try {
-      if (tab === "custom") {
-        setTemplates([]);
-        if (areas.length === 0) {
-          setItems(await listExercisesByArea("full_body"));
-        } else {
-          // Union of the selected muscle groups, deduped (an exercise can be
-          // tagged with several areas), selection order preserved.
-          const lists = await Promise.all(areas.map((a) => listExercisesByArea(a)));
-          const seen = new Set<string>();
-          setItems(
-            lists.flat().filter((e) => (seen.has(e.id) ? false : (seen.add(e.id), true))),
-          );
-        }
-      } else {
-        const [tpl, ex] = await Promise.all([listWorkoutTemplates(tab), listExercisesByMode(tab)]);
-        setTemplates(tpl);
-        setItems(ex);
-      }
+      const [tpl, ex] = await Promise.all([listWorkoutTemplates(mode), listExercisesByMode(mode)]);
+      setTemplates(tpl);
+      setItems(ex);
       setStatus("ok");
     } catch {
       setStatus("error");
     }
-    // The muscle filter only re-queries in custom mode; home/gym filter the
-    // already-loaded mode list client-side (see `shown`), so `areas` must not
-    // refetch there.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, tab === "custom" ? areas : null]);
+  }, [mode]);
 
   const toggleArea = (a: MuscleArea) =>
     setAreas((prev) => (prev.includes(a) ? prev.filter((x) => x !== a) : [...prev, a]));
 
-  // The muscle filter lives in EVERY mode now (owner ask 2026-08-14): custom
-  // queries by area server-side; home/gym narrow their own mode's list here.
-  // Empty selection = full body = no filter, exactly like the mockup.
-  const shown =
-    tab === "custom" || areas.length === 0
-      ? items
-      : items.filter((e) => e.body_areas?.some((a) => areas.includes(a as MuscleArea)));
+  // Both filters are client-side over the one loaded list, and they compose:
+  // muscle AND search.
+  const shown = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return items.filter((e) => {
+      const byArea = areas.length === 0 || e.body_areas?.some((a) => areas.includes(a as MuscleArea));
+      const byName =
+        q === "" ||
+        e.name_en.toLowerCase().includes(q) ||
+        e.name_hi.toLowerCase().includes(q);
+      return byArea && byName;
+    });
+  }, [items, areas, query]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: load() flips to "loading" then immediately suspends on the fetch; the reset on tab/area change is a one-shot transition, not a cascading render.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: load() flips to "loading" then immediately suspends on the fetch; the reset on mode change is a one-shot transition, not a cascading render.
     load();
   }, [load]);
 
+  // The hero takes the mode's first template; the rest go to the shelf. Once
+  // today's workout is logged the hero steps aside entirely and the shelf leads.
+  const hero = doneToday ? null : (templates[0] ?? null);
+  const shelfTemplates = hero ? templates.slice(1) : templates;
+
   return (
     <Screen scroll={false}>
-      <T variant="h1" style={{ marginTop: space.sm }}>
-        {t("tab_workout")}
-      </T>
-
-      <View style={{ flexDirection: "row", gap: space.sm, marginTop: space.md }}>
-        {MODES.map((m) => (
-          <Chip key={m.tab} label={t(m.k)} active={tab === m.tab} onPress={() => setTab(m.tab)} />
-        ))}
+      <View style={{ flexDirection: "row", alignItems: "center", gap: space.md, marginTop: space.sm }}>
+        <T variant="h1" style={{ flex: 1 }}>
+          {t("tab_workout")}
+        </T>
+        <ModeToggle value={mode} onPick={setMode} />
       </View>
 
       {status === "loading" ? (
@@ -133,20 +186,24 @@ export default function Workout() {
           items={shown}
           header={
             <View>
-              {/* Premade workouts still lead (plan: "the body you train");
-                  the muscle filter is the make-your-own path beneath them —
-                  but it lives in EVERY mode, not only Custom. */}
-              {tab !== "custom" && templates.length > 0 ? (
-                <TemplatesSection templates={templates} />
-              ) : null}
-              {tab !== "custom" ? <MyWorkoutsSection mine={mine} /> : null}
+              {/* Action first: the session you left open, then today's workout. */}
+              <ResumeStrip resume={resume} templates={templates} mine={mine} exercises={items} />
+              {hero ? <TodayHero template={hero} /> : null}
+              {doneToday ? <DoneNote /> : null}
 
-              <MusclePicker
+              <WorkoutShelf templates={shelfTemplates} mine={mine} />
+
+              <FilterRow
                 areas={areas}
+                open={filterOpen}
+                onToggleOpen={() => setFilterOpen((v) => !v)}
                 onToggle={toggleArea}
                 onClear={() => setAreas([])}
-                topGap={tab === "custom" ? space.md : space.lg}
               />
+
+              <View style={{ marginTop: space.md }}>
+                <TextField value={query} onChangeText={setQuery} placeholder={t("search_exercises")} />
+              </View>
 
               {shown.length > 0 ? (
                 <T variant="eyebrow" tone="gold" style={{ marginTop: space.lg, marginBottom: space.xs }}>
@@ -165,152 +222,306 @@ function Center({ children }: { children: React.ReactNode }) {
   return <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: space.md }}>{children}</View>;
 }
 
-/**
- * The muscle filter — front + back figure over labelled chips, shown in every
- * mode (redesign: "let people point at the muscle, not read a word for it").
- * The figure is the delight; the chips are the accessible tap targets for the
- * same filter. Empty selection = full body.
- */
-function MusclePicker({
-  areas,
-  onToggle,
-  onClear,
-  topGap,
-}: {
-  areas: MuscleArea[];
-  onToggle: (a: MuscleArea) => void;
-  onClear: () => void;
-  topGap: number;
-}) {
+/** Home / Gym as one segmented control in the header row — the first scroll
+ *  belongs to action, not to mode chips. */
+function ModeToggle({ value, onPick }: { value: WorkoutMode; onPick: (m: WorkoutMode) => void }) {
   const { t } = useI18n();
   return (
-    <View style={{ marginTop: topGap }}>
-      <T variant="eyebrow" tone="gold">
-        {t("muscle_pick")}
-      </T>
-      <T variant="caption" tone="muted" style={{ marginBottom: space.md }}>
-        {t("muscle_pick_hint")}
-      </T>
-      <BodyModel selected={areas} onToggle={onToggle} />
-      <View
-        style={{
-          flexDirection: "row",
-          flexWrap: "wrap",
-          gap: space.sm,
-          marginTop: space.md,
-        }}
-      >
-        <Chip label={t("muscle_clear")} active={areas.length === 0} onPress={onClear} />
-        {MUSCLES.map((m) => (
-          <Chip
-            key={m.area}
-            label={t(m.k)}
-            active={areas.includes(m.area)}
-            onPress={() => onToggle(m.area)}
-          />
-        ))}
-      </View>
-    </View>
-  );
-}
-
-/** My Workouts (F&B "add your own"). Own-row RLS, so it needs a session. */
-function MyWorkoutsSection({ mine }: { mine: UserWorkoutSummary[] | null | undefined }) {
-  const router = useRouter();
-  const { t } = useI18n();
-  if (mine === undefined) return null; // still loading — keep the header calm
-
-  return (
-    <View style={{ marginTop: space.lg, gap: space.sm }}>
-      <T variant="eyebrow" tone="gold">
-        {t("my_workouts")}
-      </T>
-      {mine === null ? (
-        // Signed out — the one place the app asks for an account, and it asks
-        // by offering the feature rather than blocking the tab.
-        <Card onPress={() => router.push("/auth")} style={{ paddingVertical: space.md }}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: space.md }}>
-            <T variant="caption" tone="saffron" style={{ flex: 1 }}>
-              {t("my_workouts_signin")}
-            </T>
-            <ChevronRight />
-          </View>
-        </Card>
-      ) : (
-        <>
-          {mine.map((w) => (
-            <Card key={w.id} onPress={() => router.push(`/workout/my/${w.id}`)} style={{ paddingVertical: space.md }}>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: space.md }}>
-                <View style={{ flex: 1 }}>
-                  <T variant="bodyBold">{w.name}</T>
-                  <T variant="caption" tone="muted">
-                    {w.exercise_count} {t("exercises_word")}
-                  </T>
-                </View>
-                <ChevronRight />
-              </View>
-            </Card>
-          ))}
-          <Card onPress={() => router.push("/workout/my/new")} style={{ paddingVertical: space.md }}>
-            <T variant="bodyBold" tone="saffron">
-              + {t("new_workout")}
-            </T>
-          </Card>
-        </>
-      )}
-    </View>
-  );
-}
-
-/** Composed workouts — full-width premium rows above the library. */
-function TemplatesSection({ templates }: { templates: WorkoutTemplateSummary[] }) {
-  const router = useRouter();
-  const { t, loc, locSub } = useI18n();
-  return (
-    <View style={{ marginTop: space.lg, gap: space.sm }}>
-      <T variant="eyebrow" tone="gold">
-        {t("workouts_section")}
-      </T>
-      {templates.map((tpl) => {
-        const sub = locSub(tpl.name_hi, tpl.name_en);
-        const meta = [
-          tpl.est_minutes ? `${tpl.est_minutes} ${t("minutes_short")}` : null,
-          `${tpl.exercise_count} ${t("exercises_word")}`,
-          t(LEVEL_KEY[tpl.level]),
-        ]
-          .filter(Boolean)
-          .join(" · ");
+    <View
+      style={{
+        flexDirection: "row",
+        gap: space.xs,
+        padding: space.xs,
+        borderRadius: radius.chip,
+        borderWidth: 1,
+        borderColor: color.line,
+        backgroundColor: color.surface,
+      }}
+    >
+      {MODES.map((m) => {
+        const active = value === m.mode;
         return (
-          <Card key={tpl.id} onPress={() => router.push(`/workout/template/${tpl.id}`)} style={{ paddingVertical: space.md }}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: space.md }}>
-              <View
-                style={{
-                  width: 46,
-                  height: 46,
-                  borderRadius: 13,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  backgroundColor: "rgba(240,118,30,0.13)",
-                }}
-              >
-                <DumbbellIcon color={color.saffron} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <T variant="bodyBold">{loc(tpl.name_hi, tpl.name_en)}</T>
-                {sub ? (
-                  <T variant="caption" tone="muted">
-                    {sub}
-                  </T>
-                ) : null}
-                <T variant="caption" tone="muted" style={{ marginTop: 2 }}>
-                  {meta}
-                </T>
-              </View>
-              <ChevronRight />
+          <PressableScale key={m.mode} onPress={() => onPick(m.mode)} haptic="select" scaleTo={pressScale.button}>
+            <View
+              style={{
+                paddingVertical: space.xs,
+                paddingHorizontal: space.md,
+                borderRadius: radius.chip,
+                backgroundColor: active ? color.saffronWash : "transparent",
+                borderWidth: 1,
+                borderColor: active ? color.saffron : "transparent",
+              }}
+            >
+              <T variant="caption" tone={active ? "saffron" : "muted"} style={active ? { fontWeight: "700" } : undefined}>
+                {t(m.k)}
+              </T>
             </View>
-          </Card>
+          </PressableScale>
         );
       })}
+    </View>
+  );
+}
+
+/**
+ * The session left open, surfaced (plate 09). `session.ts` has mirrored every
+ * set to disk since v2 for crash recovery — it just had no surface.
+ *
+ * What this catches: the player was left mid-workout while the app kept
+ * running. After an app kill, `reconcile()` closes that session out at launch
+ * and the mirror is empty — that training is already banked, so there is
+ * nothing to continue. Hence "Continue", never "recovered".
+ */
+function ResumeStrip({
+  resume,
+  templates,
+  mine,
+  exercises,
+}: {
+  resume: { session: LocalSession; agoMins: number } | null;
+  templates: WorkoutTemplateSummary[];
+  mine: UserWorkoutSummary[] | null | undefined;
+  exercises: ExerciseWithMedia[];
+}) {
+  const router = useRouter();
+  const { t, loc } = useI18n();
+  const ref = resume?.session.source_ref_id;
+  if (!resume || !ref) return null; // nothing to route back into
+  const session = resume.session;
+
+  // Resolve the name from what is already loaded — a strip label is never worth
+  // a query. Started in the other mode, or since unpublished? Say so plainly.
+  const tpl = templates.find((x) => x.id === ref);
+  const ex = exercises.find((x) => x.id === ref);
+  const name =
+    session.source === "template"
+      ? tpl && loc(tpl.name_hi, tpl.name_en)
+      : session.source === "custom"
+        ? mine?.find((w) => w.id === ref)?.name
+        : ex && loc(ex.name_hi, ex.name_en);
+
+  const mins = resume.agoMins;
+  const ago = mins < 60 ? `${mins} ${t("time_ago_m")}` : `${Math.round(mins / 60)} ${t("time_ago_h")}`;
+  const meta = `${session.sets.length} ${t("sets_logged")} · ${ago}`;
+
+  // Back into the same workout, by the source the mirror recorded.
+  const params =
+    session.source === "template"
+      ? { template: ref }
+      : session.source === "custom"
+        ? { custom: ref }
+        : { exercise: ref };
+
+  return (
+    <Card
+      onPress={() => router.push({ pathname: "/workout/session", params })}
+      style={{ marginTop: space.md, paddingVertical: space.md, borderColor: color.saffron }}
+    >
+      <View style={{ flexDirection: "row", alignItems: "center", gap: space.md }}>
+        <View style={{ width: 3, alignSelf: "stretch", borderRadius: 3, backgroundColor: color.saffron }} />
+        <View style={{ flex: 1 }}>
+          <T variant="bodyBold" tone="saffron">
+            {t("resume_workout")} — {name ?? t("resume_generic")}
+          </T>
+          <T variant="caption" tone="muted" style={{ marginTop: 2 }}>
+            {meta}
+          </T>
+        </View>
+        <PlayIcon size={16} color={color.saffron} />
+      </View>
+    </Card>
+  );
+}
+
+/** Today's workout — the mode's first template in the ember material, carrying
+ *  the screen's one gold action. */
+function TodayHero({ template }: { template: WorkoutTemplateSummary }) {
+  const router = useRouter();
+  const { t, loc } = useI18n();
+  const meta = [
+    template.est_minutes ? `${template.est_minutes} ${t("minutes_short")}` : null,
+    `${template.exercise_count} ${t("exercises_word")}`,
+    t(LEVEL_KEY[template.level]),
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  return (
+    <Reveal lift>
+      <EmberCard watermark sheen style={{ marginTop: space.md }}>
+        <T variant="eyebrow" tone="gold">
+          {t("workout_today")}
+        </T>
+        <T variant="h2" style={{ marginTop: space.xs }}>
+          {loc(template.name_hi, template.name_en)}
+        </T>
+        <T variant="caption" tone="muted" style={{ marginTop: 2 }}>
+          {meta}
+        </T>
+        <View style={{ flexDirection: "row", marginTop: space.md }}>
+          <Button
+            k="start_workout"
+            burst
+            onPress={() => router.push({ pathname: "/workout/session", params: { template: template.id } })}
+          />
+        </View>
+      </EmberCard>
+    </Reveal>
+  );
+}
+
+/** Once today's workout is logged the hero steps aside for a quiet line. */
+function DoneNote() {
+  const { t } = useI18n();
+  return (
+    <Card style={{ marginTop: space.md, paddingVertical: space.md }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: space.sm }}>
+        <Check size={18} color={color.gold} />
+        <T variant="bodyBold" tone="gold">
+          {t("workout_done_today")}
+        </T>
+      </View>
+    </Card>
+  );
+}
+
+/**
+ * One shelf for everything you can start: the mode's composed workouts, the
+ * user's own, and the card that builds a new one. Three stacked text sections
+ * became one swipeable row.
+ */
+function WorkoutShelf({
+  templates,
+  mine,
+}: {
+  templates: WorkoutTemplateSummary[];
+  mine: UserWorkoutSummary[] | null | undefined;
+}) {
+  const router = useRouter();
+  const { t, loc } = useI18n();
+
+  return (
+    <View style={{ marginTop: space.lg }}>
+      <T variant="eyebrow" tone="gold" style={{ marginBottom: space.sm }}>
+        {t("workouts_section")}
+      </T>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ gap: space.sm, paddingRight: space.md }}
+      >
+        {templates.map((tpl) => (
+          <ShelfCard
+            key={tpl.id}
+            icon={<DumbbellIcon size={18} color={color.saffron} />}
+            title={loc(tpl.name_hi, tpl.name_en)}
+            meta={[
+              tpl.est_minutes ? `${tpl.est_minutes} ${t("minutes_short")}` : null,
+              `${tpl.exercise_count} ${t("exercises_word")}`,
+              t(LEVEL_KEY[tpl.level]),
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+            onPress={() => router.push(`/workout/template/${tpl.id}`)}
+          />
+        ))}
+
+        {(mine ?? []).map((w) => (
+          <ShelfCard
+            key={w.id}
+            icon={<DumbbellIcon size={18} color={color.gold} />}
+            title={w.name}
+            meta={`${w.exercise_count} ${t("exercises_word")}`}
+            onPress={() => router.push(`/workout/my/${w.id}`)}
+          />
+        ))}
+
+        {/* Signed out, the last card still OFFERS the feature rather than
+            blocking the tab — the one place the app asks for an account. */}
+        {mine === undefined ? null : mine === null ? (
+          <ShelfCard
+            icon={<ChevronRight size={18} color={color.saffron} />}
+            title={t("my_workouts")}
+            meta={t("my_workouts_signin")}
+            onPress={() => router.push("/auth")}
+          />
+        ) : (
+          <ShelfCard
+            icon={<T variant="bodyBold" tone="saffron">+</T>}
+            title={t("new_workout")}
+            meta={t("new_workout_sub")}
+            onPress={() => router.push("/workout/my/new")}
+          />
+        )}
+      </ScrollView>
+    </View>
+  );
+}
+
+/**
+ * The muscle filter, folded (plate 10). The two-figure `BodyModel` is the best
+ * moment on this screen the first time and a toll-booth every time after, so it
+ * lives behind this row: closed, it shows what is selected; open, it is the
+ * unchanged figure + chips. Empty selection = full body.
+ */
+function FilterRow({
+  areas,
+  open,
+  onToggleOpen,
+  onToggle,
+  onClear,
+}: {
+  areas: MuscleArea[];
+  open: boolean;
+  onToggleOpen: () => void;
+  onToggle: (a: MuscleArea) => void;
+  onClear: () => void;
+}) {
+  const { t } = useI18n();
+  const selectedLabel =
+    areas.length === 0
+      ? t("muscle_clear")
+      : MUSCLES.filter((m) => areas.includes(m.area))
+          .map((m) => t(m.k))
+          .join(" · ");
+
+  return (
+    <View style={{ marginTop: space.lg }}>
+      <Card onPress={onToggleOpen} haptic="select" style={{ paddingVertical: space.md }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: space.sm }}>
+          <T variant="bodyBold" style={{ flex: 1 }}>
+            {t("filter_muscle")}
+          </T>
+          <T variant="caption" tone={areas.length ? "saffron" : "muted"} numberOfLines={1} style={{ maxWidth: 150 }}>
+            {selectedLabel}
+          </T>
+          <View style={{ transform: [{ rotate: open ? "90deg" : "0deg" }] }}>
+            <ChevronRight size={18} color={color.muted} />
+          </View>
+        </View>
+      </Card>
+
+      {open ? (
+        <Reveal>
+          <View style={{ marginTop: space.md }}>
+            <T variant="caption" tone="muted" style={{ marginBottom: space.md }}>
+              {t("muscle_pick_hint")}
+            </T>
+            <BodyModel selected={areas} onToggle={onToggle} />
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.sm, marginTop: space.md }}>
+              <Chip label={t("muscle_clear")} active={areas.length === 0} onPress={onClear} />
+              {MUSCLES.map((m) => (
+                <Chip
+                  key={m.area}
+                  label={t(m.k)}
+                  active={areas.includes(m.area)}
+                  onPress={() => onToggle(m.area)}
+                />
+              ))}
+            </View>
+          </View>
+        </Reveal>
+      ) : null}
     </View>
   );
 }
@@ -328,6 +539,7 @@ function ExerciseGrid({ items, header }: { items: ExerciseWithMedia[]; header: R
       columnWrapperStyle={{ gap: space.md }}
       contentContainerStyle={{ gap: space.md, paddingBottom: space.xl }}
       showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
       ListHeaderComponent={header}
       ListEmptyComponent={
         <View style={{ alignItems: "center", padding: space.xl }}>

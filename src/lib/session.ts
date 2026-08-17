@@ -313,6 +313,16 @@ export async function startSession(src: SessionSource): Promise<LocalSession | n
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
+  // Close out a session the user left open before this one takes the mirror.
+  // Without this, the old session's row stays `active` forever — `reconcile`
+  // reads the mirror, which is about to be overwritten, so nothing would ever
+  // close it — and every progress aggregate filters status = 'completed', so
+  // its sets would be training that is on the server and invisible. The resume
+  // strip (docs/specs/workout.md v3) makes re-entry a one-tap path, which is
+  // what turns this from a rare leak into a real one.
+  const stale = await readLocal();
+  if (stale && !stale.finished) await closeOutLocal(stale);
+
   const { program_id, plan_id } = await activePlan();
   const local: LocalSession = {
     id: uuidv4(),
@@ -450,6 +460,48 @@ function enqueueActivity(local: LocalSession, minutes: number, recovered: boolea
 }
 
 /**
+ * The session in progress, if the user left the player without finishing it —
+ * the read behind the workout tab's resume strip (docs/specs/workout.md v3).
+ *
+ * Read-only: it never mutates the mirror or the queue. Note what it can and
+ * cannot see — `reconcile()` runs at launch and closes out + clears any
+ * unfinished mirror, so this returns null after an app kill (that session was
+ * already banked). What it does catch is the live case the strip is for: the
+ * player was left mid-workout and the app is still running.
+ */
+export async function getInterruptedSession(): Promise<LocalSession | null> {
+  // Never read across the launch clean-up. Without this the read races
+  // `reconcile()` (child effects run before the root layout's), so deep-linking
+  // straight into the workout tab could surface a strip for a session that is
+  // being closed out in the same tick — one tap and the user would redo a
+  // workout the app had already banked.
+  if (reconciling) await reconciling;
+  const local = await readLocal();
+  return local && !local.finished ? local : null;
+}
+
+/**
+ * Queue the close-out of an unfinished session. Shared by `reconcile` (launch)
+ * and `startSession` (a new session taking the mirror) so the rules below exist
+ * in exactly one place.
+ *
+ * Enqueues only — the caller owns what happens to the mirror afterwards.
+ */
+async function closeOutLocal(local: LocalSession): Promise<void> {
+  const trained = local.sets.length > 0;
+  await enqueue({
+    kind: "finish",
+    session_id: local.id,
+    status: trained ? "completed" : "abandoned",
+    completed_at: new Date().toISOString(),
+  });
+  if (trained && local.ist_date === istToday()) {
+    const minutes = Math.max(1, Math.round((Date.now() - local.started_at_ms) / 60000));
+    await enqueueActivity(local, minutes, true);
+  }
+}
+
+/**
  * Called once at app launch. Flushes anything the last run could not deliver
  * and closes out a session the user never finished.
  *
@@ -466,21 +518,20 @@ function enqueueActivity(local: LocalSession, minutes: number, recovered: boolea
  * killed overnight keeps its sets and its minutes but does not resurrect a
  * broken streak — the sets are history, the streak is a promise about days.
  */
-export async function reconcile(): Promise<void> {
+export function reconcile(): Promise<void> {
+  reconciling = runReconcile();
+  return reconciling;
+}
+
+/** The in-flight launch reconcile — see `getInterruptedSession`. Stays resolved
+ *  afterwards, so later readers await an already-settled promise. */
+let reconciling: Promise<void> | null = null;
+
+async function runReconcile(): Promise<void> {
   const local = await readLocal();
 
   if (local && !local.finished) {
-    const trained = local.sets.length > 0;
-    await enqueue({
-      kind: "finish",
-      session_id: local.id,
-      status: trained ? "completed" : "abandoned",
-      completed_at: new Date().toISOString(),
-    });
-    if (trained && local.ist_date === istToday()) {
-      const minutes = Math.max(1, Math.round((Date.now() - local.started_at_ms) / 60000));
-      await enqueueActivity(local, minutes, true);
-    }
+    await closeOutLocal(local);
     await writeLocal(null);
   }
 

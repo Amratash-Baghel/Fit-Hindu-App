@@ -5,6 +5,7 @@ export { Button, FooterAction } from "./Button";
 export { PressableScale } from "./PressableScale";
 export { Card, Chip } from "./Card";
 export { EmberCard } from "./EmberCard";
+export { ShelfCard, SHELF_CARD_WIDTH } from "./ShelfCard";
 export { IconSlot } from "./IconSlot";
 export { Shimmer } from "./Shimmer";
 export { AnimatedNumber } from "./AnimatedNumber";

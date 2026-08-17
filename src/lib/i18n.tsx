@@ -116,7 +116,6 @@ export const strings = {
   tile_alarm: { hi: "भजन अलार्म", en: "Bhajan alarm" },
 
   // workout — muscle model filter
-  muscle_pick: { hi: "मांसपेशियाँ चुनें", en: "Tap muscles to filter" },
   muscle_pick_hint: { hi: "एक से ज़्यादा चुन सकते हैं", en: "Select one or more" },
   muscle_clear: { hi: "पूरा शरीर", en: "Full body" },
   model_front: { hi: "सामने", en: "Front" },
@@ -129,12 +128,12 @@ export const strings = {
   retry: { hi: "फिर से कोशिश करें", en: "Retry" },
   loading: { hi: "लोड हो रहा है…", en: "Loading…" },
 
-  // workout modes
+  // workout modes (Custom retired in UI9 slice B — the muscle filter lives in
+  // both modes now, so there is no third mode to name)
   mode_home: { hi: "घर पर", en: "Home" },
   mode_gym: { hi: "जिम", en: "Gym" },
-  mode_custom: { hi: "अपनी पसंद", en: "Custom" },
 
-  // body areas (custom mode)
+  // body areas (the muscle filter)
   area_full_body: { hi: "पूरा शरीर", en: "Full body" },
   area_chest: { hi: "छाती", en: "Chest" },
   area_back: { hi: "पीठ", en: "Back" },
@@ -423,6 +422,18 @@ export const strings = {
   workouts_section: { hi: "वर्कआउट", en: "Workouts" },
   all_exercises: { hi: "सभी व्यायाम", en: "All exercises" },
   exercises_word: { hi: "व्यायाम", en: "exercises" },
+
+  // workout re-stack (UI9 slice B, docs/specs/workout.md v3)
+  workout_today: { hi: "आज का वर्कआउट", en: "Today's workout" },
+  workout_done_today: { hi: "आज का वर्कआउट पूरा हुआ", en: "Today's workout is done" },
+  resume_workout: { hi: "जारी रखें", en: "Continue" },
+  resume_generic: { hi: "वर्कआउट चल रहा है", en: "Workout in progress" },
+  sets_logged: { hi: "सेट दर्ज", en: "sets logged" },
+  search_exercises: { hi: "व्यायाम खोजें…", en: "Search exercises…" },
+  filter_muscle: { hi: "मांसपेशी से छाँटें", en: "Filter by muscle" },
+  new_workout_sub: { hi: "अपना बनाएँ", en: "Build your own" },
+  time_ago_m: { hi: "मिनट पहले", en: "min ago" },
+  time_ago_h: { hi: "घंटे पहले", en: "h ago" },
 
   // tile meta rows (redesign "tiles that speak") — the "what's inside" stats.
   // Numbers come from content counts at the call site; these are the words.

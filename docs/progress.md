@@ -3,6 +3,44 @@
 Running build log — one entry per shipped item, newest on top. This is the
 standup doc for the owner and the resume-from-home lifeline.
 
+- **2026-08-17 — UI9 slice B: Workout re-stacked (redesign branch).**
+  Second slice of the UI9 plan (artifact 4d5592bc, plates 09–10). "A gym has a
+  front desk, not a card catalogue at the door": the tab now opens on action —
+  a **resume strip** for a session left open, then **today's workout** as an
+  ember hero with the one gold Start — and folds browsing beneath it. Templates
+  and My Workouts collapsed into one horizontal **shelf** of `ShelfCard`s
+  (new `src/ui` primitive) ending in "+ New workout"; the two-figure
+  `BodyModel` moved behind a **"Filter by muscle" fold** that shows its
+  selection as chips when closed; a **search field** filters the loaded list on
+  Hindi + English names, composing with the muscle filter. **Custom retired as
+  a mode** — it was only ever the library plus a filter, and the filter now
+  lives in both modes, so area filtering is the client-side path home/gym
+  already used (empty = full body, unchanged semantics). Mode chips became a
+  Home/Gym toggle in the header row.
+  **The one machinery change:** `startSession()` now closes out an unfinished
+  mirror before taking it, via a `closeOutLocal()` extracted from `reconcile`
+  so both share one set of rules. Without it the resume strip would turn a rare
+  leak into a one-tap path: the superseded session's row stayed `active`
+  forever and its sets — real training — were excluded from every aggregate.
+  `getInterruptedSession()` awaits the in-flight `reconcile()` so a deep link
+  into the tab can't surface a strip for a session being closed out in the same
+  tick. Session player, detail routes and all content queries untouched; no
+  migration. Spec: docs/specs/workout.md v3.
+  Verified in the web preview against real Supabase: hero + shelf + fold +
+  search render, muscle filter narrows to 5 chest exercises and composes with
+  search ("dumbbell" → 2), Gym re-queries, and the resume strip renders
+  "Continue — Full Body — Beginner / 3 sets logged · 42 min ago" from a seeded
+  mirror (it cannot be produced by a signed-out preview otherwise). Seeding it
+  also confirmed the launch path end-to-end: `reconcile` closed the session out
+  as `completed` + one `recovered` activity row. typecheck + lint green; only
+  console errors are the pre-existing react-native-web responder warnings
+  (present on untouched tabs too). `/code-review` returned 4 findings — the
+  stale My-Workouts list (now refreshed on focus) and two orphaned strings
+  (`mode_custom`, `muscle_pick`, removed) fixed; the fourth is a **deliberate
+  trade-off**: resuming and finishing writes two `workout` activity rows for
+  one interrupted session, because suppressing the first would drop streak
+  credit for real sets whenever the resumed session is itself abandoned empty.
+  Streak and points are unaffected (streak counts days, points are daily-capped).
 - **2026-08-14 (night) — UI9 slice A: Sleep re-materialized (redesign branch).**
   First slice of the UI9 plan (artifact 4d5592bc, plate 14). Visual + one-behavior
   pass on the sleep tab: saffron → `pillar.mind` indigo everywhere (playing border,
