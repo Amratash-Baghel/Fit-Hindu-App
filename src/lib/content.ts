@@ -212,14 +212,37 @@ export interface WorkoutTemplateSummary {
   exercise_count: number;
 }
 
+/**
+ * `sort` (migration 0021) lets the content team order templates — and so pick
+ * the workout tab's "Today's workout" hero — without a release. Migrations are
+ * applied by hand, so a build can meet a database where 0021 hasn't run: the
+ * first "column does not exist" answer flips this off for the session and the
+ * query falls back to the name_en order the tab shipped with. Nothing else
+ * changes, so an un-migrated database is degraded, not broken.
+ */
+let templatesHaveSort = true;
+
+function isUndefinedColumn(error: { code?: string; message?: string }): boolean {
+  return error.code === "42703" || /column .* does not exist/i.test(error.message ?? "");
+}
+
 /** Published composed workouts for a mode — the admin Compose area's output. */
 export async function listWorkoutTemplates(mode: WorkoutMode): Promise<WorkoutTemplateSummary[]> {
-  const { data, error } = await supabase
-    .from("workout_templates")
-    .select("id, name_hi, name_en, mode, level, est_minutes, items:workout_template_exercises(position)")
-    .eq("status", "published")
-    .eq("mode", mode)
-    .order("name_en");
+  const run = (withSort: boolean) => {
+    const q = supabase
+      .from("workout_templates")
+      .select("id, name_hi, name_en, mode, level, est_minutes, items:workout_template_exercises(position)")
+      .eq("status", "published")
+      .eq("mode", mode);
+    // Lowest sort leads; equal sorts stay alphabetical, so the order is total.
+    return withSort ? q.order("sort").order("name_en") : q.order("name_en");
+  };
+
+  let { data, error } = await run(templatesHaveSort);
+  if (error && templatesHaveSort && isUndefinedColumn(error)) {
+    templatesHaveSort = false;
+    ({ data, error } = await run(false));
+  }
   if (error) throw error;
   return (data ?? []).map((t) => ({
     id: t.id,

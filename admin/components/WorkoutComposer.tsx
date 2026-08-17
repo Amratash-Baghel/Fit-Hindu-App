@@ -56,6 +56,10 @@ export function WorkoutComposer({
     mode: template.mode,
     level: template.level,
     est_minutes: template.est_minutes,
+    // migration 0021's default, also the value an un-migrated row reads as.
+    // Nullable while editing (an emptied field must not snap back mid-edit);
+    // the column is NOT NULL, so save writes the default for a blank field.
+    sort: (template.sort ?? 100) as number | null,
   });
   const [items, setItems] = useState<Item[]>(
     dbItems.map((i) => ({
@@ -95,7 +99,10 @@ export function WorkoutComposer({
     setMsg(null);
     const supabase = supabaseBrowser();
 
-    const { error: metaErr } = await supabase.from("workout_templates").update(meta).eq("id", template.id);
+    const { error: metaErr } = await supabase
+      .from("workout_templates")
+      .update({ ...meta, sort: meta.sort ?? 100 })
+      .eq("id", template.id);
     if (metaErr) {
       setBusy(false);
       setMsg(metaErr.message);
@@ -148,7 +155,7 @@ export function WorkoutComposer({
             <input className="field" value={meta.name_hi} onChange={(e) => setMeta({ ...meta, name_hi: e.target.value })} />
           </div>
         </div>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-4 gap-4">
           <div>
             <label className="lbl">Mode</label>
             <select className="field" value={meta.mode} onChange={(e) => setMeta({ ...meta, mode: e.target.value as WorkoutMode })}>
@@ -173,6 +180,18 @@ export function WorkoutComposer({
               value={num(meta.est_minutes)}
               onChange={(e) => setMeta({ ...meta, est_minutes: e.target.value === "" ? null : Number(e.target.value) })}
             />
+          </div>
+          <div>
+            <label className="lbl">Sort</label>
+            <input
+              type="number"
+              className="field"
+              value={num(meta.sort)}
+              onChange={(e) => setMeta({ ...meta, sort: e.target.value === "" ? null : Number(e.target.value) })}
+            />
+            <p className="mt-1 text-xs" style={{ color: "var(--muted)" }}>
+              Lowest first. The lowest published workout of a mode is the app&apos;s “Today&apos;s workout”.
+            </p>
           </div>
         </div>
       </div>

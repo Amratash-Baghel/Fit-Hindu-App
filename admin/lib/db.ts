@@ -153,6 +153,8 @@ export interface WorkoutTemplate {
   mode: WorkoutMode;
   level: Level;
   est_minutes: number | null;
+  /** content-team order; lowest first, ties broken by name_en (migration 0021) */
+  sort: number;
   status: ContentStatus;
   created_at: string;
 }

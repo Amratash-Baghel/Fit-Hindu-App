@@ -3,7 +3,47 @@
 Running build log — one entry per shipped item, newest on top. This is the
 standup doc for the owner and the resume-from-home lifeline.
 
-- **2026-08-17 (last) — UI9 slice D: The breath, paced (redesign branch).**
+- **2026-08-17 (last) — UI9 slice E: The hero becomes content (redesign
+  branch).** The chapter's last slice and its **only migration**. Slice B
+  shipped a "Today's workout" hero that is `templates[0]` — i.e. whoever wins
+  the alphabet — so the only way to change it was to rename a workout.
+  **Migration 0021** adds `workout_templates.sort` (`int not null default 100`,
+  lowest leads, ties by `name_en`, one partial index matching the app's exact
+  query) and the pick becomes a number the content team types in the panel.
+  Additive and RLS-neutral: every existing row lands on 100 and keeps today's
+  order, so nothing moves until someone decides it should.
+  **Admin:** Compose → Workouts gains a **Sort** field on the editor (with the
+  line that says what it does), a Sort column, and the app's own ordering, so
+  panel order == app order; Library → Sounds gains **kind filter chips**
+  (All · chant · ambient · sleep · jap — `jap` labels the `jap_loop` enum, the
+  enum is untouched) as a `?kind=` search param, keeping both pages server
+  components, and "+ New sound" from a filtered view starts on that kind.
+  New `.chip`/`.chip-on` in `globals.css`, defined once beside the other form
+  controls.
+  **Un-migrated databases degrade, they don't break:** both readers fall back
+  to the old `name_en` order on Postgres `42703` — the app flips a module-level
+  flag after the first failure (one failed query per launch, then never again),
+  the panel retries once per request and prints `—` in the Sort column so the
+  state is visible. The composer is the one place that does *not* swallow it:
+  saving writes `sort`, so an un-migrated DB answers with a legible error
+  instead of dropping the content team's ordering silently.
+  Verified in the web preview **against the live, still-un-migrated Supabase**,
+  which is exactly the fallback case: the workout tab rendered the hero ("Full
+  Body — Beginner · 18 min · 5 exercises") after firing `order=sort.asc,
+  name_en.asc` → 42703 → `order=name_en.asc`, and switching to Gym then issued
+  **only** the plain query — proving the flag holds for the session. Probed the
+  REST error directly to confirm the code is exactly `42703` (the panel matches
+  on the code alone). typecheck + lint + `next build` green for both apps.
+  **Not verifiable here and stated as such:** the sorted path itself and the
+  whole admin click-through — the panel is behind a sign-in I have no
+  credentials for and must not use, and the sort ordering cannot exist until
+  0021 is run. Owner: run the migration, then set a Sort of 10 on the workout
+  that should lead.
+  `/code-review` returned one finding, fixed: the Sort input coerced an emptied
+  field straight back to 100, so clearing it to retype rewrote the value
+  mid-edit; it now holds empty while editing and writes the 100 default on save.
+  Spec: docs/specs/workout.md v4. ⚠️ **USER MUST RUN migration 0021.**
+- **2026-08-17 (earlier) — UI9 slice D: The breath, paced (redesign branch).**
   Final app slice of the UI9 plan (artifact 4d5592bc, plate 13), and the one
   that touches the app's most delicate animation file — which is why it went
   last. The session now takes `mode`, so the hub's **Breath row goes live**:

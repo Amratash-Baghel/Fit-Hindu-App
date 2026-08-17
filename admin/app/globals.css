@@ -69,3 +69,23 @@ label.lbl {
   background: var(--surface);
   border-radius: 1rem;
 }
+
+/* list filters (Library → Sounds) */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.3rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+.chip:hover {
+  color: var(--cream);
+}
+.chip-on {
+  border-color: var(--saffron);
+  background: var(--surface-2);
+  color: var(--cream);
+}

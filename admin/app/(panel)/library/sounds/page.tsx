@@ -2,13 +2,33 @@
 import Link from "next/link";
 import { supabaseServer } from "@/lib/supabase/server";
 import { NewEntityButton } from "@/components/NewEntityButton";
+import { SOUND_KINDS } from "@/lib/enums";
+import type { SoundKind } from "@/lib/db";
 
-export default async function SoundsPage() {
+/** Chip labels — the enum value stays the source of truth, this is display. */
+const KIND_LABEL: Record<SoundKind, string> = {
+  chant: "chant",
+  ambient: "ambient",
+  sleep: "sleep",
+  jap_loop: "jap",
+};
+
+export default async function SoundsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ kind?: string }>;
+}) {
+  const { kind } = await searchParams;
+  // Unknown values fall back to All rather than showing an empty library.
+  const active = SOUND_KINDS.find((k) => k === kind) ?? null;
+
   const supabase = await supabaseServer();
-  const { data: sounds, error } = await supabase
+  let query = supabase
     .from("sounds")
     .select("id, name_en, name_hi, kind, status, audio_media_id, deity:deities(name_en)")
     .order("name_en");
+  if (active) query = query.eq("kind", active);
+  const { data: sounds, error } = await query;
 
   if (error) return <p style={{ color: "var(--danger)" }}>{error.message}</p>;
 
@@ -23,13 +43,35 @@ export default async function SoundsPage() {
         </div>
         <NewEntityButton
           table="sounds"
-          defaults={{ name_en: "New sound", name_hi: "नई ध्वनि", kind: "ambient", status: "draft", audio_media_id: null }}
+          defaults={{
+            name_en: "New sound",
+            name_hi: "नई ध्वनि",
+            // creating from a filtered view starts on that kind
+            kind: active ?? "ambient",
+            status: "draft",
+            audio_media_id: null,
+          }}
           editorPath="/library/sounds"
           label="+ New sound"
         />
       </div>
 
-      <div className="card mt-6 overflow-x-auto">
+      <div className="mt-5 flex flex-wrap items-center gap-2">
+        <Link href="/library/sounds" className={`chip${active ? "" : " chip-on"}`}>
+          All
+        </Link>
+        {SOUND_KINDS.map((k) => (
+          <Link
+            key={k}
+            href={`/library/sounds?kind=${k}`}
+            className={`chip${active === k ? " chip-on" : ""}`}
+          >
+            {KIND_LABEL[k]}
+          </Link>
+        ))}
+      </div>
+
+      <div className="card mt-4 overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-xs uppercase tracking-wider" style={{ color: "var(--muted)" }}>
@@ -66,7 +108,7 @@ export default async function SoundsPage() {
             {(sounds ?? []).length === 0 ? (
               <tr>
                 <td className="p-6 text-center text-sm" colSpan={5} style={{ color: "var(--muted)" }}>
-                  No sounds yet — create the first one.
+                  {active ? `No ${KIND_LABEL[active]} sounds yet.` : "No sounds yet — create the first one."}
                 </td>
               </tr>
             ) : null}

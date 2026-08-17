@@ -2,6 +2,19 @@
 
 One dated line per decision, with the why. Newest on top.
 
+- **2026-08-17** — **Workout template order is content, not code
+  (`workout_templates.sort`, migration 0021).** The v3 workout tab's "Today's
+  workout" hero is `templates[0]`, which meant *alphabetical* — the only way to
+  change the hero was to rename a workout. `sort int not null default 100`
+  (lowest leads, ties by `name_en`) hands the pick to the content team in the
+  panel, with no release. Additive and RLS-neutral: every existing row lands on
+  100 and keeps today's order. Both readers (app + panel) degrade to the old
+  `name_en` order on Postgres `42703` so a build that meets an un-migrated
+  database is behind, not broken — the app flips a module flag after the first
+  failure, so it costs one 400 per launch and nothing after. The composer is
+  deliberately *not* forgiving: saving a sort against an un-migrated DB shows
+  the error, because a content team should see that the database is behind
+  rather than have their ordering silently dropped. UI9 slice E.
 - **2026-08-14** — **Haptic map reworked to the approved mockup; press drops
   Medium → Light.** The mockup's grammar wins: light tick on press, crisp
   [12,40,18] pattern on success/complete, a [10,30,14] flutter + soft bell on

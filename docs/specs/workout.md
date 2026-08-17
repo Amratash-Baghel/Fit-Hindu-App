@@ -233,3 +233,99 @@ its promise in a module-level `reconciling`; the reader awaits it when set.
 - [ ] `typecheck` + `lint` + `build` green; verified in the web preview;
       `/code-review` clean.
 - [ ] No migration in this slice.
+
+---
+
+## v4 — The hero becomes content (UI9 slice E, 2026-08-17)
+
+> Status: BUILDING on `redesign`. Source of truth: the UI9 artifact, slice E.
+> The one migration of the UI9 chapter. Nothing in the app's layout moves —
+> this slice only changes **who decides the order** of the workout templates,
+> and gives the content team the control in the admin panel.
+>
+> The thesis: *v3 shipped a hero ("Today's workout") whose pick was a side
+> effect of alphabetical order.* The only way to change it was to rename a
+> workout. Order is a content decision, so it belongs to the content team, in
+> the panel, without a release.
+
+### What changes
+
+1. **`workout_templates.sort`** — `int not null default 100`, migration 0021.
+   Lowest sort leads; equal sorts fall back to `name_en`, so the order is
+   always total and stable. Default 100 leaves headroom to push a template to
+   the front (10) or the back (900) without renumbering the rest. Additive:
+   every existing row lands on 100 and therefore keeps today's name order.
+   No RLS change — the table's published-read / admin-write policies already
+   cover the new column. One partial index on `(mode, sort, name_en) where
+   status = 'published'` matches the app's query exactly.
+2. **App** — `listWorkoutTemplates()` orders `sort, name_en`. Because the
+   hero is `templates[0]`, the lowest-sort published template of the current
+   mode **is** "Today's workout"; the shelf keeps the rest in the same order.
+   No screen code changes.
+3. **Admin, Compose → Workouts** — a `Sort` number field on the template
+   editor (with the one line that explains what it does), a Sort column on the
+   list, and the list ordered the way the app orders it, so what the panel
+   shows top-to-bottom is what the app shows. The page's subtitle names the
+   rule: *the lowest published workout of a mode is the app's "Today's
+   workout"*.
+4. **Admin, Library → Sounds** — kind filter chips (All · chant · ambient ·
+   sleep · jap) over the one sounds library, so it stays navigable as rows
+   grow. Pure UI, no schema: the active kind is a `?kind=` search param, the
+   pages stay server components, and "+ New sound" from a filtered view starts
+   on that kind. `jap` is the label for the `jap_loop` enum value — the enum
+   is untouched.
+
+### Un-migrated databases
+
+Migrations are applied by hand (CLAUDE.md), so a build can meet a database
+where 0021 has not been run. Both readers degrade instead of breaking:
+
+- `listWorkoutTemplates()` runs the sorted query, and on Postgres `42703`
+  (undefined column) flips a module-level flag off for the session and re-runs
+  with the plain `name_en` order — the exact behaviour the tab shipped with in
+  v3. One failed query per app launch, then never again.
+- The admin list does the same fallback once per request and renders `—` in
+  the Sort column so the state is visible rather than silently alphabetical.
+- The editor is the one place that does *not* degrade: saving writes `sort`,
+  which errors with a legible "column does not exist" in the composer's status
+  line until the migration runs. That is correct for an internal tool — the
+  content team should see that the DB is behind, not have their sort silently
+  dropped.
+
+### Files
+
+- `supabase/migrations/0021_workout_template_sort.sql` — the column + index.
+- `src/lib/content.ts` — sorted query + the 42703 fallback.
+- `src/types/db.ts`, `admin/lib/db.ts` — `sort` on `WorkoutTemplate`.
+- `admin/app/(panel)/compose/workouts/page.tsx` — Sort column, sorted list,
+  fallback.
+- `admin/components/WorkoutComposer.tsx` — the Sort field.
+- `admin/app/(panel)/library/sounds/page.tsx` — kind chips + filtered query.
+- `admin/app/globals.css` — `.chip` / `.chip-on`, defined once like the other
+  form controls.
+
+### Edge cases
+
+- **Unknown `?kind=` value** falls back to All rather than an empty library.
+- **Ties** (every row at 100 on a fresh migration) are alphabetical, so the
+  order never flickers between loads.
+- **Draft templates** are unaffected: the app only ever sees published rows
+  (RLS), so a draft with `sort = 1` cannot take the hero.
+- **`getWorkoutTemplate`** does not select or need `sort` — a template opened
+  by id is unchanged.
+- No user-facing string is added in this slice, so the i18n catalog is
+  untouched.
+
+### Acceptance checklist
+
+- [ ] Migration 0021 applies cleanly and is re-runnable (`if not exists` on
+      both statements).
+- [ ] After 0021, setting a template's Sort to 10 in the panel makes it the
+      app's "Today's workout" for its mode, with no release.
+- [ ] Panel list order == app order (sort, then name).
+- [ ] Before 0021, the app's workout tab and the panel's workout list both
+      still render, in name order, with no error surfaced to the user.
+- [ ] Sounds chips filter the list, All clears, an unknown kind reads as All,
+      and "+ New sound" from a filtered view starts on that kind.
+- [ ] `typecheck` + `lint` + `build` green (app and admin); `/code-review`
+      clean; ⚠️ migration 0021 flagged loudly for the user to run.

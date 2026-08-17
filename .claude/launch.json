@@ -20,6 +20,12 @@
       "port": 8083
     },
     {
+      "name": "expo-web-8091",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["expo", "start", "--web", "--port", "8091"],
+      "port": 8091
+    },
+    {
       "name": "mockups",
       "runtimeExecutable": "npx",
       "runtimeArgs": ["--yes", "serve", "docs/mockups", "-l", "5500"],
