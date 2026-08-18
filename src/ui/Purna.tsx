@@ -32,7 +32,8 @@ import Animated, {
 import Svg, { Circle } from "react-native-svg";
 import { color, pillar, scrim, space, type PillarKey } from "./tokens";
 import { T } from "./Text";
-import { CelebrationBurst } from "./CelebrationBurst";
+import { CelebrationBurst, StarField } from "./CelebrationBurst";
+import { CosmicSky } from "./CosmicSky";
 import { GoldWash } from "./GoldWash";
 import { useMotion } from "./motion";
 import { feedback } from "../lib/feedback";
@@ -125,6 +126,10 @@ function PurnaStage({ onDismiss }: { onDismiss: () => void }) {
         backgroundColor: scrim,
       }}
     >
+      {/* the universe the day resolves into — deep-space veil, twinkling
+          stars, slow orbits (owner ask 2026-08-18: the space theme) */}
+      <CosmicSky />
+
       {/* the app-wide completion glow — the ceremony opening is the trigger */}
       <GoldWash />
 
@@ -145,9 +150,13 @@ function PurnaStage({ onDismiss }: { onDismiss: () => void }) {
           ]}
         />
 
-        {/* gold sparks radiate once, behind the trinity */}
-        <View pointerEvents="none" style={{ position: "absolute", top: -20 }}>
+        {/* gold sparks + a shower of twinkling stars radiate once, behind the
+            trinity — the same star grammar as every completion */}
+        <View pointerEvents="none" style={{ position: "absolute", top: -20, alignItems: "center", justifyContent: "center" }}>
           <CelebrationBurst size={250} rays={14} delay={1100} />
+          <View style={{ position: "absolute" }}>
+            <StarField size={290} delay={1150} />
+          </View>
         </View>
 
         <View style={{ width: STAGE, height: STAGE }}>

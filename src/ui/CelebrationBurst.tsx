@@ -107,7 +107,7 @@ function Ray({
 // design-system tokens only — the near-white sparkle is `cream`, not a bespoke hex
 const STAR_COLORS = [color.goldHi, color.cream, color.gold, color.saffron];
 
-function StarField({ size, count = 11, delay = 0 }: { size: number; count?: number; delay?: number }) {
+export function StarField({ size, count = 11, delay = 0 }: { size: number; count?: number; delay?: number }) {
   const enabled = useMotion();
   const t = useSharedValue(enabled ? 0 : 0.5);
   useEffect(() => {

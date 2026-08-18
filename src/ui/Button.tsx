@@ -16,7 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { color, radius, space, tapTarget, goldGradient } from "./tokens";
 import { pressScale } from "./motion";
 import { PressableScale } from "./PressableScale";
-import { GoldBurst } from "./GoldBurst";
+import { GoldGlow } from "./GoldBurst";
 import { T } from "./Text";
 import { feedback } from "../lib/feedback";
 import { useI18n, type StringKey } from "../lib/i18n";
@@ -28,9 +28,10 @@ interface Props {
   disabled?: boolean;
   /** Suppress the press haptic when the handler fires its own (e.g. error). */
   haptic?: "press" | false;
-  /** The gold spark-burst + firm haptic on the primary action (the plan's
-   *  "gold burst" beat). On by default for gold; pass false to quiet a gold
-   *  button that is really just navigation. Ghost never bursts. */
+  /** The soft gold light-burst + firm haptic on the primary action (owner ask
+   *  2026-08-18: the blessing-reveal glow, not a particle release). On by
+   *  default for gold; pass false to quiet a gold button that is really just
+   *  navigation. Ghost never bursts. */
   burst?: boolean;
   style?: StyleProp<ViewStyle>;
 }
@@ -127,8 +128,9 @@ export function Button({ k, onPress, kind = "gold", disabled, haptic = "press", 
           {inner}
         </View>
       )}
-      {/* the gold spark-burst on press — one-shot, fires on every gold action */}
-      {burstOn ? <GoldBurst trigger={burstTick} /> : null}
+      {/* the soft gold light on press — the blessing wash, local to the
+          button; one-shot, fires on every gold action */}
+      {burstOn ? <GoldGlow trigger={burstTick} /> : null}
     </PressableScale>
   );
 }

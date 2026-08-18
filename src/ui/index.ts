@@ -1,4 +1,4 @@
-export { color, space, radius, type, tapTarget, goldGradient, ceremony, pillar, daypart, ember, scrim, coin, coinBurst, progressBar, type PillarKey } from "./tokens";
+export { color, space, radius, type, tapTarget, goldGradient, ceremony, cosmos, pillar, daypart, ember, scrim, coin, coinBurst, progressBar, type PillarKey } from "./tokens";
 export { duration, easing, spring, pressScale, useMotion } from "./motion";
 export { T, B } from "./Text";
 export { Button, FooterAction } from "./Button";
@@ -9,9 +9,10 @@ export { ShelfCard, SHELF_CARD_WIDTH } from "./ShelfCard";
 export { IconSlot } from "./IconSlot";
 export { Shimmer } from "./Shimmer";
 export { AnimatedNumber } from "./AnimatedNumber";
-export { CelebrationBurst, CompletionDiya } from "./CelebrationBurst";
+export { CelebrationBurst, CompletionDiya, StarField } from "./CelebrationBurst";
+export { CosmicSky } from "./CosmicSky";
 export { GoldWash } from "./GoldWash";
-export { GoldBurst } from "./GoldBurst";
+export { GoldBurst, GoldGlow } from "./GoldBurst";
 export { PointsEarned, RewardOverlay } from "./Reward";
 export { Reveal } from "./Reveal";
 export { FlipCard } from "./FlipCard";

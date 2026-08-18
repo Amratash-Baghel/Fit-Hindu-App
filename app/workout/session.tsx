@@ -19,7 +19,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { ActivityIndicator, TextInput, View } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useKeepAwake } from "expo-keep-awake";
-import { LinearGradient } from "expo-linear-gradient";
 import {
   Screen,
   Card,
@@ -31,6 +30,7 @@ import {
   T,
   VideoHero,
   CompletionDiya,
+  CosmicSky,
   GoldWash,
   PointsEarned,
   AnimatedNumber,
@@ -334,13 +334,9 @@ export default function WorkoutSession() {
     return (
       <Screen scroll={false} overlay={<GoldWash />}>
         <Stack.Screen options={{ headerShown: false }} />
-        {/* warm backdrop so the reward glows out of depth instead of flat black */}
-        <LinearGradient
-          colors={["#1F1207", "#150E08", "#0C0906"]}
-          start={{ x: 0.5, y: 0 }}
-          end={{ x: 0.5, y: 1 }}
-          style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
-        />
+        {/* the universe behind the reward — the space-theme ceremony backdrop
+            every accomplishment now shares (owner ask 2026-08-18) */}
+        <CosmicSky />
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: space.md }}>
           {/* the reward moment: the diya lights, holds a beat, then the gold
               sparks radiate — with the synced haptic burst. Timing in CompletionDiya. */}

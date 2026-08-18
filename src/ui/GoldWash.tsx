@@ -31,6 +31,19 @@ import { useMotion } from "./motion";
 
 const WASH_MS = 1150;
 
+/**
+ * THE gold-wash radial ramp — the one definition of "the blessing's light".
+ * GoldWash (full screen), GoldGlow (a pressed gold button) and CoinSplash's
+ * wash all render these same stops, so a retune here reaches every gold
+ * bloom at once instead of drifting across hand-copies.
+ */
+export const GOLD_WASH_RAMP: readonly { offset: number; color: string; opacity: number }[] = [
+  { offset: 0, color: color.goldHi, opacity: 0.4 },
+  { offset: 0.48, color: color.saffron, opacity: 0.12 },
+  { offset: 0.78, color: color.saffron, opacity: 0 },
+  { offset: 1, color: color.saffron, opacity: 0 },
+];
+
 export function GoldWash({ trigger = 1 }: { trigger?: number }) {
   const enabled = useMotion();
   const t = useSharedValue(1); // 1 = at rest (invisible)
@@ -52,10 +65,9 @@ export function GoldWash({ trigger = 1 }: { trigger?: number }) {
       <Svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
         <Defs>
           <RadialGradient id="goldWashG" cx="50%" cy="46%" r="55%">
-            <Stop offset="0" stopColor={color.goldHi} stopOpacity="0.4" />
-            <Stop offset="0.48" stopColor={color.saffron} stopOpacity="0.12" />
-            <Stop offset="0.78" stopColor={color.saffron} stopOpacity="0" />
-            <Stop offset="1" stopColor={color.saffron} stopOpacity="0" />
+            {GOLD_WASH_RAMP.map((s) => (
+              <Stop key={s.offset} offset={s.offset} stopColor={s.color} stopOpacity={s.opacity} />
+            ))}
           </RadialGradient>
         </Defs>
         <Rect x="0" y="0" width="100" height="100" fill="url(#goldWashG)" />

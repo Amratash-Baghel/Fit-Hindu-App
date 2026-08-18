@@ -8,24 +8,27 @@
  *
  * Perf contract (low-end Android rule): everything animates transform/opacity
  * ONLY, on the UI thread, over static SVG gradients — no layout work, no
- * JS-thread timers. The ambient loop is kept to 2 animated nodes per coin (a
- * ring over a bloom), so Home stays smooth on mid/low-end devices. Web and
- * reduce-motion render one faint static frame instead of looping (the
+ * JS-thread timers. The ambient loop is 6 animated nodes per coin (bed + two
+ * colour-band blooms + three rings — the mockup's full wave count, raised from
+ * the older 2-node budget on the owner's 2026-08-18 ask for the alive pulse).
+ * Web and reduce-motion render one faint static frame instead of looping (the
  * `useMotion` gate, same contract as CelebrationBurst).
  */
 import React, { useEffect } from "react";
 import { StyleSheet, View } from "react-native";
 import Animated, {
+  cancelAnimation,
   interpolate,
   useAnimatedStyle,
   useSharedValue,
+  withDelay,
   withRepeat,
   withSequence,
   withTiming,
   type SharedValue,
 } from "react-native-reanimated";
 import Svg, { Circle, Defs, RadialGradient, Stop } from "react-native-svg";
-import { color } from "./tokens";
+import { GOLD_WASH_RAMP } from "./GoldWash";
 import { duration, easing, useMotion } from "./motion";
 
 /* ───────────────────────── ambient halo ───────────────────────── */
@@ -37,21 +40,95 @@ interface HaloProps {
   tint: string;
 }
 
-/** One thin ring rippling outward: scale 1→1.8, opacity .3→0. */
-function AmbientRing({ size, tint, t }: { size: number; tint: string; t: SharedValue<number> }) {
-  const style = useAnimatedStyle(() => ({
-    opacity: interpolate(t.value, [0, 0.66, 1], [0.3, 0.06, 0]),
-    transform: [{ scale: interpolate(t.value, [0, 1], [1, 1.8]) }],
-  }));
+/**
+ * One outward pulse wave on the mockup's 3.9s cycle, phase-shifted by
+ * `offset` so a wave is ALWAYS mid-flight (the "very alive" cadence the owner
+ * pointed at, 2026-08-18 — mockup .rw/.rg with their staggered delays).
+ * `kind: "ring"` is the thin 1.3px line (.rw: scale 1→1.78, opacity .26→0);
+ * `kind: "glow"` is the thick colour band (.rg: a radial band that blooms
+ * .92→1.62, opacity .5→0). The drive value runs linear and the keyframes live
+ * in the interpolations, so each wave eases exactly like the mockup's.
+ */
+function PulseWave({
+  size,
+  tint,
+  kind,
+  offset,
+}: {
+  size: number;
+  tint: string;
+  kind: "ring" | "glow";
+  offset: number;
+}) {
+  const enabled = useMotion();
+  // Rest at 1 (= faded out). Web/reduce-motion hold one static frame with each
+  // wave at its own phase of the cycle, so the still shot reads as a real
+  // mid-pulse (staggered waves), not five copies of the same ring.
+  const t = useSharedValue(enabled ? 1 : 0.15 + (offset % duration.ripple) / duration.ripple);
+
+  useEffect(() => {
+    if (!enabled) return;
+    t.value = 1;
+    t.value = withDelay(
+      offset,
+      withRepeat(
+        withSequence(
+          withTiming(0, { duration: 0 }),
+          withTiming(1, { duration: duration.ripple, easing: easing.linear }),
+        ),
+        -1,
+        false,
+      ),
+    );
+    return () => cancelAnimation(t);
+  }, [enabled, offset, t]);
+
+  const style = useAnimatedStyle(() => {
+    if (kind === "ring") {
+      return {
+        opacity: interpolate(t.value, [0, 0.68, 1], [0.26, 0.05, 0]),
+        // mid-stop fakes the mockup's ease-out travel on a linear drive
+        transform: [{ scale: interpolate(t.value, [0, 0.5, 1], [1, 1.52, 1.78]) }],
+      };
+    }
+    return {
+      opacity: interpolate(t.value, [0, 0.62, 1], [0.5, 0.1, 0]),
+      transform: [{ scale: interpolate(t.value, [0, 0.5, 1], [0.92, 1.4, 1.62]) }],
+    };
+  });
+
+  if (kind === "ring") {
+    return (
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          StyleSheet.absoluteFill,
+          { borderRadius: size / 2, borderWidth: 1.3, borderColor: tint },
+          style,
+        ]}
+      />
+    );
+  }
+  // The two phase-shifted glow waves per coin share one tint — id by tint
+  // alone (same scheme as BreathingBed), so the byte-identical gradients
+  // dedupe instead of pretending to vary per wave.
+  const uid = tint.replace(/[^a-zA-Z0-9]/g, "");
   return (
-    <Animated.View
-      pointerEvents="none"
-      style={[
-        StyleSheet.absoluteFill,
-        { borderRadius: size / 2, borderWidth: 1.4, borderColor: tint },
-        style,
-      ]}
-    />
+    <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, style]}>
+      <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        <Defs>
+          {/* the mockup's .rg band: hollow centre, colour band at ~71%, gone by 86% */}
+          <RadialGradient id={`gw-${uid}`} cx="50%" cy="50%" r="50%">
+            <Stop offset="0" stopColor={tint} stopOpacity="0" />
+            <Stop offset="0.5" stopColor={tint} stopOpacity="0" />
+            <Stop offset="0.71" stopColor={tint} stopOpacity="0.55" />
+            <Stop offset="0.86" stopColor={tint} stopOpacity="0" />
+            <Stop offset="1" stopColor={tint} stopOpacity="0" />
+          </RadialGradient>
+        </Defs>
+        <Circle cx={size / 2} cy={size / 2} r={size / 2} fill={`url(#gw-${uid})`} />
+      </Svg>
+    </Animated.View>
   );
 }
 
@@ -93,39 +170,41 @@ function BreathingBed({ size, tint, b }: { size: number; tint: string; b: Shared
 }
 
 /**
- * The living layer behind one coin: a constant breathing glow bed (the jap-like
- * "alive at rest" quality the owner asked for) under one outward ripple ring.
- * TWO animated nodes per coin (6 on Home) — the budget the lag-cutting commit
- * deliberately set; the aliveness comes from the bed *breathing* (a constant
- * reverse-yoyo that never fades to nothing) rather than from more nodes. All
- * transform/opacity on the UI thread. Web / reduce-motion render one static
- * mid-breath frame (no loops), so the coin still reads as haloed in a shot.
+ * The living layer behind one coin, mockup-exact (owner ask 2026-08-18: the
+ * circles should pulse like the approved mockup — the thin rings AND the thick
+ * colour band, continuously): the constant breathing glow bed, TWO travelling
+ * colour-band blooms (.rg, half-cycle apart) and THREE thin rings (.rw, a
+ * third-cycle apart) all opening outward on the 3.9s cycle — so a wave is
+ * always mid-flight and the coin never sits still. Six animated nodes per coin
+ * (18 on Home): a deliberate raise of the old 2-node lag budget, owner-approved
+ * for the aliveness; every node is still transform/opacity-only on the UI
+ * thread over static SVG, which is what actually keeps Home smooth. Web /
+ * reduce-motion render one static mid-pulse frame (no loops).
  */
 export function CoinHalo({ size, tint }: HaloProps) {
   const enabled = useMotion();
   const breath = useSharedValue(enabled ? 0 : 0.4);
-  const t1 = useSharedValue(enabled ? 0 : 0.32);
 
   useEffect(() => {
     if (!enabled) return;
     // the constant breath — reverses in place (never snaps to 0), so the glow is
     // always visible and always moving, exactly like the jap halo.
     breath.value = withRepeat(withTiming(1, { duration: 2400, easing: easing.inOut }), -1, true);
-    // one ripple that snaps to 0 then opens out
-    t1.value = withRepeat(
-      withSequence(
-        withTiming(0, { duration: 0 }),
-        withTiming(1, { duration: duration.ripple, easing: easing.out }),
-      ),
-      -1,
-      false,
-    );
-  }, [enabled, breath, t1]);
+    return () => cancelAnimation(breath);
+  }, [enabled, breath]);
+
+  // Mockup phases: .rg at 0s/1.95s; .rw at 0s/1.3s/2.6s of the 3.9s cycle.
+  const half = duration.ripple / 2;
+  const third = duration.ripple / 3;
 
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
       <BreathingBed size={size} tint={tint} b={breath} />
-      <AmbientRing size={size} tint={tint} t={t1} />
+      <PulseWave size={size} tint={tint} kind="glow" offset={0} />
+      <PulseWave size={size} tint={tint} kind="glow" offset={half} />
+      <PulseWave size={size} tint={tint} kind="ring" offset={0} />
+      <PulseWave size={size} tint={tint} kind="ring" offset={third} />
+      <PulseWave size={size} tint={tint} kind="ring" offset={third * 2} />
     </View>
   );
 }
@@ -176,9 +255,10 @@ export function CoinSplash({ size, tint, trigger }: SplashProps) {
         <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
           <Defs>
             <RadialGradient id={`gwash-${uid}`} cx="50%" cy="46%" r="50%">
-              <Stop offset="0" stopColor={color.goldHi} stopOpacity="0.4" />
-              <Stop offset="0.48" stopColor={color.saffron} stopOpacity="0.12" />
-              <Stop offset="0.78" stopColor={color.saffron} stopOpacity="0" />
+              {/* the one gold-wash ramp — shared with GoldWash and GoldGlow */}
+              {GOLD_WASH_RAMP.map((s) => (
+                <Stop key={s.offset} offset={s.offset} stopColor={s.color} stopOpacity={s.opacity} />
+              ))}
             </RadialGradient>
           </Defs>
           <Circle cx={size / 2} cy={size / 2} r={size / 2} fill={`url(#gwash-${uid})`} />

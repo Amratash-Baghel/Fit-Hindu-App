@@ -92,12 +92,20 @@ export default function Home() {
   // screen when an earned moment lands ON Home (the blessing reveal).
   const [washTick, setWashTick] = useState(0);
 
+  // Home is a tab — it stays MOUNTED while other tabs are shown, so its
+  // ambient loops (the coin halos' pulse waves) would tick invisibly forever
+  // without a focus gate. `focused` unmounts them on blur and remounts on
+  // return; the loops cancel in their own effect cleanups.
+  const [focused, setFocused] = useState(true);
+
   // An activity finished inside a module lights its ring the moment the user
   // lands back on Home; the daypart re-reads at the same time.
   useFocusEffect(
     useCallback(() => {
+      setFocused(true);
       refreshPillars();
       setDp(currentDaypart());
+      return () => setFocused(false);
     }, [refreshPillars]),
   );
 
@@ -218,6 +226,7 @@ export default function Home() {
             progress={pillars[k]}
             done={pillarComplete(pillars[k])}
             guest={guest}
+            focused={focused}
             delay={i * 90}
             onPress={() => router.push(PILLAR_ROUTE[k])}
           />
@@ -347,6 +356,7 @@ function PillarRing({
   delay,
   done,
   guest,
+  focused,
 }: {
   k: PillarKey;
   icon: React.ReactNode;
@@ -357,6 +367,8 @@ function PillarRing({
   done: boolean;
   /** no session — the ring is an invitation, not a count */
   guest: boolean;
+  /** Home is the front tab right now — the halo loops only then */
+  focused: boolean;
 }) {
   const { t } = useI18n();
   const motion = useMotion();
@@ -418,8 +430,10 @@ function PillarRing({
       >
         <View ref={coinRef} collapsable={false}>
           {/* the coin's living layer — ambient pillar-colored ripples behind,
-              the tap splash above (mockup .ripples / .tapripple / .goldwash) */}
-          <CoinHalo size={size} tint={tint} />
+              the tap splash above (mockup .ripples / .tapripple / .goldwash).
+              Unmounted while another tab is fronted (Home stays mounted as a
+              tab) so the pulse loops never burn frames unseen. */}
+          {focused ? <CoinHalo size={size} tint={tint} /> : null}
           <PillarCoin
             size={size}
             progress={guest ? 0 : progress.total ? progress.done / progress.total : 0}
@@ -486,7 +500,7 @@ function TaskStrip({
       style={{ marginHorizontal: -space.lg }}
       contentContainerStyle={{ gap: space.sm, paddingHorizontal: space.lg, paddingVertical: space.xs }}
     >
-      {items.map((it) => {
+      {items.map((it, i) => {
         const done = todayTypes.includes(it.type);
         const tint = pillar[it.pillar];
         return (
@@ -509,9 +523,10 @@ function TaskStrip({
               <IconSlot size={34} radius={11}>
                 {it.icon(tint)}
               </IconSlot>
-              {/* static in the strip — many small flames looping is perf the
-                  budget spends on the prominent diyas instead */}
-              {done ? <Diya size={16} animate={false} /> : null}
+              {/* a done practice's tick flickers too (owner ask 2026-08-18:
+                  every lit diya moves) — at most five tiny flames, and only
+                  for practices actually finished today */}
+              {done ? <Diya size={16} delay={i * 450} /> : null}
             </View>
             <View>
               <T variant="caption" style={{ fontWeight: "700", fontSize: 13 }}>
@@ -591,6 +606,9 @@ function MirrorCard() {
  * week of seven, and the headline number carries the true count past seven.
  */
 const WEEK_DIYAS = 7;
+/** Per-diya flame phase (ms) — the mockup's .d1–.d7 animation-delays, so the
+ *  week row never sways in lockstep. */
+const FLAME_STAGGER = [400, 900, 200, 1300, 700, 1600, 1000];
 
 function StreakCard() {
   const router = useRouter();
@@ -675,9 +693,10 @@ function StreakCard() {
           // a lit-up-in-sequence stagger when Home first appears; a fade-pop
           // (distance 0), never a rise, so the diya row reads as igniting.
           <Reveal key={i} delay={i * 70} distance={0}>
-            {/* the seven-day row stays still — a wall of looping flames was part
-                of the Home lag; the hero streak diya above carries the motion */}
-            <Diya size={24} dim={i >= lit} animate={false} />
+            {/* lit days sway on their own phase (mockup .d1–.d7 delays — the
+                moving diya, owner ask 2026-08-18); unearned days stay still
+                and dim, so the loop cost tracks the streak, never the row */}
+            <Diya size={24} dim={i >= lit} delay={FLAME_STAGGER[i % FLAME_STAGGER.length]} />
           </Reveal>
         ))}
       </View>
@@ -791,12 +810,33 @@ function DailyBlessing({ onReveal }: { onReveal?: () => void }) {
 
   // the mockup throws 12 gold sparks off the card as it flips open — fired here
   const [burstTick, setBurstTick] = useState(0);
+  // One toggle per turn: taps landing while the 620ms flip is still playing are
+  // swallowed, so a double-tap can't reveal-then-conceal in one gesture (the
+  // old inert-back FlipCard used to absorb these).
+  const lastFlipAt = useRef(0);
   const reveal = () => {
     setRevealed(true);
     void AsyncStorage.setItem(BLESSING_STORAGE, todayKey).catch(() => {});
     feedback.reveal(); // a once-a-day earned moment — the mockup's soft flutter + bell
     setBurstTick((n) => n + 1); // the spark shower off the card
     onReveal?.(); // the gold wash blooms over the whole screen (mockup goldwash)
+  };
+  // TODO(release): remove this conceal path (and the backTappable flag below)
+  // before launch — the blessing is a once-per-IST-day moment in production.
+  // WIP affordance (owner ask 2026-08-18): while the app is in progress, a tap
+  // on the revealed card folds it closed again — the persisted day is cleared
+  // so the reveal can be replayed end-to-end as many times as needed.
+  const conceal = () => {
+    setRevealed(false);
+    void AsyncStorage.removeItem(BLESSING_STORAGE).catch(() => {});
+    feedback.press();
+  };
+  const toggle = () => {
+    const now = Date.now();
+    if (now - lastFlipAt.current < 700) return; // mid-flip — let the turn finish
+    lastFlipAt.current = now;
+    if (revealed) conceal();
+    else reveal();
   };
 
   if (revealed === null) return null;
@@ -812,7 +852,12 @@ function DailyBlessing({ onReveal }: { onReveal?: () => void }) {
   };
   const front = (
     <LinearGradient colors={[...ember.gradient]} start={{ x: 0, y: 0 }} end={{ x: 0.9, y: 1 }} style={face}>
-      <Diya size={30} dim />
+      {/* lit + swaying, mockup parity (bl-diya): the card that holds today's
+          blessing carries a living flame even before the reveal. Both faces
+          stay mounted through the flip, so each face only loops while it is
+          the one showing — the hidden face's flame would burn frames for
+          zero visible pixels. */}
+      <Diya size={30} animate={!revealed} />
       <View style={{ flex: 1 }}>
         <T variant="eyebrow" tone="gold">
           {t("daily_blessing_title")}
@@ -826,7 +871,8 @@ function DailyBlessing({ onReveal }: { onReveal?: () => void }) {
   );
   const back = (
     <LinearGradient colors={[...ember.gradientLit]} start={{ x: 0, y: 0 }} end={{ x: 0.9, y: 1 }} style={face}>
-      <Diya size={30} />
+      {/* only loops while this face is the visible one — see the front's note */}
+      <Diya size={30} animate={revealed} />
       <View style={{ flex: 1 }}>
         <T variant="bodyBold" style={{ color: color.goldHi }}>
           {t(blessingKey)}
@@ -856,7 +902,8 @@ function DailyBlessing({ onReveal }: { onReveal?: () => void }) {
           front={front}
           back={back}
           flipped={revealed}
-          onPress={reveal}
+          onPress={toggle}
+          backTappable
           accessibilityLabel={t("daily_blessing_title")}
         />
         {/* faint sheen so the blessing card reads as something special */}

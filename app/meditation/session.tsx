@@ -16,7 +16,7 @@ import Svg, { Circle } from "react-native-svg";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useKeepAwake } from "expo-keep-awake";
-import { Screen, Button, FooterAction, Reveal, B, T, CompletionDiya, GoldWash, PointsEarned, useMotion, color, duration, pillar, space } from "../../src/ui";
+import { Screen, Button, FooterAction, Reveal, B, T, CompletionDiya, CosmicSky, GoldWash, PointsEarned, useMotion, color, duration, pillar, space } from "../../src/ui";
 import { useI18n } from "../../src/lib/i18n";
 import { pauseAudio, resumeAudio, stopAudio, fadeOutStop } from "../../src/lib/audio";
 import { logActivityDurable } from "../../src/lib/activity";
@@ -224,6 +224,9 @@ export default function MeditationSession() {
   if (finished) {
     return (
       <Screen scroll={false} overlay={<GoldWash />}>
+        {/* the universe behind the reward — the space-theme ceremony backdrop
+            every accomplishment now shares (owner ask 2026-08-18) */}
+        <CosmicSky />
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: space.md }}>
           {/* the diya lights + spark/star burst radiate (calm variant — no
               reward-burst haptic, the soft chime already rang), then the copy +

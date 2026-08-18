@@ -2,6 +2,23 @@
 
 One dated line per decision, with the why. Newest on top.
 
+- **2026-08-18** — **Completion ceremonies go cosmic (owner/boss ask): one
+  shared `CosmicSky` space backdrop behind every accomplishment, and the
+  ambient-motion perf budgets are consciously raised.** The "connected to the
+  universe" theme lives in ONE component + a namespaced `cosmos` token set
+  (alpha ramps of existing hues only), dropped behind Purna, both session
+  completion screens and the RewardOverlay — never on everyday surfaces, so
+  the sky stays a ceremony thing. Two deliberate budget raises, both
+  owner-driven: CoinHalo goes from 2 to 6 animated nodes per coin (the
+  mockup's full .rg/.rw wave count — the 2-node version read as dead), and
+  the streak-row/task-strip diyas may loop when LIT (dim ones still cost
+  nothing). Everything stays transform/opacity-only on the UI thread, which
+  is the contract that actually protects low-end Android; node count alone
+  wasn't the lag source (the CoinExpand tap-time SVG mount was, now fixed by
+  pre-mounting the three discs and driving the tap purely with shared
+  values). Blessing tap-again-to-reset is explicitly a WIP demo affordance to
+  revisit before release. Why: the app must FEEL alive next to the approved
+  mockup on a real device; static-budget minimalism was reading as broken.
 - **2026-08-17 (later)** — **Meditation/jap/sleep/diet completions get the same
   durability guarantee workouts already have, via a NEW, separate queue rather
   than reusing `session.ts`'s.** `logActivity()` was a single insert with no

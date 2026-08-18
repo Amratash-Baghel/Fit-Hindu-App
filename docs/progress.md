@@ -3,6 +3,45 @@
 Running build log — one entry per shipped item, newest on top. This is the
 standup doc for the owner and the resume-from-home lifeline.
 
+- **2026-08-18 — The cosmic completion pass (redesign branch): every
+  accomplishment lands under the universe, and the living surfaces got
+  livelier.** Owner batch, all six asks shipped:
+  1. **CosmicSky** (new, `src/ui/CosmicSky.tsx` + `cosmos` tokens): the
+     "connected to the universe" space backdrop — night-indigo veil, 18
+     stars twinkling in/out on independent phases, two vast dashed orbit
+     rings slowly turning, faint cool/warm nebulas. Dropped behind EVERY
+     completion: Purna, workout complete, meditation complete, and the
+     jap/sleep/diet RewardOverlay (workout's old warm-brown gradient
+     replaced). Purna also gained the StarField sparkle shower the other
+     completions already had, so the ceremonies speak one star grammar.
+  2. **Gold buttons now answer with the blessing's light** — new `GoldGlow`
+     (GoldBurst.tsx): the exact tap-to-reveal-blessing radial ramp + envelope,
+     local to the button, replacing the small particle release in `Button`.
+  3. **Blessing is replayable while the app is WIP**: tapping the revealed
+     card folds it closed (persisted day cleared), so the flip + wash + sparks
+     can be demoed end-to-end repeatedly. FlipCard now fires onPress on either
+     face; the caller decides what a back-face tap means.
+  4. **The moving diya is everywhere it was still**: blessing front face is
+     lit + swaying (mockup bl-diya parity), the streak week-row's earned days
+     flicker on the mockup's .d1–.d7 stagger, task-strip done-ticks flicker.
+     Dim/unearned diyas stay static, so loop cost tracks what's actually lit.
+  5. **The Home coins pulse like the approved mockup**: CoinHalo re-built to
+     the mockup's full wave grammar — the breathing bed PLUS two travelling
+     colour-band blooms (.rg, half-cycle apart) and three thin rings (.rw,
+     third-cycle apart) on the 3.9s cycle, so a wave is always mid-flight.
+     6 animated nodes per coin (owner-approved raise of the 2-node budget);
+     still all transform/opacity on the UI thread.
+  6. **The coin→page colour burst de-jank, round 2** (CoinExpand): the disc
+     used to MOUNT at tap time (setState → React render → SVG mount → first
+     gradient rasterise, all on the JS thread on the animation's first frame
+     — the residual hitch). All three pillar discs are now pre-mounted with
+     the provider and parked invisible; `fire` only writes shared values, so
+     the tap path does zero React work and growth is pure GPU transform.
+  Typecheck + lint green. Web preview click-through: onboarding → Home,
+  blessing reveal → tap-again reset, coin-tap navigation, full 108-bead jap
+  mala → RewardOverlay (CosmicSky mounted, closed clean), zero console
+  errors. Motion itself is native-only (Reanimated inert on RN-web —
+  2026-07-29 decision), so the moving pieces need the Android build to feel.
 - **2026-08-17 (last) — Durable logging for meditation/jap/sleep/diet, and a
   live silent bug fixed (redesign branch).** Follow-through on the review's
   #1-ranked open item: those four completions wrote via `logActivity()`, a

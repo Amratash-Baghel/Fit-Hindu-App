@@ -118,6 +118,24 @@ export const coinBurst: Record<PillarKey, readonly [string, string, string, stri
 } as const;
 
 /**
+ * CosmicSky palette (owner ask 2026-08-18: completions should feel like
+ * "getting connected to the universe"). The ceremony backdrop's night veil +
+ * star tints — every value is an alpha ramp or reuse of an existing hue
+ * (night, ink, mind indigo, saffron, cream, gold), nothing new is introduced.
+ * Namespaced like `ceremony`: it never leaks into everyday surfaces.
+ */
+export const cosmos = {
+  /** the deep-space veil painted over the ink ground (top → mid → bottom) —
+   *  alpha ramps of `night` and `ink` */
+  veil: ["rgba(11,14,26,0.94)", "rgba(15,11,7,0.62)", "rgba(11,14,26,0.92)"] as const,
+  /** the faint colour clouds that give the sky depth */
+  nebulaCool: pillar.mind,
+  nebulaWarm: color.saffron,
+  /** star tints, warm-to-cool */
+  star: [color.cream, color.goldHi, pillar.mind, color.gold] as const,
+} as const;
+
+/**
  * Time-of-day Home washes (redesign — "a surface that keeps time",
  * docs/specs/redesign-bms.md). Each is a top-anchored gradient painted over the
  * ink ground so Home breathes with the IST day. Every stop reuses an existing

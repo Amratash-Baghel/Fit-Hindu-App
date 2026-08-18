@@ -22,7 +22,9 @@ import Animated, {
   withTiming,
   type SharedValue,
 } from "react-native-reanimated";
+import Svg, { Circle, Defs, RadialGradient, Stop } from "react-native-svg";
 import { color } from "./tokens";
+import { GOLD_WASH_RAMP } from "./GoldWash";
 import { useMotion } from "./motion";
 
 const SPARK_COLORS = [color.goldHi, color.gold, color.saffron];
@@ -88,6 +90,58 @@ function Spark({
     };
   });
   return <Animated.View style={[styles.spark, { backgroundColor: tint }, style]} />;
+}
+
+/**
+ * GoldGlow — the blessing-reveal's soft golden light, sized to a button
+ * (owner ask 2026-08-18: every gold button should answer a press with the
+ * SAME soft radial bloom as "tap to reveal blessing", not the small particle
+ * release). It renders GoldWash's shared ramp (GOLD_WASH_RAMP — one source,
+ * never a copy), local to the pressed surface: a warm radial blooms out of
+ * the button's centre and dies away. The field is sized RELATIVE to the
+ * button (140% of its width), so a full-width CTA is enveloped edge to edge,
+ * not lit by a fixed blob narrower than itself. Fire-and-rest via `trigger`,
+ * exactly like GoldBurst; nothing renders under the motion gate.
+ *
+ * Perf: one animated node, opacity + scale only, UI thread, over one static
+ * SVG gradient rasterised at its natural size.
+ */
+const GLOW_MS = 950;
+
+export function GoldGlow({ trigger }: { trigger: number }) {
+  const enabled = useMotion();
+  const t = useSharedValue(1); // 1 = at rest (invisible)
+
+  useEffect(() => {
+    if (!enabled || trigger === 0) return;
+    t.value = 0;
+    t.value = withTiming(1, { duration: GLOW_MS, easing: Easing.out(Easing.quad) });
+  }, [enabled, trigger, t]);
+
+  const style = useAnimatedStyle(() => ({
+    // the GoldWash envelope: swell in fast, die away slow
+    opacity: interpolate(t.value, [0, 0.2, 1], [0, 1, 0]),
+    transform: [{ scale: interpolate(t.value, [0, 1], [0.72, 1.35]) }],
+  }));
+
+  if (!enabled) return null;
+
+  return (
+    <View pointerEvents="none" style={styles.root}>
+      <Animated.View style={[{ width: "140%", aspectRatio: 1 }, style]}>
+        <Svg width="100%" height="100%" viewBox="0 0 100 100">
+          <Defs>
+            <RadialGradient id="goldGlowG" cx="50%" cy="50%" r="50%">
+              {GOLD_WASH_RAMP.map((s) => (
+                <Stop key={s.offset} offset={s.offset} stopColor={s.color} stopOpacity={s.opacity} />
+              ))}
+            </RadialGradient>
+          </Defs>
+          <Circle cx="50" cy="50" r="50" fill="url(#goldGlowG)" />
+        </Svg>
+      </Animated.View>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({

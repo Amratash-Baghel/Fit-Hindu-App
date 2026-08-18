@@ -30,16 +30,22 @@ interface Props {
   front: React.ReactNode;
   back: React.ReactNode;
   flipped: boolean;
-  /** Tap handler — active only while showing the front (the reveal trigger). */
+  /** Tap handler — active while showing the front (the reveal trigger), and
+   *  also on the back when `backTappable` is set. */
   onPress?: () => void;
+  /** Opt-in: keep responding to taps on the REVEALED face too (the blessing
+   *  folds itself closed for replay — WIP affordance, owner ask 2026-08-18).
+   *  Default false, so reveal-style callers keep an inert back face. */
+  backTappable?: boolean;
   haptic?: "press" | "select" | false;
   accessibilityLabel?: string;
   style?: StyleProp<ViewStyle>;
 }
 
-export function FlipCard({ front, back, flipped, onPress, haptic = false, accessibilityLabel, style }: Props) {
+export function FlipCard({ front, back, flipped, onPress, backTappable = false, haptic = false, accessibilityLabel, style }: Props) {
   const enabled = useMotion();
   const p = useSharedValue(flipped ? 1 : 0);
+  const inert = !onPress || (flipped && !backTappable);
 
   useEffect(() => {
     if (!enabled) {
@@ -63,7 +69,7 @@ export function FlipCard({ front, back, flipped, onPress, haptic = false, access
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel}
-        disabled={flipped || !onPress}
+        disabled={inert}
         onPress={() => {
           if (haptic === "press") feedback.press();
           else if (haptic === "select") feedback.select();
@@ -80,7 +86,7 @@ export function FlipCard({ front, back, flipped, onPress, haptic = false, access
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
-      disabled={flipped || !onPress}
+      disabled={inert}
       onPress={() => {
         if (haptic === "press") feedback.press();
         else if (haptic === "select") feedback.select();

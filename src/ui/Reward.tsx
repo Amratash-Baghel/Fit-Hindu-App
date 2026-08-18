@@ -19,6 +19,7 @@ import { B, T } from "./Text";
 import { Button } from "./Button";
 import { AnimatedNumber } from "./AnimatedNumber";
 import { CompletionDiya } from "./CelebrationBurst";
+import { CosmicSky } from "./CosmicSky";
 import { GoldWash } from "./GoldWash";
 import { Reveal } from "./Reveal";
 import { color, radius, space } from "./tokens";
@@ -121,6 +122,9 @@ export function RewardOverlay({ visible, titleKey, bodyKey, earned, total, onDon
           gap: space.md,
         }}
       >
+        {/* the universe behind the reward — every accomplishment lands under
+            the same night sky as Purna (owner ask 2026-08-18) */}
+        <CosmicSky />
         {/* the app-wide completion glow — the modal opening is the trigger */}
         <GoldWash />
         <CompletionDiya diyaSize={72} burstSize={210} celebrate />
