@@ -2,6 +2,17 @@
 
 One dated line per decision, with the why. Newest on top.
 
+- **2026-08-18 (evening)** — **The gold press-glow is hosted above the screen,
+  not inside the button.** Two rounds of "the glow is still not there" had one
+  cause: a glow rendered as a child of the Button is clipped by the first
+  ancestor with overflow hidden (Screen's ScrollView, Card, EmberCard), so it
+  never painted. `GoldGlowProvider` now hosts one pre-mounted wash at the top
+  of the tree and buttons fire it with the touch point; Modals nest their own
+  host because a Modal is a separate window. Also this round: Home opens on
+  the three circles (deity chip, the standing block and the practice strip all
+  move below or out; MirrorCard removed), the diya is the What's-Next
+  artifact's paths verbatim, and Mind leads with a breathing halo hero. Why:
+  match the artifact, and stop re-fixing a symptom whose cause was layout.
 - **2026-08-18 (later)** — **One reward mark: the Purna trinity, everywhere.**
   Owner review of the cosmic pass replaced the diya-and-burst reward moment
   (CompletionDiya — deleted) with the Purna composition on every completion

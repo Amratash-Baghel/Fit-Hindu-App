@@ -3,6 +3,31 @@
 Running build log — one entry per shipped item, newest on top. This is the
 standup doc for the owner and the resume-from-home lifeline.
 
+- **2026-08-18 (evening) — Owner round 3: Home opens on the circles, the glow
+  finally lands, Mind gets a room worth sitting in.**
+  1. **Home reordered**: the deity chip is gone from the header, the day's
+     standing + today's-practice strip moved BELOW the three rings (the screen
+     now opens on the circles, nothing above them but the greeting), and "the
+     week, reflected" (MirrorCard) is removed entirely.
+  2. **The diya is the What's-Next artifact's**, path for path: one gold-hi
+     teardrop flame over the gold-deep bowl in a 24-box, on the artifact's
+     `flick` cycle (2.7s, pivot 50%/82%, 30%/62% keyframes).
+  3. **The gold press-glow actually shows now.** Root cause: it rendered
+     INSIDE the Button, so the first ancestor with overflow hidden (the
+     Screen's ScrollView, a Card) clipped it — it was never visible. It is now
+     `GoldGlowProvider`, hosted above the whole tree (root `_layout`, with
+     nested hosts inside the Purna and Reward modals since a Modal is its own
+     window), and blooms from the touch point exactly like the mockup's
+     `burst(e.clientX, e.clientY)`. PressableScale now passes the gesture
+     event through so the light starts under the finger; the ring bloom and
+     `feedback.goldPress()` haptic fire on the same frame.
+  4. **Mind reworked**: a breathing indigo halo (the same living layer as
+     Home's coins) around the ॐ as the room's hero, then the quick-start on
+     the ember material with the sit's facts as chips (the old joined
+     "15 min · Om Chant" string was what broke alignment), then Practices,
+     week, and the how-to fold on one consistent rhythm.
+  Typecheck + lint green; web click-through: Home order, Mind hero → Begin →
+  session, zero console errors.
 - **2026-08-18 (later) — Owner review round on the cosmic pass: rewards go
   full Purna, the artifact diya + press glow land exactly, and the coin
   transition stops flashing Home.** Six corrections from device review:

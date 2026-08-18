@@ -13,7 +13,7 @@
  * Perf: transform + opacity only, on the UI thread; ~10 tiny views per press.
  */
 import React, { useEffect } from "react";
-import { StyleSheet, View, useWindowDimensions } from "react-native";
+import { StyleSheet, View } from "react-native";
 import Animated, {
   Easing,
   interpolate,
@@ -22,9 +22,7 @@ import Animated, {
   withTiming,
   type SharedValue,
 } from "react-native-reanimated";
-import Svg, { Circle, Defs, RadialGradient, Stop } from "react-native-svg";
 import { color } from "./tokens";
-import { GOLD_WASH_RAMP } from "./GoldWash";
 import { useMotion } from "./motion";
 
 const SPARK_COLORS = [color.goldHi, color.gold, color.saffron];
@@ -92,61 +90,9 @@ function Spark({
   return <Animated.View style={[styles.spark, { backgroundColor: tint }, style]} />;
 }
 
-/**
- * GoldGlow — the demo artifact's press glow, exactly (owner ask 2026-08-18:
- * the "Mark Complete" glow from the approved mockup on EVERY gold button).
- * The mockup answers a gold press with `goldwash` — a SCREEN-sized radial in
- * the shared GOLD_WASH_RAMP that swells in fast and dies away slow (1.15s,
- * opacity only, no travel) — plus the ring bloom PressableScale already
- * draws on the button itself. This is that wash: a disc wider than the
- * screen, centred on the pressed button, faded through the mockup's exact
- * gwash envelope. Fire-and-rest via `trigger`; nothing renders under the
- * motion gate.
- *
- * Perf: one animated node, opacity only, UI thread, over one static SVG
- * gradient rasterised at mount, never at press.
- */
-const GLOW_MS = 1150; // the mockup's gwash 1.15s
-
-export function GoldGlow({ trigger }: { trigger: number }) {
-  const enabled = useMotion();
-  const { width, height } = useWindowDimensions();
-  const t = useSharedValue(1); // 1 = at rest (invisible)
-
-  useEffect(() => {
-    if (!enabled || trigger === 0) return;
-    t.value = 0;
-    t.value = withTiming(1, { duration: GLOW_MS, easing: Easing.out(Easing.quad) });
-  }, [enabled, trigger, t]);
-
-  const style = useAnimatedStyle(() => ({
-    // the mockup's gwash keyframes: 0% → 0, 20% → 1, 100% → 0
-    opacity: interpolate(t.value, [0, 0.2, 1], [0, 1, 0]),
-  }));
-
-  if (!enabled) return null;
-
-  // wider than the screen from wherever the button sits — the wash reads as
-  // the whole surface lighting, exactly like the demo
-  const d = Math.max(width, height) * 1.35;
-
-  return (
-    <View pointerEvents="none" style={styles.root}>
-      <Animated.View style={[{ width: d, height: d }, style]}>
-        <Svg width="100%" height="100%" viewBox="0 0 100 100">
-          <Defs>
-            <RadialGradient id="goldGlowG" cx="50%" cy="50%" r="50%">
-              {GOLD_WASH_RAMP.map((s) => (
-                <Stop key={s.offset} offset={s.offset} stopColor={s.color} stopOpacity={s.opacity} />
-              ))}
-            </RadialGradient>
-          </Defs>
-          <Circle cx="50" cy="50" r="50" fill="url(#goldGlowG)" />
-        </Svg>
-      </Animated.View>
-    </View>
-  );
-}
+// GoldGlow (the gold press-wash) moved to src/ui/GoldGlow.tsx on 2026-08-18:
+// hosted above the screen, because a glow inside the button is clipped by
+// the first scroll/card ancestor and never showed.
 
 const styles = StyleSheet.create({
   root: {

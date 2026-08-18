@@ -37,6 +37,7 @@ import Svg, { Circle } from "react-native-svg";
 import { color, pillar, scrim, space, type PillarKey } from "./tokens";
 import { T } from "./Text";
 import { CosmicSky } from "./CosmicSky";
+import { GoldGlowProvider } from "./GoldGlow";
 import { GoldWash } from "./GoldWash";
 import { useMotion } from "./motion";
 import { feedback } from "../lib/feedback";
@@ -63,7 +64,10 @@ const RINGS: { k: PillarKey; from: { x: number; y: number }; to: { x: number; y:
 export function Purna({ visible, onDismiss }: Props) {
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
-      <PurnaStage onDismiss={onDismiss} />
+      {/* own window, own glow host (see RewardOverlay) */}
+      <GoldGlowProvider>
+        <PurnaStage onDismiss={onDismiss} />
+      </GoldGlowProvider>
     </Modal>
   );
 }

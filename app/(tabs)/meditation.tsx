@@ -5,6 +5,8 @@ import {
   Screen,
   Card,
   Chip,
+  CoinHalo,
+  EmberCard,
   Button,
   Reveal,
   IconSlot,
@@ -36,6 +38,9 @@ import {
 } from "../../src/lib/medPrefs";
 import { fetchMeditationWeek, type MeditationWeek } from "../../src/lib/progress";
 import { useAuth } from "../../src/lib/auth";
+
+/** The hall's halo — the hero mark at the top of Mind. */
+const HERO = 148;
 
 /**
  * The Mind hub (UI9 slice C — docs/specs/meditation.md v2).
@@ -129,12 +134,41 @@ export default function Meditation() {
 
   return (
     <Screen>
-      <View style={{ paddingTop: space.sm, paddingBottom: space.sm }}>
-        <B k="tab_meditation" variant="h1" noSub style={{ color: pillar.mind }} />
-        <B k="med_tagline" variant="caption" tone="muted" noSub />
-      </View>
+      {/* the hall itself — a breathing indigo halo around the ॐ, the room's
+          own light before a word is read (owner 2026-08-18: make Mind feel
+          premium). The halo is the same living layer as Home's coins, so the
+          two surfaces breathe in one language. */}
+      <Reveal>
+        <View style={{ alignItems: "center", paddingTop: space.md, paddingBottom: space.lg }}>
+          <View style={{ width: HERO, height: HERO, alignItems: "center", justifyContent: "center" }}>
+            <CoinHalo size={HERO} tint={pillar.mind} />
+            <View
+              style={{
+                width: HERO * 0.66,
+                height: HERO * 0.66,
+                borderRadius: HERO,
+                borderWidth: 1,
+                borderColor: pillar.mindWash,
+                backgroundColor: color.surface,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <OmGlyph size={44} color={pillar.mind} />
+            </View>
+          </View>
+          <B
+            k="tab_meditation"
+            variant="h1"
+            noSub
+            center
+            style={{ color: pillar.mind, marginTop: space.lg }}
+          />
+          <B k="med_tagline" variant="caption" tone="muted" noSub center style={{ marginTop: 2 }} />
+        </View>
+      </Reveal>
 
-      <Reveal lift>
+      <Reveal lift delay={80}>
         <QuickStart
           returning={prefs != null}
           ready={loadedPrefs && sounds !== null}
@@ -145,8 +179,8 @@ export default function Meditation() {
         />
       </Reveal>
 
-      <Reveal lift delay={100}>
-        <View style={{ marginTop: space.lg, gap: space.sm }}>
+      <Reveal lift delay={160}>
+        <View style={{ marginTop: space.xl, gap: space.sm }}>
           <T variant="eyebrow" style={{ color: pillar.mind }}>
             {t("practices_title")}
           </T>
@@ -174,12 +208,12 @@ export default function Meditation() {
       </Reveal>
 
       {week && week.totalMinutes > 0 ? (
-        <Reveal lift delay={180}>
+        <Reveal lift delay={240}>
           <WeekStrip week={week} />
         </Reveal>
       ) : null}
 
-      <Reveal lift delay={240}>
+      <Reveal lift delay={320}>
         <HowToSit open={howOpen} onToggle={() => setHowOpen((v) => !v)} />
       </Reveal>
     </Screen>
@@ -212,33 +246,35 @@ function QuickStart({
   // Until the sound list lands the card must not name a sound — claiming
   // "Silent" for the length of a query is a claim about what Begin will do,
   // and it is wrong at exactly the moment it is read.
-  const sub = [
+  const facts = [
     `${minutes} ${t("minutes_short")}`,
     ready ? (soundLabel ? loc(soundLabel.name_hi, soundLabel.name_en) : t("silent_mode")) : null,
     practiceK ? t(practiceK) : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  ].filter((v): v is string => Boolean(v));
 
   return (
-    <Card style={{ borderColor: pillar.mindWash, backgroundColor: color.surface }}>
+    <EmberCard sheen>
       <View style={{ flexDirection: "row", alignItems: "center", gap: space.md }}>
         <IconSlot size={44} radius={14}>
-          <OmGlyph size={22} color={pillar.mind} />
+          <LotusIcon size={22} color={pillar.mind} />
         </IconSlot>
         <View style={{ flex: 1 }}>
           <T variant="bodyBold">{t(returning ? "med_quick_title" : "med_quick_title_new")}</T>
-          <T variant="caption" tone="muted" style={{ marginTop: 2 }}>
-            {sub}
-          </T>
         </View>
       </View>
-      <View style={{ marginTop: space.md }}>
+      {/* the sit at a glance — each fact its own chip, so the line never wraps
+          into a mid-word break the way the old joined string did */}
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.sm, marginTop: space.md }}>
+        {facts.map((f) => (
+          <Chip key={f} label={f} />
+        ))}
+      </View>
+      <View style={{ marginTop: space.lg }}>
         {/* Disabled only until the list lands — the label must never promise a
             sound the tap would not actually play. */}
         <Button k="begin" disabled={!ready} onPress={onBegin} />
       </View>
-    </Card>
+    </EmberCard>
   );
 }
 

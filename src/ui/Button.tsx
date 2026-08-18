@@ -9,14 +9,14 @@
  * button whose handler already fires a stronger semantic haptic
  * (complete/success/error) passes `haptic={false}` to avoid a double buzz.
  */
-import React, { useState } from "react";
-import { View, type ViewStyle, type StyleProp } from "react-native";
+import React from "react";
+import { View, type GestureResponderEvent, type ViewStyle, type StyleProp } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { color, radius, space, tapTarget, goldGradient } from "./tokens";
 import { pressScale } from "./motion";
 import { PressableScale } from "./PressableScale";
-import { GoldGlow } from "./GoldBurst";
+import { useGoldGlow } from "./GoldGlow";
 import { T } from "./Text";
 import { feedback } from "../lib/feedback";
 import { useI18n, type StringKey } from "../lib/i18n";
@@ -35,16 +35,22 @@ export function Button({ k, onPress, kind = "gold", disabled, haptic = "press", 
   const { t, tSub } = useI18n();
   const sub = tSub(k);
   const isGold = kind === "gold";
-  // EVERY enabled gold button answers with the demo's glow — the full gold
-  // wash + ring bloom (owner 2026-08-18: "skip, set done, all of them").
-  // Ghost never glows.
-  const burstOn = isGold && !disabled;
-  const [burstTick, setBurstTick] = useState(0);
+  // EVERY enabled gold button answers with the demo's glow — the screen-wide
+  // gold wash blooming from this button, plus the ring bloom below (owner
+  // 2026-08-18: "skip, set done, all of them"). Ghost never glows.
+  const glowOn = isGold && !disabled;
+  const glow = useGoldGlow();
 
-  const handlePress = () => {
-    if (burstOn) setBurstTick((n) => n + 1);
+  const handlePress = (e?: GestureResponderEvent) => {
+    // The wash is hosted above the screen (see GoldGlow.tsx — a glow inside
+    // the button is clipped by the first scroll/card ancestor), so it takes a
+    // window-space point: the finger itself, exactly like the mockup's
+    // burst(e.clientX, e.clientY).
+    const touch = e?.nativeEvent;
+    if (glowOn && glow && touch) glow.fire(touch.pageX, touch.pageY);
     // Fire the firm gold haptic ONLY when the caller hasn't taken haptics over
-    // (haptic={false} means its handler fires complete()/success() itself).
+    // (haptic={false} means its handler fires complete()/success() itself) —
+    // press, buzz and light all land on the same frame.
     if (isGold && haptic !== false && !disabled) feedback.goldPress();
     onPress();
   };
@@ -124,9 +130,6 @@ export function Button({ k, onPress, kind = "gold", disabled, haptic = "press", 
           {inner}
         </View>
       )}
-      {/* the demo's gold press glow — the screen-wide wash blooming out of
-          this button; one-shot, fires on every gold action */}
-      {burstOn ? <GoldGlow trigger={burstTick} /> : null}
     </PressableScale>
   );
 }

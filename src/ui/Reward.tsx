@@ -20,6 +20,7 @@ import { Button } from "./Button";
 import { AnimatedNumber } from "./AnimatedNumber";
 import { TrinityMark } from "./Purna";
 import { CosmicSky } from "./CosmicSky";
+import { GoldGlowProvider } from "./GoldGlow";
 import { GoldWash } from "./GoldWash";
 import { Reveal } from "./Reveal";
 import { color, radius, space } from "./tokens";
@@ -112,6 +113,9 @@ interface RewardOverlayProps {
 export function RewardOverlay({ visible, titleKey, bodyKey, earned, total, onDone }: RewardOverlayProps) {
   return (
     <Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={onDone}>
+      {/* a Modal is its own window — the root glow host is BEHIND it, so this
+          surface hosts its own; the nearest provider wins */}
+      <GoldGlowProvider>
       <View
         style={{
           flex: 1,
@@ -147,6 +151,7 @@ export function RewardOverlay({ visible, titleKey, bodyKey, earned, total, onDon
           <Button k="done" onPress={onDone} />
         </Reveal>
       </View>
+      </GoldGlowProvider>
     </Modal>
   );
 }

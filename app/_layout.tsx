@@ -12,7 +12,7 @@ import { flushActivityQueue, watchActivityFlush } from "../src/lib/activityQueue
 import { reconcileSleepRun } from "../src/lib/sleepRun";
 import { watchCheckIn } from "../src/lib/points";
 import { watchNotificationTaps } from "../src/lib/push";
-import { AudioStopPill, BmsSplash, color } from "../src/ui";
+import { AudioStopPill, BmsSplash, GoldGlowProvider, color } from "../src/ui";
 
 // Hold the native splash from the very first module evaluation so there is zero
 // flash of white before the animated ceremony paints (slice 3). The animated
@@ -86,6 +86,9 @@ export default function RootLayout() {
           profile's language_mode and pushes it into the i18n layer. */}
       <I18nProvider>
         <AuthProvider>
+          {/* the gold press-glow host — above every screen, so a gold button's
+              wash is never clipped by a scroll view or a card */}
+          <GoldGlowProvider>
           <StatusBar style="light" />
           <Stack
             screenOptions={{
@@ -108,6 +111,7 @@ export default function RootLayout() {
           {/* Global stop-sound affordance — floats over every screen while the
               shared audio service is playing. */}
           <AudioStopPill />
+          </GoldGlowProvider>
           <SplashGate />
         </AuthProvider>
       </I18nProvider>

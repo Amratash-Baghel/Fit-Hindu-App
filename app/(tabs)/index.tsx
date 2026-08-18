@@ -3,7 +3,7 @@ import { ScrollView, View, useWindowDimensions } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Screen, Card, Chip, Diya, EmberCard, GoldWash, GoldBurst, IconSlot, T, AnimatedNumber, Reveal, ProgressBar, Shimmer, FlipCard, PressableScale, PillarCoin, CoinHalo, Purna, useCoinExpand, duration, useMotion, color, ember, pillar, radius, space, type PillarKey } from "../../src/ui";
+import { Screen, Card, Diya, EmberCard, GoldWash, GoldBurst, IconSlot, T, AnimatedNumber, Reveal, ProgressBar, Shimmer, FlipCard, PressableScale, PillarCoin, CoinHalo, Purna, useCoinExpand, duration, useMotion, color, ember, pillar, radius, space, type PillarKey } from "../../src/ui";
 import { feedback } from "../../src/lib/feedback";
 import {
   DumbbellIcon,
@@ -23,7 +23,6 @@ import { useStreak } from "../../src/lib/streak";
 import { usePoints } from "../../src/lib/points";
 import {
   usePillars,
-  useWeekPillars,
   pillarComplete,
   pillarsCompleteCount,
   PILLAR_ORDER,
@@ -77,7 +76,7 @@ const PURNA_STORAGE = "fithindu.purna.shown";
  */
 export default function Home() {
   const router = useRouter();
-  const { t, loc, mode } = useI18n();
+  const { t, mode } = useI18n();
   const { session } = useAuth();
   const guest = !session;
   const [dev, setDev] = useState<DevotionalToday | null>(null);
@@ -159,7 +158,8 @@ export default function Home() {
 
   return (
     <Screen wash={dp.wash} overlay={<GoldWash trigger={washTick} />}>
-      {/* greeting + deity of the day */}
+      {/* greeting — the only thing above the three circles (owner
+          2026-08-18: the screen opens on the rings) */}
       <View
         style={{
           flexDirection: "row",
@@ -176,7 +176,6 @@ export default function Home() {
             {dateLine}
           </T>
         </View>
-        {dev?.deity ? <Chip label={loc(dev.deity.name_hi, dev.deity.name_en)} active /> : null}
         <PressableScale
           accessibilityLabel={t("settings_title")}
           onPress={() => router.push("/settings")}
@@ -187,28 +186,6 @@ export default function Home() {
           <SettingsIcon color={color.muted} />
         </PressableScale>
       </View>
-
-      {/* the day's standing — the one number that says whether today is done.
-          Guests see Begin-rings + the sign-in invitation instead. */}
-      {!guest ? (
-        <View style={{ alignItems: "center", marginTop: space.lg }}>
-          <T variant="eyebrow" tone="gold">
-            {t("today_saadhana")}
-          </T>
-          {complete >= PILLAR_ORDER.length ? (
-            // the day is whole — the hero rests in a quiet gold until midnight
-            // IST (the same boundary that resets the rings and Purna).
-            <T variant="caption" tone="gold" style={{ marginTop: space.sm, fontWeight: "700" }}>
-              {t("saadhana_settled")}
-            </T>
-          ) : (
-            <SaadhanaCount n={complete} m={PILLAR_ORDER.length} />
-          )}
-        </View>
-      ) : null}
-
-      {/* the day's concrete practices — tap one, do it, come back to a lit ring */}
-      {!guest ? <TaskStrip todayTypes={todayTypes} /> : null}
 
       {/* the BMS hero — Body · Mind · Soul rings (docs/specs/redesign-bms.md).
           Each circle is the door to its pillar page; the ring is today's
@@ -232,6 +209,29 @@ export default function Home() {
           />
         ))}
       </View>
+
+      {/* the day's standing + the day's concrete practices — BELOW the rings
+          (owner 2026-08-18: the screen opens on the three circles, nothing
+          above them but the greeting). Tap a practice, do it, come back to a
+          lit ring. Guests see the Begin-rings + sign-in invitation instead. */}
+      {!guest ? (
+        <View style={{ alignItems: "center", marginTop: space.sm }}>
+          <T variant="eyebrow" tone="gold">
+            {t("today_saadhana")}
+          </T>
+          {complete >= PILLAR_ORDER.length ? (
+            // the day is whole — the hero rests in a quiet gold until midnight
+            // IST (the same boundary that resets the rings and Purna).
+            <T variant="caption" tone="gold" style={{ marginTop: space.sm, fontWeight: "700" }}>
+              {t("saadhana_settled")}
+            </T>
+          ) : (
+            <SaadhanaCount n={complete} m={PILLAR_ORDER.length} />
+          )}
+        </View>
+      ) : null}
+
+      {!guest ? <TaskStrip todayTypes={todayTypes} /> : null}
 
       {/* today's shloka — the ember material with ॐ watermark + sheen, lifting
           up out of the surface (mockup .lift — the 3D scroll grammar) */}
@@ -294,9 +294,6 @@ export default function Home() {
 
       {/* today's blessing — the gentle come-back-tomorrow reveal */}
       <DailyBlessing onReveal={() => setWashTick((n) => n + 1)} />
-
-      {/* the week, reflected — practice mirrored, never asked about */}
-      {!guest ? <MirrorCard /> : null}
 
       {/* the day made whole — fires once when all three pillars close */}
       <Purna visible={purnaVisible} onDismiss={dismissPurna} />
@@ -527,58 +524,6 @@ function TaskStrip({ todayTypes }: { todayTypes: readonly ActivityType[] }) {
         );
       })}
     </ScrollView>
-  );
-}
-
-/**
- * The week, reflected (redesign — "reflect, never ask"): a mirror of the
- * practice the user already chose, per pillar, over the last seven IST days.
- * Nothing here was asked — no deity question, no survey — it only reads what
- * was practised. Hidden until there is a week worth reflecting (guests and
- * brand-new users see nothing, never a wall of zeros).
- */
-function MirrorCard() {
-  const { t } = useI18n();
-  const { week, refresh } = useWeekPillars();
-
-  useFocusEffect(
-    useCallback(() => {
-      refresh();
-    }, [refresh]),
-  );
-
-  if (!week || week.activeDays === 0) return null;
-  const lead = PILLAR_ORDER.reduce((a, b) => (week.days[b] > week.days[a] ? b : a));
-
-  return (
-    <Reveal lift delay={380}>
-    <EmberCard>
-      <T variant="eyebrow" tone="gold">
-        {t("mirror_title")}
-      </T>
-      <T variant="body" tone="soft" style={{ marginTop: space.sm }}>
-        {t("mirror_lead").replace("{p}", t(`pillar_${lead}` as StringKey))}
-      </T>
-      <View style={{ flexDirection: "row", marginTop: space.md, gap: space.md }}>
-        {PILLAR_ORDER.map((k) => (
-          <View key={k} style={{ flex: 1, alignItems: "center", gap: 2 }}>
-            <T variant="h2" style={{ color: pillar[k], fontVariant: ["tabular-nums"] }}>
-              {week.days[k]}
-              <T variant="caption" tone="muted">
-                /7
-              </T>
-            </T>
-            <T variant="caption" tone="muted" style={{ fontSize: 11 }}>
-              {t(`pillar_${k}` as StringKey)}
-            </T>
-          </View>
-        ))}
-      </View>
-      <T variant="caption" tone="muted" style={{ marginTop: space.md, fontStyle: "italic" }}>
-        {t("mirror_footer")}
-      </T>
-    </EmberCard>
-    </Reveal>
   );
 }
 

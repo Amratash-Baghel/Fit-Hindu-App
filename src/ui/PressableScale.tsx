@@ -14,7 +14,13 @@
    Reanimated's API but which the React-Compiler immutability rule doesn't
    model. Same precedent as CeremonySplash. */
 import React from "react";
-import { Pressable, type StyleProp, type ViewStyle, type AccessibilityRole } from "react-native";
+import {
+  Pressable,
+  type GestureResponderEvent,
+  type StyleProp,
+  type ViewStyle,
+  type AccessibilityRole,
+} from "react-native";
 import Animated, {
   Easing,
   interpolate,
@@ -31,7 +37,8 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 interface Props {
   children: React.ReactNode;
-  onPress?: () => void;
+  /** Receives the touch event, so a caller can bloom from the finger. */
+  onPress?: (e: GestureResponderEvent) => void;
   disabled?: boolean;
   /** Which haptic to fire on press. `false` suppresses it — use when the handler
    *  already fires a stronger semantic haptic (complete/success/error). */
@@ -108,10 +115,10 @@ export function PressableScale({
       onPressOut={() => {
         if (enabled) s.value = withSpring(1, spring.press);
       }}
-      onPress={() => {
+      onPress={(e) => {
         if (haptic === "press") feedback.press();
         else if (haptic === "select") feedback.select();
-        onPress?.();
+        onPress?.(e);
       }}
       style={[style, animStyle]}
     >
