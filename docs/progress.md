@@ -3,6 +3,34 @@
 Running build log — one entry per shipped item, newest on top. This is the
 standup doc for the owner and the resume-from-home lifeline.
 
+- **2026-08-18 (later) — Owner review round on the cosmic pass: rewards go
+  full Purna, the artifact diya + press glow land exactly, and the coin
+  transition stops flashing Home.** Six corrections from device review:
+  1. **Every reward screen is now the Purna ceremony** — new `TrinityMark`
+     (extracted from Purna.tsx): rings converge, ॐ lands, gold bloom
+     breathes. Replaces CompletionDiya (diya + ray burst + star shower —
+     removed entirely) on workout/meditation complete and the RewardOverlay;
+     Purna's own ray/star burst also dropped to match the approved artifact.
+  2. **The completed-ring crown diya is gone** (owner: not required).
+  3. **Body · Mind · Soul never cycles** — the evening soul-first reordering
+     of the rings + task strip is removed; the daypart still tints the wash
+     and greeting only.
+  4. **The artifact's ceremony diya is THE diya now** (bms-next-ideas
+     `.cere-in .diya`, exact paths): gold teardrop flame + cream core + wide
+     goldHi→deep bowl + rim, resting in its own soft gold glow. Flicker/dim/
+     delay contracts unchanged.
+  5. **The demo's press glow on every gold button** — GoldGlow is now the
+     mockup's `goldwash` verbatim (screen-sized radial, 1.15s, opacity-only,
+     shared GOLD_WASH_RAMP) centred on the pressed button, and the ring
+     bloom now uses the mockup's exact keyframes (.7→0, .95→1.26, .6s). The
+     `burst` opt-out prop is deleted — Skip, Set done, Begin, all of them.
+  6. **No more Home flash after the coin expand** — the disc now holds FULL
+     cover until the destination has painted (2 rAF + 60ms after navigation,
+     seq-guarded) and only then fades; previously the fade started the
+     instant navigation was requested, showing Home through the thinning
+     disc.
+  Typecheck + lint green; web click-through: Home (fixed order verified),
+  jap mala → TrinityMark overlay, zero console errors.
 - **2026-08-18 — The cosmic completion pass (redesign branch): every
   accomplishment lands under the universe, and the living surfaces got
   livelier.** Owner batch, all six asks shipped:

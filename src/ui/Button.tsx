@@ -28,21 +28,17 @@ interface Props {
   disabled?: boolean;
   /** Suppress the press haptic when the handler fires its own (e.g. error). */
   haptic?: "press" | false;
-  /** The soft gold light-burst + firm haptic on the primary action (owner ask
-   *  2026-08-18: the blessing-reveal glow, not a particle release). On by
-   *  default for gold; pass false to quiet a gold button that is really just
-   *  navigation. Ghost never bursts. */
-  burst?: boolean;
   style?: StyleProp<ViewStyle>;
 }
 
-export function Button({ k, onPress, kind = "gold", disabled, haptic = "press", burst, style }: Props) {
+export function Button({ k, onPress, kind = "gold", disabled, haptic = "press", style }: Props) {
   const { t, tSub } = useI18n();
   const sub = tSub(k);
   const isGold = kind === "gold";
-  // Gold is the one primary action per screen — it gets the spark burst by
-  // default; a gold "back"/"skip" can opt out with burst={false}.
-  const burstOn = isGold && !disabled && burst !== false;
+  // EVERY enabled gold button answers with the demo's glow — the full gold
+  // wash + ring bloom (owner 2026-08-18: "skip, set done, all of them").
+  // Ghost never glows.
+  const burstOn = isGold && !disabled;
   const [burstTick, setBurstTick] = useState(0);
 
   const handlePress = () => {
@@ -128,8 +124,8 @@ export function Button({ k, onPress, kind = "gold", disabled, haptic = "press", 
           {inner}
         </View>
       )}
-      {/* the soft gold light on press — the blessing wash, local to the
-          button; one-shot, fires on every gold action */}
+      {/* the demo's gold press glow — the screen-wide wash blooming out of
+          this button; one-shot, fires on every gold action */}
       {burstOn ? <GoldGlow trigger={burstTick} /> : null}
     </PressableScale>
   );

@@ -3,10 +3,14 @@
  * docs/specs/redesign-bms.md "the day made whole" / "Purna — the day
  * completes"). When Body, Mind and Soul have all closed, Home holds one
  * ceremony: the three pillar rings DRAW TOGETHER into a single interlocked
- * trinity, ॐ lands at the centre, a warm gold bloom breathes behind, sparks
- * radiate once, and the reward-burst haptic rides the moment. Tap anywhere
- * to continue — the hero then settles into its quiet gold state until
- * midnight IST (the caller owns that state).
+ * trinity, ॐ lands at the centre, a warm gold bloom breathes behind, and the
+ * reward-burst haptic rides the moment (no spark burst — owner 2026-08-18:
+ * the ceremony is the rings and the light, exactly the approved artifact).
+ * Tap anywhere to continue — the hero then settles into its quiet gold state
+ * until midnight IST (the caller owns that state).
+ *
+ * The composition itself is TrinityMark, exported below — every reward
+ * screen (workout, meditation, jap/sleep/diet overlay) renders the same mark.
  *
  * It celebrates the ROUTINE — body·mind·soul done — never worship, and is
  * never a paywall or a points-farm (compliance fence-line). Once per IST day.
@@ -32,7 +36,6 @@ import Animated, {
 import Svg, { Circle } from "react-native-svg";
 import { color, pillar, scrim, space, type PillarKey } from "./tokens";
 import { T } from "./Text";
-import { CelebrationBurst, StarField } from "./CelebrationBurst";
 import { CosmicSky } from "./CosmicSky";
 import { GoldWash } from "./GoldWash";
 import { useMotion } from "./motion";
@@ -65,27 +68,38 @@ export function Purna({ visible, onDismiss }: Props) {
   );
 }
 
-/** Mounted fresh each time the Modal opens, so the ceremony plays from zero. */
-function PurnaStage({ onDismiss }: { onDismiss: () => void }) {
-  const { t } = useI18n();
+/**
+ * TrinityMark — the Purna composition as a drop-in reward mark (owner ask
+ * 2026-08-18: every reward screen reads like the Purna ceremony, not a diya
+ * with a spark burst): the three pillar rings draw together into the
+ * interlocked trinity, ॐ lands at the centre inside the gold outer circle,
+ * and a warm gold bloom breathes behind — forever, gently. Purna itself and
+ * every completion screen (workout, meditation, the jap/sleep/diet reward
+ * overlay) render THIS, so "done" is one mark everywhere.
+ *
+ * `celebrate` fires the reward-burst haptic ramp on mount (workout + the
+ * overlay opt in; meditation stays calm). Web / reduce-motion render the
+ * finished composition. All motion is transform/opacity on the UI thread.
+ */
+export function TrinityMark({
+  size = 210,
+  celebrate = false,
+}: {
+  /** rendered box — the 210 stage scales to fit */
+  size?: number;
+  celebrate?: boolean;
+}) {
   const enabled = useMotion();
 
   const conv = useSharedValue(enabled ? 0 : 1); // rings converge
   const om = useSharedValue(enabled ? 0 : 1); // ॐ + outer circle land
   const breath = useSharedValue(0); // the slow gold breath
-  const wordsIn = useSharedValue(enabled ? 0 : 1); // copy rises
 
   useEffect(() => {
-    // The haptic twin of the ceremony — the same reward-burst grammar as every
-    // completion (ramp collapses to one firm hit when motion is off) — plus the
-    // completion ring: the day resolving is the one moment that gets both.
-    feedback.completeChime();
-    const cancel = feedback.rewardBurst({ ramp: enabled });
-    if (!enabled) return cancel;
+    if (!enabled) return;
     const easeOut = Easing.out(Easing.cubic);
     conv.value = withDelay(240, withTiming(1, { duration: 900, easing: easeOut }));
     om.value = withDelay(1060, withTiming(1, { duration: 620, easing: easeOut }));
-    wordsIn.value = withDelay(1260, withTiming(1, { duration: 520, easing: easeOut }));
     breath.value = withRepeat(
       withSequence(
         withTiming(1, { duration: 1700, easing: Easing.inOut(Easing.quad) }),
@@ -94,10 +108,15 @@ function PurnaStage({ onDismiss }: { onDismiss: () => void }) {
       -1,
       false,
     );
-    return cancel;
     // shared values are stable refs; fire once per mount.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled]);
+
+  // The haptic twin of the mark landing — same grammar as every completion.
+  useEffect(() => {
+    if (!celebrate) return;
+    return feedback.rewardBurst({ ramp: enabled });
+  }, [celebrate, enabled]);
 
   const bloomStyle = useAnimatedStyle(() => ({
     opacity: 0.5 + breath.value * 0.4,
@@ -108,6 +127,73 @@ function PurnaStage({ onDismiss }: { onDismiss: () => void }) {
     opacity: om.value,
     transform: [{ scale: interpolate(om.value, [0, 1], [0.7, 1]) }],
   }));
+
+  const k = size / STAGE;
+  return (
+    <View style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>
+      {/* the warm bloom behind the mark — one slow gold breath */}
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          {
+            position: "absolute",
+            width: size * 1.33,
+            height: size * 1.33,
+            borderRadius: (size * 1.33) / 2,
+            backgroundColor: pillar.soulWash,
+          },
+          bloomStyle,
+        ]}
+      />
+      <View style={{ width: STAGE, height: STAGE, transform: [{ scale: k }] }}>
+        {/* the outer circle that holds the trinity — lands with the ॐ */}
+        <Animated.View pointerEvents="none" style={[{ position: "absolute" }, outerStyle]}>
+          <Svg width={STAGE} height={STAGE} viewBox={`0 0 ${STAGE} ${STAGE}`}>
+            <Circle cx={105} cy={105} r={97} fill="none" stroke={color.gold} strokeWidth={2.4} opacity={0.85} />
+            <Circle cx={105} cy={105} r={90} fill="none" stroke={color.goldHi} strokeWidth={0.8} opacity={0.4} />
+          </Svg>
+        </Animated.View>
+
+        {/* the three pillar rings drawing together into the trinity */}
+        {RINGS.map((r) => (
+          <ConvergingRing key={r.k} k={r.k} from={r.from} to={r.to} conv={conv} />
+        ))}
+
+        {/* ॐ at the centre */}
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center" },
+            omStyle,
+          ]}
+        >
+          <T style={{ fontSize: 34, lineHeight: 44, fontWeight: "700", color: color.goldHi }}>ॐ</T>
+        </Animated.View>
+      </View>
+    </View>
+  );
+}
+
+/** Mounted fresh each time the Modal opens, so the ceremony plays from zero. */
+function PurnaStage({ onDismiss }: { onDismiss: () => void }) {
+  const { t } = useI18n();
+  const enabled = useMotion();
+
+  const wordsIn = useSharedValue(enabled ? 0 : 1); // copy rises
+
+  useEffect(() => {
+    // The haptic twin of the ceremony — the same reward-burst grammar as every
+    // completion (ramp collapses to one firm hit when motion is off) — plus the
+    // completion ring: the day resolving is the one moment that gets both.
+    feedback.completeChime();
+    const cancel = feedback.rewardBurst({ ramp: enabled });
+    if (!enabled) return cancel;
+    wordsIn.value = withDelay(1260, withTiming(1, { duration: 520, easing: Easing.out(Easing.cubic) }));
+    return cancel;
+    // shared values are stable refs; fire once per mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled]);
+
   const wordsStyle = useAnimatedStyle(() => ({
     opacity: wordsIn.value,
     transform: [{ translateY: interpolate(wordsIn.value, [0, 1], [10, 0]) }],
@@ -134,56 +220,8 @@ function PurnaStage({ onDismiss }: { onDismiss: () => void }) {
       <GoldWash />
 
       <View style={{ alignItems: "center" }}>
-        {/* the warm bloom behind the mark — one slow gold breath */}
-        <Animated.View
-          pointerEvents="none"
-          style={[
-            {
-              position: "absolute",
-              width: 280,
-              height: 280,
-              borderRadius: 140,
-              top: -36,
-              backgroundColor: pillar.soulWash,
-            },
-            bloomStyle,
-          ]}
-        />
-
-        {/* gold sparks + a shower of twinkling stars radiate once, behind the
-            trinity — the same star grammar as every completion */}
-        <View pointerEvents="none" style={{ position: "absolute", top: -20, alignItems: "center", justifyContent: "center" }}>
-          <CelebrationBurst size={250} rays={14} delay={1100} />
-          <View style={{ position: "absolute" }}>
-            <StarField size={290} delay={1150} />
-          </View>
-        </View>
-
-        <View style={{ width: STAGE, height: STAGE }}>
-          {/* the outer circle that holds the trinity — lands with the ॐ */}
-          <Animated.View pointerEvents="none" style={[{ position: "absolute" }, outerStyle]}>
-            <Svg width={STAGE} height={STAGE} viewBox={`0 0 ${STAGE} ${STAGE}`}>
-              <Circle cx={105} cy={105} r={97} fill="none" stroke={color.gold} strokeWidth={2.4} opacity={0.85} />
-              <Circle cx={105} cy={105} r={90} fill="none" stroke={color.goldHi} strokeWidth={0.8} opacity={0.4} />
-            </Svg>
-          </Animated.View>
-
-          {/* the three pillar rings drawing together into the trinity */}
-          {RINGS.map((r) => (
-            <ConvergingRing key={r.k} k={r.k} from={r.from} to={r.to} conv={conv} />
-          ))}
-
-          {/* ॐ at the centre */}
-          <Animated.View
-            pointerEvents="none"
-            style={[
-              { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center" },
-              omStyle,
-            ]}
-          >
-            <T style={{ fontSize: 34, lineHeight: 44, fontWeight: "700", color: color.goldHi }}>ॐ</T>
-          </Animated.View>
-        </View>
+        {/* the trinity — rings converge, ॐ lands, the gold bloom breathes */}
+        <TrinityMark />
 
         <Animated.View style={[{ alignItems: "center" }, wordsStyle]}>
           <T variant="h1" tone="gold" style={{ marginTop: space.lg, textAlign: "center" }}>

@@ -2,6 +2,16 @@
 
 One dated line per decision, with the why. Newest on top.
 
+- **2026-08-18 (later)** — **One reward mark: the Purna trinity, everywhere.**
+  Owner review of the cosmic pass replaced the diya-and-burst reward moment
+  (CompletionDiya — deleted) with the Purna composition on every completion
+  surface, via the extracted `TrinityMark`. The diya itself became the
+  approved artifact's ceremony diya (with its glow); the press glow on gold
+  buttons became the mockup's screen-wide `goldwash` verbatim; the ring order
+  on Home is FIXED Body→Mind→Soul (the daypart no longer reorders, only
+  tints); and the coin-expand now holds full cover until the destination has
+  painted. Why: the app must match the approved artifact exactly — where the
+  code had invented its own reward grammar, the artifact wins.
 - **2026-08-18** — **Completion ceremonies go cosmic (owner/boss ask): one
   shared `CosmicSky` space backdrop behind every accomplishment, and the
   ambient-motion perf budgets are consciously raised.** The "connected to the

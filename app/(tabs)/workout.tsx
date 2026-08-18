@@ -361,7 +361,6 @@ function TodayHero({ template }: { template: WorkoutTemplateSummary }) {
         <View style={{ flexDirection: "row", marginTop: space.md }}>
           <Button
             k="start_workout"
-            burst
             onPress={() => router.push({ pathname: "/workout/session", params: { template: template.id } })}
           />
         </View>

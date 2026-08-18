@@ -144,12 +144,32 @@ export function CoinExpandProvider({ children }: { children: React.ReactNode }) 
   const onCoveredRef = useRef<{ seq: number; cb: () => void } | null>(null);
   const seqRef = useRef(0);
 
-  const runCovered = useCallback((seq: number) => {
-    const cur = onCoveredRef.current;
-    if (!cur || cur.seq !== seq) return; // a newer fire owns the overlay now
-    onCoveredRef.current = null;
-    cur.cb();
-  }, []);
+  const runCovered = useCallback(
+    (seq: number) => {
+      const cur = onCoveredRef.current;
+      if (!cur || cur.seq !== seq) return; // a newer fire owns the overlay now
+      onCoveredRef.current = null;
+      cur.cb();
+      // Hold FULL COVER until the destination has actually painted — two
+      // frames after the navigation commits, plus a short settle — and only
+      // then let the light fall away. Fading the moment navigation was
+      // *requested* let the old screen show through the thinning disc for a
+      // split second before the new one landed (owner report 2026-08-18:
+      // "you see the home screen for a split second"). Seq-guarded so a
+      // newer fire's reset is never faded early by this stale timer.
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            if (seqRef.current !== seq) return;
+            fade.value = withTiming(0, { duration: FADE_MS, easing: Easing.out(Easing.quad) }, (done) => {
+              if (done) active.value = -1;
+            });
+          }, 60);
+        });
+      });
+    },
+    [fade, active],
+  );
 
   const fire = useCallback(
     (r: ExpandRequest) => {
@@ -172,11 +192,9 @@ export function CoinExpandProvider({ children }: { children: React.ReactNode }) 
         coverScale,
         { duration: EXPAND_MS, easing: Easing.bezier(0.4, 0, 0.2, 1) },
         (finished) => {
-          if (!finished) return;
-          runOnJS(runCovered)(seq);
-          fade.value = withTiming(0, { duration: FADE_MS, easing: Easing.out(Easing.quad) }, (done) => {
-            if (done) active.value = -1;
-          });
+          // navigation + the held fade both start JS-side in runCovered, so
+          // the light never lifts before the new screen is under it
+          if (finished) runOnJS(runCovered)(seq);
         },
       );
     },

@@ -18,7 +18,7 @@ import { Modal, View, type StyleProp, type ViewStyle } from "react-native";
 import { B, T } from "./Text";
 import { Button } from "./Button";
 import { AnimatedNumber } from "./AnimatedNumber";
-import { CompletionDiya } from "./CelebrationBurst";
+import { TrinityMark } from "./Purna";
 import { CosmicSky } from "./CosmicSky";
 import { GoldWash } from "./GoldWash";
 import { Reveal } from "./Reveal";
@@ -127,7 +127,9 @@ export function RewardOverlay({ visible, titleKey, bodyKey, earned, total, onDon
         <CosmicSky />
         {/* the app-wide completion glow — the modal opening is the trigger */}
         <GoldWash />
-        <CompletionDiya diyaSize={72} burstSize={210} celebrate />
+        {/* the Purna trinity — every reward screen speaks the ceremony's
+            language now (owner 2026-08-18), with the haptic burst */}
+        <TrinityMark size={180} celebrate />
         {/* copy + reward LIFT in after the diya catches — the same one grammar
             of completion the workout screen speaks (mockup .lift stagger) */}
         <Reveal lift delay={640}>

@@ -29,9 +29,9 @@ import {
   B,
   T,
   VideoHero,
-  CompletionDiya,
   CosmicSky,
   GoldWash,
+  TrinityMark,
   PointsEarned,
   AnimatedNumber,
   Shimmer,
@@ -338,9 +338,10 @@ export default function WorkoutSession() {
             every accomplishment now shares (owner ask 2026-08-18) */}
         <CosmicSky />
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: space.md }}>
-          {/* the reward moment: the diya lights, holds a beat, then the gold
-              sparks radiate — with the synced haptic burst. Timing in CompletionDiya. */}
-          <CompletionDiya diyaSize={76} burstSize={232} celebrate />
+          {/* the reward moment — the Purna trinity: rings converge, ॐ lands,
+              the gold bloom breathes (owner 2026-08-18: every reward screen
+              reads like the Purna ceremony), with the synced haptic burst */}
+          <TrinityMark size={190} celebrate />
 
           {/* copy + stats LIFT in after the burst (mockup .lift), so the
               celebration lands first and the screen builds itself around it */}
@@ -436,7 +437,7 @@ export default function WorkoutSession() {
             <View style={{ flex: 2 }}>
               {/* skipping rest is utilitarian and repeated — a plain tick, NOT
                   the gold spark-burst reserved for genuine completions */}
-              <Button k="skip_word" onPress={advance} burst={false} haptic="press" />
+              <Button k="skip_word" onPress={advance} haptic="press" />
             </View>
           </View>
         </FooterAction>

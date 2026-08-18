@@ -236,7 +236,7 @@ function QuickStart({
       <View style={{ marginTop: space.md }}>
         {/* Disabled only until the list lands — the label must never promise a
             sound the tap would not actually play. */}
-        <Button k="begin" burst disabled={!ready} onPress={onBegin} />
+        <Button k="begin" disabled={!ready} onPress={onBegin} />
       </View>
     </Card>
   );

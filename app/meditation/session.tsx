@@ -16,7 +16,7 @@ import Svg, { Circle } from "react-native-svg";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useKeepAwake } from "expo-keep-awake";
-import { Screen, Button, FooterAction, Reveal, B, T, CompletionDiya, CosmicSky, GoldWash, PointsEarned, useMotion, color, duration, pillar, space } from "../../src/ui";
+import { Screen, Button, FooterAction, Reveal, B, T, CosmicSky, GoldWash, PointsEarned, TrinityMark, useMotion, color, duration, pillar, space } from "../../src/ui";
 import { useI18n } from "../../src/lib/i18n";
 import { pauseAudio, resumeAudio, stopAudio, fadeOutStop } from "../../src/lib/audio";
 import { logActivityDurable } from "../../src/lib/activity";
@@ -228,12 +228,11 @@ export default function MeditationSession() {
             every accomplishment now shares (owner ask 2026-08-18) */}
         <CosmicSky />
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: space.md }}>
-          {/* the diya lights + spark/star burst radiate (calm variant — no
-              reward-burst haptic, the soft chime already rang), then the copy +
-              points LIFT in, so meditation reads as the same reward family as
-              the workout screen (audit 2026-08-14: the two 'complete' screens
-              should be one system). */}
-          <CompletionDiya diyaSize={72} burstSize={200} rays={10} />
+          {/* the Purna trinity lands (calm variant — no reward-burst haptic,
+              the soft chime already rang), then the copy + points LIFT in, so
+              meditation reads as the same reward family as the workout screen
+              (audit 2026-08-14: the two 'complete' screens are one system). */}
+          <TrinityMark size={180} />
           <Reveal lift delay={640}>
             <B k="session_complete" variant="h1" center />
           </Reveal>

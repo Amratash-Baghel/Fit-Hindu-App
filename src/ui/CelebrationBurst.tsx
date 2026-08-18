@@ -28,9 +28,7 @@ import Animated, {
   type SharedValue,
 } from "react-native-reanimated";
 import { color } from "./tokens";
-import { Diya } from "./Diya";
 import { useMotion } from "./motion";
-import { feedback } from "../lib/feedback";
 
 interface Props {
   /** Diameter of the burst field (sparks reach ~radius/2 out). */
@@ -165,91 +163,9 @@ function Star({
   );
 }
 
-/**
- * CompletionDiya — the whole reward moment as one drop-in: a diya that LIGHTS
- * (a slow warm glow blooms behind it and it swells in), holds a beat, then the
- * spark burst + a shower of twinkling stars radiate. Every completion screen
- * (workout, meditation, jap, sleep, diet) uses this so the reward reads
- * identically everywhere and the timing is tunable in one place (owner feedback
- * 2026-08-08: the light-up and burst were too fast).
- */
-export function CompletionDiya({
-  diyaSize = 72,
-  burstSize = 220,
-  rays = 12,
-  celebrate = false,
-}: {
-  diyaSize?: number;
-  burstSize?: number;
-  rays?: number;
-  /** Fire the reward-burst haptic (feedback.rewardBurst) on mount, timed to this
-   *  diya's light-up + spark burst. Off by default so the calm surfaces
-   *  (meditation) stay gentle; the workout-complete + Fit-Points reward screens
-   *  opt in. */
-  celebrate?: boolean;
-}) {
-  const enabled = useMotion();
-  // Drives the diya lighting up: 0 = cold/small/dark, 1 = fully lit.
-  const lit = useSharedValue(enabled ? 0 : 1);
-
-  useEffect(() => {
-    if (!enabled) return;
-    lit.value = 0;
-    // ~1s ignite — slow enough to read as "the flame catches".
-    lit.value = withTiming(1, { duration: 1000, easing: Easing.out(Easing.cubic) });
-  }, [enabled, lit]);
-
-  // The haptic twin of the burst — fires here, on the diya's own mount, so it
-  // stays in sync with the sparks whether this is a pushed completion screen
-  // (workout) or a modal that mounts later (the Fit-Points RewardOverlay).
-  // ramp:false when motion is off, since the burst then renders as one static
-  // frame with nothing to sync a ramp to. Returns rewardBurst's cancel fn.
-  useEffect(() => {
-    if (!celebrate) return;
-    return feedback.rewardBurst({ ramp: enabled });
-  }, [celebrate, enabled]);
-
-  const glowStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(lit.value, [0, 1], [0, 0.42]),
-    transform: [{ scale: interpolate(lit.value, [0, 1], [0.5, 1.15]) }],
-  }));
-  const diyaStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(lit.value, [0, 0.5, 1], [0.18, 0.7, 1]),
-    transform: [{ scale: interpolate(lit.value, [0, 1], [0.82, 1]) }],
-  }));
-
-  return (
-    <View style={{ width: burstSize, height: burstSize * 0.62, alignItems: "center", justifyContent: "center" }}>
-      {/* the warm halo the flame throws — blooms as it lights */}
-      <Animated.View
-        pointerEvents="none"
-        style={[
-          {
-            position: "absolute",
-            width: diyaSize * 2.4,
-            height: diyaSize * 2.4,
-            borderRadius: diyaSize * 1.2,
-            backgroundColor: color.saffron,
-          },
-          glowStyle,
-        ]}
-      />
-      {/* the spark burst — held back until the diya has caught (delay) */}
-      <View style={{ position: "absolute" }} pointerEvents="none">
-        <CelebrationBurst size={burstSize} rays={rays} delay={1100} />
-      </View>
-      {/* the twinkling stars, over the rays — "animated with stars" */}
-      <View style={{ position: "absolute" }} pointerEvents="none">
-        <StarField size={burstSize * 1.15} delay={1150} />
-      </View>
-      <Animated.View style={diyaStyle}>
-        {/* the flame starts swaying the moment the ignite tween hands over —
-            the "moving diya" from the approved mockup, not a frozen icon */}
-        <Diya size={diyaSize} delay={1000} />
-      </Animated.View>
-    </View>
-  );
-}
+// CompletionDiya (the diya + burst reward moment) lived here until 2026-08-18
+// — the owner replaced it with the Purna TrinityMark on every reward screen
+// (src/ui/Purna.tsx). CelebrationBurst + StarField stay as primitives.
 
 const styles = StyleSheet.create({
   root: { alignItems: "center", justifyContent: "center" },

@@ -13,7 +13,7 @@
  * Perf: transform + opacity only, on the UI thread; ~10 tiny views per press.
  */
 import React, { useEffect } from "react";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, View, useWindowDimensions } from "react-native";
 import Animated, {
   Easing,
   interpolate,
@@ -93,23 +93,24 @@ function Spark({
 }
 
 /**
- * GoldGlow — the blessing-reveal's soft golden light, sized to a button
- * (owner ask 2026-08-18: every gold button should answer a press with the
- * SAME soft radial bloom as "tap to reveal blessing", not the small particle
- * release). It renders GoldWash's shared ramp (GOLD_WASH_RAMP — one source,
- * never a copy), local to the pressed surface: a warm radial blooms out of
- * the button's centre and dies away. The field is sized RELATIVE to the
- * button (140% of its width), so a full-width CTA is enveloped edge to edge,
- * not lit by a fixed blob narrower than itself. Fire-and-rest via `trigger`,
- * exactly like GoldBurst; nothing renders under the motion gate.
+ * GoldGlow — the demo artifact's press glow, exactly (owner ask 2026-08-18:
+ * the "Mark Complete" glow from the approved mockup on EVERY gold button).
+ * The mockup answers a gold press with `goldwash` — a SCREEN-sized radial in
+ * the shared GOLD_WASH_RAMP that swells in fast and dies away slow (1.15s,
+ * opacity only, no travel) — plus the ring bloom PressableScale already
+ * draws on the button itself. This is that wash: a disc wider than the
+ * screen, centred on the pressed button, faded through the mockup's exact
+ * gwash envelope. Fire-and-rest via `trigger`; nothing renders under the
+ * motion gate.
  *
- * Perf: one animated node, opacity + scale only, UI thread, over one static
- * SVG gradient rasterised at its natural size.
+ * Perf: one animated node, opacity only, UI thread, over one static SVG
+ * gradient rasterised at mount, never at press.
  */
-const GLOW_MS = 950;
+const GLOW_MS = 1150; // the mockup's gwash 1.15s
 
 export function GoldGlow({ trigger }: { trigger: number }) {
   const enabled = useMotion();
+  const { width, height } = useWindowDimensions();
   const t = useSharedValue(1); // 1 = at rest (invisible)
 
   useEffect(() => {
@@ -119,16 +120,19 @@ export function GoldGlow({ trigger }: { trigger: number }) {
   }, [enabled, trigger, t]);
 
   const style = useAnimatedStyle(() => ({
-    // the GoldWash envelope: swell in fast, die away slow
+    // the mockup's gwash keyframes: 0% → 0, 20% → 1, 100% → 0
     opacity: interpolate(t.value, [0, 0.2, 1], [0, 1, 0]),
-    transform: [{ scale: interpolate(t.value, [0, 1], [0.72, 1.35]) }],
   }));
 
   if (!enabled) return null;
 
+  // wider than the screen from wherever the button sits — the wash reads as
+  // the whole surface lighting, exactly like the demo
+  const d = Math.max(width, height) * 1.35;
+
   return (
     <View pointerEvents="none" style={styles.root}>
-      <Animated.View style={[{ width: "140%", aspectRatio: 1 }, style]}>
+      <Animated.View style={[{ width: d, height: d }, style]}>
         <Svg width="100%" height="100%" viewBox="0 0 100 100">
           <Defs>
             <RadialGradient id="goldGlowG" cx="50%" cy="50%" r="50%">

@@ -16,6 +16,7 @@
 import React from "react";
 import { Pressable, type StyleProp, type ViewStyle, type AccessibilityRole } from "react-native";
 import Animated, {
+  Easing,
   interpolate,
   useAnimatedStyle,
   useSharedValue,
@@ -82,9 +83,11 @@ export function PressableScale({
       { scale: s.value },
     ],
   }));
+  // the mockup's `bloom` keyframes exactly (bms-redesign-v2 .bloom.go):
+  // 0% opacity .7 / scale .95 → 100% opacity 0 / scale 1.26, .6s ease-out
   const bloomStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(b.value, [0, 0.15, 1], [0, 0.65, 0]),
-    transform: [{ scale: interpolate(b.value, [0, 1], [0.92, 1.32]) }],
+    opacity: interpolate(b.value, [0, 1], [0.7, 0]),
+    transform: [{ scale: interpolate(b.value, [0, 1], [0.95, 1.26]) }],
   }));
 
   return (
@@ -98,7 +101,8 @@ export function PressableScale({
         s.value = withSpring(scaleTo, spring.press);
         if (bloom) {
           b.value = 0;
-          b.value = withTiming(1, { duration: 520 });
+          // .6s ease-out — the mockup's bloom timing
+          b.value = withTiming(1, { duration: 600, easing: Easing.out(Easing.quad) });
         }
       }}
       onPressOut={() => {

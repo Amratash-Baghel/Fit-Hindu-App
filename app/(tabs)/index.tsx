@@ -26,7 +26,6 @@ import {
   useWeekPillars,
   pillarComplete,
   pillarsCompleteCount,
-  ringOrder,
   PILLAR_ORDER,
   type PillarProgress,
 } from "../../src/lib/pillars";
@@ -209,16 +208,17 @@ export default function Home() {
       ) : null}
 
       {/* the day's concrete practices — tap one, do it, come back to a lit ring */}
-      {!guest ? <TaskStrip todayTypes={todayTypes} soulFirst={dp.soulFirst} /> : null}
+      {!guest ? <TaskStrip todayTypes={todayTypes} /> : null}
 
       {/* the BMS hero — Body · Mind · Soul rings (docs/specs/redesign-bms.md).
           Each circle is the door to its pillar page; the ring is today's
-          completion (e.g. mind 1/1 once meditation is logged). After sunset the
-          order flips so Soul leads — the day turns inward (dp.soulFirst). No
-          static backdrop behind the coins — it read as a frozen ripple sitting
-          behind the live ambient ones CoinHalo already animates. */}
+          completion (e.g. mind 1/1 once meditation is logged). The order is
+          FIXED — Body, Mind, Soul, always (owner 2026-08-18: the circles never
+          cycle; the daypart still tints the wash and greeting, nothing more).
+          No static backdrop behind the coins — it read as a frozen ripple
+          sitting behind the live ambient ones CoinHalo already animates. */}
       <View style={{ alignItems: "center", gap: space.xl, paddingVertical: space.md }}>
-        {ringOrder(dp.soulFirst).map((k, i) => (
+        {PILLAR_ORDER.map((k, i) => (
           <PillarRing
             key={k}
             k={k}
@@ -456,12 +456,6 @@ function PillarRing({
               )}
             </View>
           </PillarCoin>
-          {/* a lit diya crowns a pillar that's fully done today */}
-          {done ? (
-            <View style={{ position: "absolute", top: 2, right: 10 }}>
-              <Diya size={26} />
-            </View>
-          ) : null}
         </View>
         <View style={{ alignItems: "center", marginTop: space.sm }}>
           <T variant="h2" style={{ color: tint }}>
@@ -479,20 +473,13 @@ function PillarRing({
 /**
  * The task strip (redesign — "name the next step"): the rings say how much,
  * this says WHAT. One chip per practice, done-state from the same read as the
- * rings, each a door into its module. Order follows the daypart — evenings
- * bring Soul's practices forward, same as the ring stack.
+ * rings, each a door into its module. Fixed Body → Mind → Soul order, same as
+ * the ring stack (owner 2026-08-18: never cycles).
  */
-function TaskStrip({
-  todayTypes,
-  soulFirst,
-}: {
-  todayTypes: readonly ActivityType[];
-  soulFirst: boolean;
-}) {
+function TaskStrip({ todayTypes }: { todayTypes: readonly ActivityType[] }) {
   const router = useRouter();
   const { t } = useI18n();
-  const order = ringOrder(soulFirst);
-  const items = [...STRIP_ITEMS].sort((a, b) => order.indexOf(a.pillar) - order.indexOf(b.pillar));
+  const items = STRIP_ITEMS;
   return (
     <ScrollView
       horizontal
