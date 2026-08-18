@@ -20,6 +20,7 @@ import { supabase } from "./supabase";
 import { useI18n, type StringKey } from "./i18n";
 import { assignPlan } from "./plan";
 import { flushQueue } from "./session";
+import { flushActivityQueue } from "./activityQueue";
 import { registerPushToken, unregisterPushToken } from "./push";
 import {
   QUESTIONNAIRE_VERSION, answersToProfile, clearProgress, loadProgress, markOnboarded,
@@ -177,6 +178,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // is free.
       if (s) {
         void flushQueue();
+        void flushActivityQueue();
         // The push token is fetched before any account exists (a guest can grant
         // permission after their first workout), so this is the moment it gets
         // an owner. Idempotent — the upsert is keyed on (user_id, device_id) —

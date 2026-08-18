@@ -30,9 +30,10 @@ import {
 } from "../../src/ui";
 import { useI18n } from "../../src/lib/i18n";
 import { listMantras, getTodayDevotional, type MantraWithDeity } from "../../src/lib/content";
-import { logActivity } from "../../src/lib/activity";
+import { logActivityDurable } from "../../src/lib/activity";
 import { earnSince, pointsTodayNow } from "../../src/lib/points";
 import { feedback } from "../../src/lib/feedback";
+import { uuidv4 } from "../../src/lib/ids";
 
 /** One mala. Fixed in v1 — see docs/specs/jap.md. */
 const MALA = 108;
@@ -145,7 +146,7 @@ export default function Jap() {
         // once the flat base is banked, the 3rd +2, capped at 18).
         void (async () => {
           const before = await pointsTodayNow();
-          const ok = await logActivity("jap", { deity_id: deityId, count: MALA }, mantraId);
+          const ok = await logActivityDurable("jap", { deity_id: deityId, count: MALA }, mantraId, uuidv4());
           // Only diff against `before` if the write actually landed. If it
           // failed (offline/guest/transient), pass null → earned is null → the
           // overlay celebrates without a number, never the misleading "already

@@ -622,9 +622,28 @@ export const strings = {
   },
   plan_failed: { hi: "प्लान तैयार नहीं हो सका", en: "Couldn't prepare your plan" },
   plan_failed_retry: { hi: "फिर से कोशिश करें", en: "Try again" },
+  plan_taking_longer: { hi: "इसमें अपेक्षा से अधिक समय लग रहा है", en: "This is taking longer than usual" },
+  plan_check_again: { hi: "फिर से जाँचें", en: "Check again" },
 } satisfies Record<string, Str>;
 
 export type StringKey = keyof typeof strings;
+
+/**
+ * Safe lookup. Every literal `t("...")` call is checked by `tsc` against
+ * `StringKey`, but a handful of call sites build a key dynamically —
+ * `` t(`pillar_${k}` as StringKey) `` — where the cast is a promise to the
+ * compiler, not a guarantee: a typo in the interpolated part, or a future
+ * union member with no matching catalog entry, would previously throw
+ * `Cannot read properties of undefined` and take the whole screen down with
+ * it. Falling back to the raw key turns that into a visibly wrong label
+ * instead of a crash, and the warning still makes the gap easy to find.
+ */
+function entry(k: StringKey): Str {
+  const e = strings[k];
+  if (e) return e;
+  if (__DEV__) console.warn(`i18n: no catalog entry for "${String(k)}"`);
+  return { hi: String(k), en: String(k) };
+}
 
 interface I18nCtx {
   mode: LanguageMode;
@@ -673,8 +692,8 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     () => ({
       mode,
       setMode,
-      t: (k) => (mode === "english" ? strings[k].en : strings[k].hi),
-      tSub: (k) => (mode === "mixed" ? strings[k].en : null),
+      t: (k) => (mode === "english" ? entry(k).en : entry(k).hi),
+      tSub: (k) => (mode === "mixed" ? entry(k).en : null),
       loc: (hi, en) => (mode === "english" ? en : hi),
       locSub: (hi, en) => (mode === "mixed" ? en : null),
     }),

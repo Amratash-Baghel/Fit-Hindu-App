@@ -32,7 +32,7 @@ import { useI18n } from "../../src/lib/i18n";
 import { listSleepSounds, type SleepSound } from "../../src/lib/content";
 import { fadeOutStop, isPlaying, playLoop, stopAudio, subscribeAudio } from "../../src/lib/audio";
 import { audioSourceFor } from "../../src/lib/localAudio";
-import { logActivity } from "../../src/lib/activity";
+import { logActivityDurable } from "../../src/lib/activity";
 import { earnSince, pointsTodayNow } from "../../src/lib/points";
 import { feedback } from "../../src/lib/feedback";
 import { beginSleepRun, markSleepAlive, clearSleepRun } from "../../src/lib/sleepRun";
@@ -121,12 +121,14 @@ export default function Sleep() {
     if (actualMin < 5) return; // too little listening to count as sleep
     loggedRef.current = true;
     const before = runPointsBeforeRef.current;
-    const logged = logActivity(
+    const logged = logActivityDurable(
       "sleep_sound",
       { minutes: runTimerRef.current, actual_min: actualMin, timer_completed: timerCompleted },
       runRefIdRef.current ?? undefined,
-      // Same id the mirror holds, so a live log and a stale reconcile dedup.
-      runEventIdRef.current ?? undefined,
+      // Same id the mirror holds, so a live log and a stale reconcile dedup —
+      // and now also the id an offline retry reuses, so it can't double-log.
+      // Always set by the time a run can qualify (stamped at play-start).
+      runEventIdRef.current ?? uuidv4(),
     );
     if (present) {
       // the completion SOUND (the reward overlay's diya supplies the haptic) —

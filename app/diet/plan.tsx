@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { View, ActivityIndicator } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Screen, Card, Button, FooterAction, GoldWash, B, T, color, space } from "../../src/ui";
@@ -7,13 +7,24 @@ import { getDietRequest } from "../../src/lib/diet";
 import { feedback } from "../../src/lib/feedback";
 import type { DietPlanRequest, DietPlan } from "../../src/types/db";
 
+const POLL_MS = 4000;
+/** The n8n workflow (docs/specs/diet-custom-plan.md) has no SLA, but a screen
+ *  left open on a stuck run must not poll forever — 5 minutes of silence reads
+ *  as "generation failed", not "keep waiting", so it stops here and hands the
+ *  user a manual re-check instead of burning battery/data unattended. */
+const MAX_POLL_MS = 5 * 60 * 1000;
+
 export default function DietPlanScreen() {
   const { request } = useLocalSearchParams<{ request: string }>();
   const { mode } = useI18n();
   const router = useRouter();
   const [req, setReq] = useState<DietPlanRequest | null>(null);
   const [loading, setLoading] = useState(true);
+  // True once polling has given up without a terminal status — the preparing
+  // screen swaps its silent spinner for a "check again" the user controls.
+  const [stalled, setStalled] = useState(false);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const elapsedMs = useRef(0);
   // Celebrate the plan landing (gold wash + completion haptic/sound) ONLY on a
   // real pending/generating -> ready TRANSITION — never when the screen opens on
   // a plan that was already generated earlier, which would replay the whole
@@ -22,13 +33,23 @@ export default function DietPlanScreen() {
   const prevStatus = useRef<string | null>(null);
   const [celebrate, setCelebrate] = useState(false);
 
-  useEffect(() => {
-    if (!request) return;
+  const startPolling = useCallback((id: string) => {
+    // Guard against a second interval stacking on the first: the mount effect
+    // below is the only caller React guarantees a cleanup between (it reruns
+    // only when `request` changes, and React runs the previous cleanup
+    // first). `checkAgain` calls this directly from a button tap, where no
+    // such guarantee exists — a fast double-tap before the button disappears
+    // on re-render would otherwise leave two intervals racing on the same
+    // `timer` ref, each polling and able to fire the completion celebration.
+    if (timer.current) {
+      clearInterval(timer.current);
+      timer.current = null;
+    }
     let alive = true;
 
     async function poll() {
       try {
-        const r = await getDietRequest(request);
+        const r = await getDietRequest(id);
         if (!alive) return;
         setReq(r);
         setLoading(false);
@@ -47,13 +68,35 @@ export default function DietPlanScreen() {
       }
     }
 
-    poll();
-    timer.current = setInterval(poll, 4000);
+    void poll();
+    elapsedMs.current = 0;
+    timer.current = setInterval(() => {
+      elapsedMs.current += POLL_MS;
+      if (elapsedMs.current >= MAX_POLL_MS && timer.current) {
+        clearInterval(timer.current);
+        timer.current = null;
+        setStalled(true);
+        return;
+      }
+      void poll();
+    }, POLL_MS);
+
     return () => {
       alive = false;
       if (timer.current) clearInterval(timer.current);
     };
-  }, [request]);
+  }, []);
+
+  useEffect(() => {
+    if (!request) return;
+    return startPolling(request);
+  }, [request, startPolling]);
+
+  const checkAgain = useCallback(() => {
+    if (!request) return;
+    setStalled(false); // a plain event handler, not an effect body — fine to set directly
+    startPolling(request);
+  }, [request, startPolling]);
 
   const pick = (hi?: string, en?: string) => (mode === "english" ? en : hi) ?? en ?? hi ?? "";
 
@@ -74,10 +117,14 @@ export default function DietPlanScreen() {
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: space.lg }}>
           <ActivityIndicator color={color.saffron} size="large" />
           <B k="plan_preparing_title" variant="h1" center />
-          <B k="plan_preparing_sub" variant="body" tone="muted" center />
+          <B k={stalled ? "plan_taking_longer" : "plan_preparing_sub"} variant="body" tone="muted" center />
         </View>
         <FooterAction>
-          <Button k="done" kind="ghost" onPress={() => router.replace("/(tabs)/diet")} />
+          {stalled ? (
+            <Button k="plan_check_again" onPress={checkAgain} />
+          ) : (
+            <Button k="done" kind="ghost" onPress={() => router.replace("/(tabs)/diet")} />
+          )}
         </FooterAction>
       </Screen>
     );

@@ -6,10 +6,11 @@ import { Screen, Card, T, B, Button, Diya, IconSlot, RewardOverlay, BowlIcon, Ch
 import { useI18n } from "../../src/lib/i18n";
 import { listDietTemplates, getLatestDietRequest } from "../../src/lib/diet";
 import { usePillars } from "../../src/lib/pillars";
-import { logActivity } from "../../src/lib/activity";
+import { logActivityDurable } from "../../src/lib/activity";
 import { earnSince, pointsTodayNow } from "../../src/lib/points";
 import { feedback } from "../../src/lib/feedback";
 import { istDayKey } from "../../src/lib/daypart";
+import { deterministicUuid } from "../../src/lib/ids";
 import type { DietTemplate, DietPlanRequest } from "../../src/types/db";
 
 export default function DietTab() {
@@ -145,8 +146,23 @@ function TodayMealCard() {
     // number, never a false "already claimed"). The stable per-IST-day
     // client_event_id makes the write idempotent (upsert on user_id+event id),
     // so even a replay/retry collapses to ONE meal row for the day.
+    //
+    // `deterministicUuid`, not the raw string: `client_event_id` is a `uuid`
+    // column, and a literal "meal-2026-08-17" fails Postgres's uuid parser
+    // (code 22P02) on every single insert attempt — found 2026-08-17 by
+    // probing the live table directly. logActivity swallows that error into a
+    // plain `false`, so this tap has never actually recorded a meal: the
+    // Body ring's diet half only ever looked done because of the LOCAL
+    // `loggedLocal` flag below, which forgets itself the moment the screen
+    // remounts. Hashing the same key into a valid uuid keeps the intended
+    // per-day idempotency and actually reaches the table.
     const before = await pointsTodayNow();
-    const ok = await logActivity("meal", { source: "plan_kept" }, undefined, `meal-${istDayKey()}`);
+    const ok = await logActivityDurable(
+      "meal",
+      { source: "plan_kept" },
+      undefined,
+      deterministicUuid(`meal-${istDayKey()}`),
+    );
     feedback.completeChime(); // the completion sound; the overlay's diya supplies the haptic
     const e = await earnSince(ok ? before : null);
     setReward({ earned: e.earned, total: e.total });

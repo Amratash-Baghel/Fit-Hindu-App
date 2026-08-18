@@ -3,7 +3,59 @@
 Running build log — one entry per shipped item, newest on top. This is the
 standup doc for the owner and the resume-from-home lifeline.
 
-- **2026-08-17 (last) — Codebase review + app-size assessment (redesign
+- **2026-08-17 (last) — Durable logging for meditation/jap/sleep/diet, and a
+  live silent bug fixed (redesign branch).** Follow-through on the review's
+  #1-ranked open item: those four completions wrote via `logActivity()`, a
+  single insert with no retry, while workouts had `session.ts`'s durable
+  queue — offline or a transient error and the row was just gone. New
+  `src/lib/activityQueue.ts` gives them the same guarantee, as its OWN module
+  rather than folded into `session.ts` (which now carries this app's most
+  important recent fix and didn't need a second, unverifiable-on-device edit
+  tonight). `logActivityDurable()` (activity.ts) is the new entry point; the
+  four call sites (sleep's live stop path, jap's mala-complete, meditation's
+  `complete()`, diet's "kept today") all switched to it, each now passing a
+  real stable `client_event_id` via `uuidv4()`.
+  **Found and fixed while wiring diet.tsx**: its idempotency key was
+  `` `meal-${istDayKey()}` `` passed into a `uuid` column — Postgres has always
+  rejected that string (confirmed by probing the live table directly:
+  `22P02 invalid input syntax for type uuid`), so **every "Keep today's plan"
+  tap has silently failed to write**, forever; the button only ever looked
+  like it worked because of a local flag that resets on remount. New
+  `deterministicUuid(seed)` in `ids.ts` hashes the same per-day key into a
+  valid, stable uuid (same intended idempotency, now real).
+  Also stamped `program_id` onto every `logActivity` write (previously only
+  the workout path did — four of five activity types were unscoped, matching
+  the review's #2 item), capped the diet-plan poll at 5 minutes with a manual
+  "Check again" instead of forever (#3), and gave `t()`/`tSub()` a dev-warned
+  fallback to the raw key instead of throwing on an `as StringKey` cast that
+  points at nothing (#4).
+  `/code-review` on the diff found two real bugs, both fixed before commit:
+  `flushActivityQueue` had no pre-auth guard (session.ts's does), so a flush
+  firing before the session restores on cold launch spent one of 8 retries on
+  an attempt that was doomed before it started; and `diet/plan.tsx`'s
+  extracted `startPolling` didn't clear a pre-existing interval, safe only
+  because its one prior caller was a `useEffect` React cleans up between runs
+  — not true once `checkAgain` could call it directly from a button tap.
+  A third finding (an added sequential `user_plans` round-trip per completion,
+  from the `program_id` stamp) was left as-is — a deliberate, low-frequency
+  cost for real correctness, matching `session.ts`'s own `activePlan()`.
+  Along the way, found (but deliberately did NOT fix tonight) a related gap in
+  `session.ts`: its queue stamps `user_id` from whoever is signed in **when
+  the flush runs**, not who enqueued it — on a shared device a sign-out before
+  a flush followed by a different sign-in could silently attribute the first
+  user's queued workout to the second. The new queue avoids this by stamping
+  `user_id` at enqueue time instead; `session.ts` itself is flagged in
+  `docs/decisions.md` as a scoped follow-up, not touched blind.
+  typecheck + lint green (app + admin, after clearing a stale `.next/dev/types`
+  cache unrelated to any of tonight's edits). **Not verifiable in the web
+  preview and stated as such**: every path here only diverges from existing,
+  already-shipped behavior when offline or on a genuine write failure, which
+  needs a signed-in device with connectivity toggled — the guest path (all
+  four call sites already no-op the same way for guests) was click-tested and
+  crash-free. `deterministicUuid` was verified directly: same seed → same
+  output, different day → different output, and the live table accepts the
+  derived id as a filter where it previously rejected the raw string.
+- **2026-08-17 (earlier) — Codebase review + app-size assessment (redesign
   branch).** Owner ask after slice E: review everything for errors and problems,
   and answer the size question (target 50–70 MB, hard cap 100). Full report:
   `docs/review-2026-08-17.md`.

@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from "../src/lib/auth";
 import { hydrateFeedbackPrefs } from "../src/lib/settings";
 import { preloadFeedback } from "../src/lib/feedback";
 import { reconcile, watchForFlush } from "../src/lib/session";
+import { flushActivityQueue, watchActivityFlush } from "../src/lib/activityQueue";
 import { reconcileSleepRun } from "../src/lib/sleepRun";
 import { watchCheckIn } from "../src/lib/points";
 import { watchNotificationTaps } from "../src/lib/push";
@@ -49,6 +50,15 @@ export default function RootLayout() {
     // (slice 5 follow-up): the mirror survives the kill, this logs it once.
     void reconcileSleepRun();
     return watchForFlush();
+  }, []);
+
+  // Same idea, for the queue behind meditation/jap/sleep/diet completions
+  // (2026-08-17 durability pass) — a separate module, so it gets its own
+  // launch flush and its own foreground watcher rather than being folded
+  // into the workout session's.
+  useEffect(() => {
+    void flushActivityQueue();
+    return watchActivityFlush();
   }, []);
 
   // Bank the daily app-open bonus on launch and on every foreground (slice 5).

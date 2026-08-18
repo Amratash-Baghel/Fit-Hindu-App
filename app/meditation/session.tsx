@@ -19,9 +19,10 @@ import { useKeepAwake } from "expo-keep-awake";
 import { Screen, Button, FooterAction, Reveal, B, T, CompletionDiya, GoldWash, PointsEarned, useMotion, color, duration, pillar, space } from "../../src/ui";
 import { useI18n } from "../../src/lib/i18n";
 import { pauseAudio, resumeAudio, stopAudio, fadeOutStop } from "../../src/lib/audio";
-import { logActivity } from "../../src/lib/activity";
+import { logActivityDurable } from "../../src/lib/activity";
 import { earnSince, pointsTodayNow, type ActivityEarn } from "../../src/lib/points";
 import { feedback } from "../../src/lib/feedback";
+import { uuidv4 } from "../../src/lib/ids";
 
 /** The two breath rhythms (UI9 slice D). `even` is a plain even breath — NOT
  *  "box", which is four phases with holds; naming a practice wrongly is not a
@@ -176,7 +177,7 @@ export default function MeditationSession() {
     // audio-mode reset, so it never leaks into later UI chirps.
     void fadeOutStop();
     feedback.chime();
-    void logActivity(
+    void logActivityDurable(
       "meditation",
       {
         sound_id: sound === "silent" ? null : sound,
@@ -189,6 +190,7 @@ export default function MeditationSession() {
         bell: bellOn,
       },
       sound && sound !== "silent" ? sound : undefined,
+      uuidv4(),
     ).then(async (ok) => {
       // Diff only when the write landed — otherwise the completion screen would
       // show a false "already claimed today" instead of a plain celebration.

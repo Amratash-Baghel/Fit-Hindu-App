@@ -2,7 +2,60 @@
 
 One dated line per decision, with the why. Newest on top.
 
-- **2026-08-17** — **Queue edits re-read storage under the lock (never write back
+- **2026-08-17 (later)** — **Meditation/jap/sleep/diet completions get the same
+  durability guarantee workouts already have, via a NEW, separate queue rather
+  than reusing `session.ts`'s.** `logActivity()` was a single insert with no
+  retry — offline or transient and the row was gone, silently, since the caller
+  only ever saw a boolean. `src/lib/activityQueue.ts` gives the other four
+  completions a matching AsyncStorage-backed retry queue (`logActivityDurable`
+  in activity.ts is the new entry point; `logActivity` itself is unchanged and
+  stays the primitive both it and `sleepRun.ts`'s best-effort crash reconcile
+  use). Deliberately its OWN module, not an extension of session.ts: that file
+  is now the one this app depends on most for training data, having just had a
+  real data-loss race fixed in it tonight — a second edit, unverifiable on a
+  real device, was a worse risk than ~110 lines of duplicated queue mechanics.
+  One real correctness difference from session.ts's copy, on purpose: `user_id`
+  is stamped into the row at **enqueue** time and never rewritten at flush
+  time. session.ts's own `send()` stamps `user_id` from whoever is signed in
+  **when the flush runs** — on a shared device (this audience's explicit norm,
+  see auth.tsx's signOut) a sign-out before a flush followed by a different
+  sign-in would silently attribute the first user's queued data to the second,
+  because RLS only checks a row is self-consistent, not who originally wrote
+  it. That gap is real and is **not** fixed tonight (same reasoning: no second
+  edit to session.ts without a device to verify it on) — flagged here as a
+  known, scoped follow-up.
+  **Same pass fixed a live, silent bug**: diet.tsx's "Keep today's plan" tap
+  built its idempotency key as `` `meal-${istDayKey()}` `` and passed it as
+  `client_event_id`, a `uuid` column — Postgres rejects that string outright
+  (`22P02`, confirmed by probing the live table), so `logActivity` swallowed
+  the error into a plain `false` on **every single tap**, and the diet ring's
+  "done" state only ever looked real because of a local flag that forgets
+  itself the moment the screen remounts. New `deterministicUuid(seed)` in
+  `ids.ts` (four independent FNV-1a passes filling 16 bytes, formatted with the
+  same version/variant bits `uuidv4()` already sets) hashes the same seed into
+  a valid, stable uuid — same per-day idempotency, now actually reaching the
+  table.
+  **`logActivity` now also stamps `program_id`** (reading `user_plans` the same
+  way session.ts's `activePlan()` does) — previously only the workout path did,
+  so four of five activity types were permanently unscoped; nothing reads the
+  column yet, so this is pure data-completeness ahead of the report that will.
+  `/code-review` on the diff found two real bugs before commit, both fixed:
+  `flushActivityQueue` had no up-front auth check (unlike session.ts's), so a
+  flush firing before the session restores on cold launch — `app/_layout.tsx`
+  wires this independently of auth.tsx's async restore — spent one of the 8
+  retry attempts on an attempt that was doomed before it started, and enough
+  cold starts could exhaust the budget and drop real data; and
+  `app/diet/plan.tsx`'s extracted `startPolling` didn't clear a pre-existing
+  interval, safe only as long as its one caller was a `useEffect` (React
+  guarantees the cleanup), which stopped being true the moment `checkAgain`
+  (a plain button handler) could call it directly.
+  Also in this pass: the diet-plan poll caps at 5 minutes and hands the user a
+  manual "Check again" instead of polling forever; `t()`/`tSub()` fall back to
+  the raw key (dev-warned) instead of throwing when an `as StringKey` cast
+  points at nothing, so a future catalog typo degrades to an ugly label, not a
+  white screen. See docs/review-2026-08-17.md for the full audit this grew out
+  of.
+- **2026-08-17 (earlier)** — **Queue edits re-read storage under the lock (never write back
   a snapshot).** `session.ts`'s `flushQueue` now edits the *current* durable
   queue inside `serial()` (`dropHead` / `penaliseHead`) instead of writing back
   the array it read before the network call. Why: a set logged during an
