@@ -11,8 +11,8 @@
   },
   "expo": {
     "autolinking": {
-      "//": "Both ship inside the `expo` package and autolink by default; nothing in this app imports either. @expo/ui alone drags Jetpack Compose into the APK (~1.9MB AAR + Compose runtime) and @expo/dom-webview pulls androidx.webview — dead weight for a 50-70MB budget. Remove an entry here the moment a screen actually uses one ('use dom' components need dom-webview).",
-      "exclude": ["@expo/ui", "@expo/dom-webview"]
+      "//": "@expo/dom-webview autolinks by default but nothing in this app imports it ('use dom' components need it) — pulling in androidx.webview would be dead weight for a 50-70MB budget, so it stays excluded. @expo/ui was ALSO excluded here until 2026-08-19: expo-router 57.0.13+ added its own Android Stack-toolbar feature that imports @expo/ui unconditionally at module load (layouts/stack-utils/toolbar/*), reachable on every launch via Stack's own module graph regardless of whether a screen renders a toolbar — excluding it left requireNativeModule('ExpoUI') with nothing to find, a hard crash ~1s after open on every standalone build. Do not re-add @expo/ui to this list while expo-router depends on it.",
+      "exclude": ["@expo/dom-webview"]
     }
   },
   "dependencies": {
