@@ -46,6 +46,26 @@ eas build --platform android --profile preview
 - Rule of thumb for us: **rebuild APK when package.json gains a native
   dependency; everything else becomes OTA once EAS Update is set up.**
 
+### A2. No computer? Trigger the same build from your phone
+
+`.github/workflows/build-apk.yml` runs the exact `eas build --profile preview`
+command above from GitHub Actions instead of your machine — the native build
+still happens in Expo's cloud either way, GitHub Actions is just a place to
+kick it off from a phone browser.
+
+One-time setup (once, from any phone browser):
+
+1. expo.dev → account settings → access tokens → create one.
+2. In the GitHub repo: Settings → Secrets and variables → Actions → New
+   repository secret → name it `EXPO_TOKEN`, paste the token.
+3. The workflow file must be on the default branch (`main`) before GitHub
+   shows the "Run workflow" button — merge its PR first.
+
+To build: Actions tab → "Build Android APK" → **Run workflow** (main
+branch) → wait ~10–20 min → open the run → the job summary has the install
+link (and a link to the Expo dashboard page with the QR code). Open that
+link on the target phone, allow "install from unknown sources", install.
+
 ## B. Admin panel on Vercel
 
 1. vercel.com → sign in with GitHub → **Add New… → Project** → import
